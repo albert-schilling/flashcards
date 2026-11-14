@@ -24,4 +24,4 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 - `oxlint` exits 1 when it finds no files, so `lint` passes `--no-error-on-unmatched-pattern`; it passes `--deny-warnings` because warnings (like `debugger`) otherwise exit 0.
 - `nx run-many` exits 0 when no project has a target, so a lost target passes `validate` silently. The root is a project (with `format:check` and `lint`) only because of `"nx": {}` in `package.json`; keep it.
 - A new project under `libs/` or `apps/` needs `pnpm exec nx sync` (adds its reference to `tsconfig.json`), or `validate` fails as "out of sync".
-- `pnpm exec` installs missing dependencies by itself instead of failing.
+- `pnpm exec` installs missing or outdated dependencies itself (`verifyDepsBeforeRun` defaults to `install`); to make it fail instead, pass `--config.verify-deps-before-run=error`.
