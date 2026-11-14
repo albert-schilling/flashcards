@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    // Installed Factory files; an update replaces them.
+    ".claude/",
+    ".agents/",
+    // Generated.
+    "pnpm-lock.yaml",
+    "skills-lock.json"
+  ]
+}
