@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "skills": {
+    "factory": {
+      "source": "albert-schilling/skills",
+      "sourceType": "github",
+      "skillPath": "skills/factory/SKILL.md",
+      "computedHash": "d668cf225f394e15362036e1b0f3f41961c49114b7e9e9156ce63f7cefd4c274"
+    },
+    "factory-pull-request": {
+      "source": "albert-schilling/skills",
+      "sourceType": "github",
+      "skillPath": "skills/factory-pull-request/SKILL.md",
+      "computedHash": "9140a64159d3f85f67340f752913736bb9fc1de71741c0c7c42d60ab44a0497b"
+    },
+    "factory-result": {
+      "source": "albert-schilling/skills",
+      "sourceType": "github",
+      "skillPath": "skills/factory-result/SKILL.md",
+      "computedHash": "7a8cd657169bc16bda0d32baa6cf9baf28a61392c7c683eafa84185e046914e0"
+    },
+    "factory-setup": {
+      "source": "albert-schilling/skills",
+      "sourceType": "github",
+      "skillPath": "skills/factory-setup/SKILL.md",
+      "computedHash": "9c294d842b6230211c928fdd4279f044d4c9801de496624dbe9535d684f57afb"
+    }
+  }
+}
