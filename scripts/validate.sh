@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
-# Everything CI runs, in one command, so CI, people and the Factory's Stop hook check the same
-# thing: formatting, lint, type check and tests, through Nx.
+# Everything CI runs, so CI, people and the Factory's Stop hook check the same thing.
 set -eu
 cd "$(dirname "$0")/.."
 
