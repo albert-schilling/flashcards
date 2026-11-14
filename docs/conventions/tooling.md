@@ -2,7 +2,10 @@
 
 ## Commands
 
-- `./scripts/validate.sh`: everything CI runs. Add each check here as the project gets it, so CI, people and the Stop hook run the same thing.
+- `pnpm install`: install dependencies.
+- `./scripts/validate.sh`: everything CI runs (format check, lint, type check, tests, through Nx), so CI, people and the Stop hook run the same thing.
+- `pnpm format`: format the repository with oxfmt.
+- `pnpm exec nx run <project>:<target>`: run one target of one project.
 
 ## The Stop hook
 
@@ -15,3 +18,10 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 ## Gotchas
 
 <!-- Tool behaviour that surprised an agent or a person, one line each, with what to do instead. -->
+
+- No corepack here: pnpm is pinned by `packageManager` in `package.json`; install that version yourself.
+- pnpm blocks dependency build scripts: allow one in `allowBuilds` in `pnpm-workspace.yaml`.
+- `oxlint` exits 1 when it finds no files, so `lint` passes `--no-error-on-unmatched-pattern`; it passes `--deny-warnings` because warnings (like `debugger`) otherwise exit 0.
+- `nx run-many` exits 0 when no project has `typecheck` or `test`.
+- A new project under `libs/` or `apps/` needs `pnpm exec nx sync` (adds its reference to `tsconfig.json`), or `validate` fails as "out of sync".
+- `pnpm exec` installs missing dependencies by itself instead of failing.
