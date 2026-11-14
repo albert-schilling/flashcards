@@ -5,7 +5,7 @@
   "glossary": "GLOSSARY.md",
   "decisionRecords": ["docs/adr/"],
   "issueTemplate": ".github/ISSUE_TEMPLATE/task.md",
-  "setup": "",
+  "setup": "pnpm install --frozen-lockfile",
   "validate": "./scripts/validate.sh",
   "maxChangedLines": 300,
   "harnessLog": "docs/harness-log.md",
