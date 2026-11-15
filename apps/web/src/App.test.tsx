@@ -16,7 +16,10 @@ function qa(id: string, version: number, answer = "An answer."): TCardQA {
 }
 
 function upload(...cards: TCard[]) {
-  const file = new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" });
+  pick(new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }));
+}
+
+function pick(file: File) {
   const input = screen.getByLabelText<HTMLInputElement>("Upload Deck");
   // jsdom can't pick a file, so act like a browser: the value names the file until set to "".
   let files = [file];
@@ -104,4 +107,14 @@ it("shows an error when the browser storage fails", async () => {
   render(<App />);
 
   expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+});
+
+it("shows an error when the file can't be read", async () => {
+  const file = new File([], "deck.json");
+  file.text = () => Promise.reject(new DOMException("The file is gone.", "NotReadableError"));
+  render(<App />);
+
+  pick(file);
+
+  expect((await screen.findByRole("alert")).textContent).toContain("The file is gone.");
 });
