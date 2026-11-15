@@ -20,6 +20,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #18 | A test helper typed as the whole Card union failed typecheck; Card types had no own names.           | One exported schema per Card type; `Z`/`T` naming rule in `code.md`.       |
 | #18 | The implementer's test-file hook blocked edits to non-test files.                                    | albert-schilling/skills#31.                                                |
 | #18 | The plan estimated ~260 lines; the PR came out at 592, found only at review.                         | #19: warn on oversized diffs.                                              |
+| #20 | Headless Firefox can't pick files, so the PR had no screenshot of the filled Card list.              | #21: Playwright screenshots of interactive states.                         |
 
 ## Factory runs
 
@@ -37,3 +38,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #13 | #3    | medium    | 3 / 2             | 2             | 0              | none                |
 | #15 | #4    | high      | 1 / 2             | 2             | 0              | none                |
 | #18 | #5    | medium    | 4 / 6             | 3             | 0              | none                |
+| #20 | #17   | medium    | 1 / 1             | 2             | 0              | none                |
