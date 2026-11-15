@@ -1,0 +1,94 @@
+{
+  "$schema": "./deck.schema.json",
+  "cards": [
+    {
+      "id": "ml.trees.leaf-mean",
+      "version": 1,
+      "type": "qa",
+      "tags": { "domain": ["Machine Learning"], "topic": ["Decision Tree"] },
+      "sourceIds": [],
+      "lesson": "lesson-04",
+      "en": {
+        "question": "What does a regression leaf predict?",
+        "answer": "The mean of its samples."
+      },
+      "translations": {
+        "de": {
+          "question": "Was sagt ein Regressionsblatt vorher?",
+          "answer": "Den Mittelwert seiner Stichproben."
+        }
+      }
+    },
+    {
+      "id": "ml.trees.split-criterion",
+      "version": 1,
+      "type": "multiple_choice",
+      "tags": { "domain": ["Machine Learning"], "topic": ["Decision Tree"] },
+      "sourceIds": [],
+      "lesson": "lesson-04",
+      "en": {
+        "question": "Which criterion does a regression tree split on?",
+        "options": ["Gini impurity", "Mean squared error"],
+        "explanation": "Regression trees minimise the squared error in each leaf."
+      },
+      "answerIndex": 1,
+      "translations": {
+        "de": {
+          "question": "Nach welchem Kriterium teilt ein Regressionsbaum?",
+          "options": ["Gini-Unreinheit", "Mittlerer quadratischer Fehler"]
+        }
+      }
+    },
+    {
+      "id": "math.vectors.norm",
+      "version": 1,
+      "type": "formula",
+      "tags": { "domain": ["Mathematics"], "topic": ["Vectors"] },
+      "sourceIds": [],
+      "lesson": "lesson-01",
+      "en": {
+        "name": "Vector norm",
+        "wordFormula": "The square root of a dot a.",
+        "readAloud": "Norm of a equals the square root of a dot a."
+      },
+      "formula": "‖a‖ = √(a · a)",
+      "latex": "\\lVert a \\rVert = \\sqrt{a \\cdot a}",
+      "translations": {
+        "de": { "name": "Vektornorm", "wordFormula": "Die Wurzel aus a mal a." }
+      }
+    },
+    {
+      "id": "stats.mean.example",
+      "version": 1,
+      "type": "numeric",
+      "tags": { "domain": ["Statistics"], "topic": ["Mean"] },
+      "sourceIds": [],
+      "lesson": "lesson-02",
+      "en": { "question": "What is the mean of 2, 4 and 9?" },
+      "answer": 5,
+      "allowedError": 0.01,
+      "translations": { "de": { "question": "Was ist der Mittelwert von 2, 4 und 9?" } }
+    },
+    {
+      "id": "ml.trees.depth",
+      "version": 1,
+      "type": "cloze",
+      "tags": { "domain": ["Machine Learning"], "topic": ["Decision Tree"] },
+      "sourceIds": [],
+      "lesson": "lesson-04",
+      "en": { "text": "A deeper tree has {{higher}} variance." },
+      "translations": { "de": { "text": "Ein tieferer Baum hat {{höhere}} Varianz." } }
+    },
+    {
+      "id": "ml.forest.bagging",
+      "version": 1,
+      "type": "true_false",
+      "tags": { "domain": ["Machine Learning"], "topic": ["Random Forest"] },
+      "sourceIds": [],
+      "lesson": "lesson-05",
+      "en": { "statement": "A random forest averages many trees." },
+      "answer": true,
+      "translations": { "de": { "statement": "Ein Random Forest mittelt viele Bäume." } }
+    }
+  ]
+}
