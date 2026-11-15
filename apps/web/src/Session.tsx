@@ -3,12 +3,24 @@ import { useState } from "react";
 import { addReview } from "./storage";
 
 // The one place Card text is chosen, so a German translation can plug in here.
-function RevealAnswer({ card, onGrade }: { card: TCardQA; onGrade: (right: boolean) => void }) {
+function RevealAnswer(props: {
+  card: TCardQA;
+  revealed: boolean;
+  onReveal: () => void;
+  onGrade: (right: boolean) => void;
+}) {
   return (
     <>
-      <p>{card.en.answer}</p>
-      <button onClick={() => onGrade(true)}>Knew it</button>
-      <button onClick={() => onGrade(false)}>Didn't know</button>
+      <p>{props.card.en.question}</p>
+      {props.revealed ? (
+        <>
+          <p>{props.card.en.answer}</p>
+          <button onClick={() => props.onGrade(true)}>Knew it</button>
+          <button onClick={() => props.onGrade(false)}>Didn't know</button>
+        </>
+      ) : (
+        <button onClick={props.onReveal}>Reveal</button>
+      )}
     </>
   );
 }
@@ -55,12 +67,12 @@ export function Session(props: {
 
   return (
     <section>
-      <p>{card.en.question}</p>
-      {revealed ? (
-        <RevealAnswer card={card} onGrade={grade} />
-      ) : (
-        <button onClick={() => setRevealed(true)}>Reveal</button>
-      )}
+      <RevealAnswer
+        card={card}
+        revealed={revealed}
+        onReveal={() => setRevealed(true)}
+        onGrade={grade}
+      />
     </section>
   );
 }
