@@ -34,7 +34,7 @@ export function Session(props: {
   const [index, setIndex] = useState(0);
   const [rightCount, setRightCount] = useState(0);
   const [revealed, setRevealed] = useState(false);
-  const [shownAt, setShownAt] = useState(Date.now());
+  const [shownAt, setShownAt] = useState(() => Date.now());
 
   const card = props.cards[index];
 

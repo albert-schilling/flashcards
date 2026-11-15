@@ -12,13 +12,13 @@ export function allTags(cards: TCard[]): string[] {
 
 /** Up to `size` Cards in random order, only those with `tag` as a domain or topic tag if given. */
 export function pickCards<T extends TCard>(cards: T[], size: number, tag?: string): T[] {
-  const shuffled = cards.filter(
+  const picked = cards.filter(
     (card) => !tag || card.tags.domain.includes(tag) || card.tags.topic.includes(tag),
   );
   // Fisher–Yates.
-  for (let i = shuffled.length - 1; i > 0; i--) {
+  for (let i = picked.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    [picked[i], picked[j]] = [picked[j], picked[i]];
   }
-  return shuffled.slice(0, size);
+  return picked.slice(0, size);
 }

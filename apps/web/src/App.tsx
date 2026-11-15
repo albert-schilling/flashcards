@@ -90,6 +90,7 @@ export function App() {
           ))}
         </select>
       </label>{" "}
+      {/* An empty input gives NaN, so `size < 1` would let it through. */}
       <button
         disabled={answerable.length === 0 || !(size >= 1)}
         onClick={() => setSession(pickCards(answerable, size, pickedTag || undefined))}
