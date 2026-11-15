@@ -3,3 +3,6 @@ node_modules
 dist
 .nx/cache
 .nx/workspace-data
+vitest.config.*.timestamp*
+.vitest
+out-tsc
