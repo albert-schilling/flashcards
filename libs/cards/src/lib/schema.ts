@@ -23,7 +23,7 @@ function cardType<Type extends string, Text extends z.ZodRawShape, Fields extend
     ...shared,
     type: z.literal(type),
     en: z.strictObject(textShape),
-    translations: z.strictObject({ de: z.strictObject(textShape).partial() }),
+    translations: z.strictObject({ de: z.strictObject(textShape).partial() }).optional(),
     ...fields,
   });
 }
@@ -42,7 +42,7 @@ const multipleChoice = cardType(
       message: "answerIndex must point to an option",
     });
   }
-  const germanOptions = translations.de.options;
+  const germanOptions = translations?.de.options;
   if (germanOptions && germanOptions.length !== en.options.length) {
     ctx.issues.push({
       code: "custom",
@@ -53,7 +53,7 @@ const multipleChoice = cardType(
   }
 });
 
-/** One Card. Text to show is in `en`; `translations.de` has the same fields in German, any of which may be missing and then falls back to English. */
+/** One Card. Text to show is in `en`; `translations.de`, if present, has the same fields in German, any of which may be missing and then falls back to English. */
 export const cardSchema = z.discriminatedUnion("type", [
   cardType("qa", { question: text, answer: text }, {}),
   multipleChoice,

@@ -111,8 +111,7 @@
               "sourceIds",
               "lesson",
               "type",
-              "en",
-              "translations"
+              "en"
             ],
             "additionalProperties": false
           },
@@ -241,7 +240,6 @@
               "lesson",
               "type",
               "en",
-              "translations",
               "answerIndex"
             ],
             "additionalProperties": false
@@ -373,7 +371,6 @@
               "lesson",
               "type",
               "en",
-              "translations",
               "formula"
             ],
             "additionalProperties": false
@@ -483,7 +480,6 @@
               "lesson",
               "type",
               "en",
-              "translations",
               "answer",
               "allowedError"
             ],
@@ -582,8 +578,7 @@
               "sourceIds",
               "lesson",
               "type",
-              "en",
-              "translations"
+              "en"
             ],
             "additionalProperties": false
           },
@@ -684,7 +679,6 @@
               "lesson",
               "type",
               "en",
-              "translations",
               "answer"
             ],
             "additionalProperties": false
