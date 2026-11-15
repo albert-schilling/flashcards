@@ -17,6 +17,9 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #15 | Headless Firefox wrote no screenshot without a profile.                                              | Gotcha in `tooling.md`.                                                    |
 | #15 | Test files were named `.spec` in one project and `.test` in another.                                 | Naming rule in `code.md`; #14 renames.                                     |
 | #15 | `validate.sh` dropped arguments, so reviewers couldn't skip the Nx cache through it.                 | `validate.sh` passes arguments to Nx.                                      |
+| #18 | A test helper typed as the whole Card union failed typecheck; Card types had no own names.           | One exported schema per Card type; `Z`/`T` naming rule in `code.md`.       |
+| #18 | The implementer's test-file hook blocked edits to non-test files.                                    | albert-schilling/skills#31.                                                |
+| #18 | The plan estimated ~260 lines; the PR came out at 592, found only at review.                         | #19: warn on oversized diffs.                                              |
 
 ## Factory runs
 
@@ -33,3 +36,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #11 | #2    | high      | 1 / 2             | 3             | 0              | none                |
 | #13 | #3    | medium    | 3 / 2             | 2             | 0              | none                |
 | #15 | #4    | high      | 1 / 2             | 2             | 0              | none                |
+| #18 | #5    | medium    | 4 / 6             | 3             | 0              | none                |

@@ -8,5 +8,10 @@
     "lib": ["es2022", "dom"],
     "outDir": "out-tsc"
   },
-  "include": ["src", "vite.config.mts"]
+  "include": ["src", "vite.config.mts"],
+  "references": [
+    {
+      "path": "../../libs/cards"
+    }
+  ]
 }

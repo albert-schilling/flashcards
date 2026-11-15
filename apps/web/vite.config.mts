@@ -11,5 +11,7 @@ export default defineConfig({
     watch: false,
     // The tests render React components into a DOM.
     environment: "jsdom",
+    // jsdom has no IndexedDB; each test starts with an empty fake one.
+    setupFiles: ["src/test-setup.ts"],
   },
 });

@@ -1,16 +1,16 @@
 import { z } from "zod";
 
-const text = z.string().min(1);
+const ZText = z.string().min(1);
 
 const shared = {
   id: z.string().regex(/^[a-z0-9]+([.-][a-z0-9]+)*$/, "lowercase words joined by dots or hyphens"),
   version: z.int().min(1),
   tags: z.strictObject({
-    domain: z.array(text).min(1),
-    topic: z.array(text).min(1),
+    domain: z.array(ZText).min(1),
+    topic: z.array(ZText).min(1),
   }),
-  sourceIds: z.array(text),
-  lesson: text,
+  sourceIds: z.array(ZText),
+  lesson: ZText,
 };
 
 /** Builds one Card type: `textShape` is the text to show, `fields` hold language-independent values. */
@@ -28,9 +28,13 @@ function cardType<Type extends string, Text extends z.ZodRawShape, Fields extend
   });
 }
 
-const multipleChoice = cardType(
+/** A question with a free-text answer. */
+export const ZCardQA = cardType("qa", { question: ZText, answer: ZText }, {});
+
+/** A question with options; `answerIndex` points to the right one. */
+export const ZCardMultipleChoice = cardType(
   "multiple_choice",
-  { question: text, options: z.array(text).min(2), explanation: text },
+  { question: ZText, options: z.array(ZText).min(2), explanation: ZText },
   { answerIndex: z.int().min(0) },
 ).check((ctx) => {
   const { en, translations, answerIndex } = ctx.value;
@@ -53,29 +57,45 @@ const multipleChoice = cardType(
   }
 });
 
+/** A formula with its name and word form. */
+export const ZCardFormula = cardType(
+  "formula",
+  { name: ZText, wordFormula: ZText, readAloud: ZText.optional(), example: ZText.optional() },
+  { formula: ZText, latex: ZText.optional() },
+);
+
+/** A question with a number as the answer, within an allowed error. */
+export const ZCardNumeric = cardType(
+  "numeric",
+  { question: ZText },
+  { answer: z.number(), allowedError: z.number().min(0), unit: ZText.optional() },
+);
+
+/** A text with a `{{gap}}` to fill in. */
+export const ZCardCloze = cardType(
+  "cloze",
+  { text: z.string().regex(/\{\{.+?\}\}/, "needs a {{gap}}") },
+  {},
+);
+
+/** A statement that is true or false. */
+export const ZCardTrueFalse = cardType("true_false", { statement: ZText }, { answer: z.boolean() });
+
 /** One Card. Text to show is in `en`; `translations.de`, if present, has the same fields in German, any of which may be missing and then falls back to English. */
-export const cardSchema = z.discriminatedUnion("type", [
-  cardType("qa", { question: text, answer: text }, {}),
-  multipleChoice,
-  cardType(
-    "formula",
-    { name: text, wordFormula: text, readAloud: text.optional(), example: text.optional() },
-    { formula: text, latex: text.optional() },
-  ),
-  cardType(
-    "numeric",
-    { question: text },
-    { answer: z.number(), allowedError: z.number().min(0), unit: text.optional() },
-  ),
-  cardType("cloze", { text: z.string().regex(/\{\{.+?\}\}/, "needs a {{gap}}") }, {}),
-  cardType("true_false", { statement: text }, { answer: z.boolean() }),
+export const ZCard = z.discriminatedUnion("type", [
+  ZCardQA,
+  ZCardMultipleChoice,
+  ZCardFormula,
+  ZCardNumeric,
+  ZCardCloze,
+  ZCardTrueFalse,
 ]);
 
 /** A Deck file: Cards with unique IDs. `$schema` lets an editor check the file against deck.schema.json. */
-export const deckSchema = z
+export const ZDeck = z
   .strictObject({
     $schema: z.string().optional(),
-    cards: z.array(cardSchema),
+    cards: z.array(ZCard),
   })
   .check((ctx) => {
     const seen = new Set<string>();
@@ -92,5 +112,11 @@ export const deckSchema = z
     });
   });
 
-export type Card = z.infer<typeof cardSchema>;
-export type Deck = z.infer<typeof deckSchema>;
+export type TCardQA = z.infer<typeof ZCardQA>;
+export type TCardMultipleChoice = z.infer<typeof ZCardMultipleChoice>;
+export type TCardFormula = z.infer<typeof ZCardFormula>;
+export type TCardNumeric = z.infer<typeof ZCardNumeric>;
+export type TCardCloze = z.infer<typeof ZCardCloze>;
+export type TCardTrueFalse = z.infer<typeof ZCardTrueFalse>;
+export type TCard = z.infer<typeof ZCard>;
+export type TDeck = z.infer<typeof ZDeck>;
