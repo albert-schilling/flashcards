@@ -131,3 +131,107 @@ it("hides the report of the last upload when the next one fails", async () => {
   await screen.findByRole("alert");
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
+
+async function expectNotListed(card: TCard) {
+  await waitFor(() =>
+    expect(screen.queryByText(`${card.id} (${card.type}, version ${card.version})`)).toBeNull(),
+  );
+}
+
+it("deletes one Card, and it stays gone after a reload", async () => {
+  const { unmount } = render(<App />);
+  upload(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
+
+  await expectNotListed(qa("ml.trees.leaf-mean", 1));
+  unmount();
+  render(<App />);
+  await expectListed(qa("ml.trees.depth", 1));
+  expect(screen.queryByText(/ml\.trees\.leaf-mean/)).toBeNull();
+});
+
+it("keeps the Cards when clearing all is cancelled", async () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  try {
+    const { unmount } = render(<App />);
+    upload(qa("ml.trees.leaf-mean", 1));
+    await expectListed(qa("ml.trees.leaf-mean", 1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+    expect(confirm).toHaveBeenCalledWith("Delete all Cards?");
+    unmount();
+    render(<App />);
+    await expectListed(qa("ml.trees.leaf-mean", 1));
+  } finally {
+    confirm.mockRestore();
+  }
+});
+
+it("clears all Cards after confirming, and they stay gone after a reload", async () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+  try {
+    const { unmount } = render(<App />);
+    upload(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
+    await expectListed(qa("ml.trees.depth", 1));
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+    expect(confirm).toHaveBeenCalledWith("Delete all Cards?");
+    await expectNotListed(qa("ml.trees.leaf-mean", 1));
+    await expectNotListed(qa("ml.trees.depth", 1));
+    unmount();
+    render(<App />);
+    // An empty list proves nothing before the reload finishes; "1 added" shows storage was empty.
+    upload(qa("ml.trees.leaf-mean", 1));
+    await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+    await expectListed(qa("ml.trees.leaf-mean", 1));
+    expect(screen.queryByText(/ml\.trees\.depth/)).toBeNull();
+  } finally {
+    confirm.mockRestore();
+  }
+});
+
+it("shows Clear all only while Cards are stored", async () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+  try {
+    render(<App />);
+    expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull();
+
+    upload(qa("ml.trees.leaf-mean", 1));
+    fireEvent.click(await screen.findByRole("button", { name: "Clear all" }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull());
+  } finally {
+    confirm.mockRestore();
+  }
+});
+
+it("keeps the report of the last upload after deleting a Card", async () => {
+  render(<App />);
+  upload(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
+
+  await expectNotListed(qa("ml.trees.leaf-mean", 1));
+  expect(screen.getByText(/2 added, 0 updated, 0 unchanged/)).toBeTruthy();
+});
+
+it("shows an error and keeps the Card when deleting fails", async () => {
+  render(<App />);
+  upload(qa("ml.trees.leaf-mean", 1));
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+  globalThis.indexedDB = {
+    open() {
+      throw new DOMException("Storage is blocked.", "SecurityError");
+    },
+  } as unknown as IDBFactory;
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+});
