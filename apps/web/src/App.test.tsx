@@ -184,7 +184,7 @@ it("clears all Cards after confirming, and they stay gone after a reload", async
     await expectNotListed(qa("ml.trees.depth", 1));
     unmount();
     render(<App />);
-    // Uploading a cleared Card again adds it, and the other one stays gone.
+    // An empty list proves nothing before the reload finishes; "1 added" shows storage was empty.
     upload(qa("ml.trees.leaf-mean", 1));
     await screen.findByText(/1 added, 0 updated, 0 unchanged/);
     await expectListed(qa("ml.trees.leaf-mean", 1));
