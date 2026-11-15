@@ -3,7 +3,7 @@
 ## Commands
 
 - `pnpm install`: install dependencies.
-- `./scripts/validate.sh`: everything CI runs (format check, lint, type check, tests, through Nx), so CI, people and the Stop hook run the same thing.
+- `./scripts/validate.sh`: everything CI runs (format check, lint, type check, tests and build, through Nx), so CI, people and the Stop hook run the same thing.
 - `pnpm format`: format the repository with oxfmt.
 - `pnpm exec nx run <project>:<target>`: run one target of one project.
 
