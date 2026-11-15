@@ -32,6 +32,16 @@ function CardView(props: {
           onNext={props.onNext}
         />
       );
+    case "true_false":
+      return (
+        <CardChoice
+          prompt={card.en.statement}
+          options={["True", "False"]}
+          answerIndex={card.answer ? 0 : 1}
+          onAnswer={props.onAnswer}
+          onNext={props.onNext}
+        />
+      );
   }
 }
 
