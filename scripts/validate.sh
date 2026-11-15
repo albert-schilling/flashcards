@@ -3,4 +3,4 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-pnpm exec nx run-many -t format:check lint typecheck test build
+pnpm exec nx run-many -t format:check lint typecheck test build "$@"

@@ -3,7 +3,7 @@
 ## Commands
 
 - `pnpm install`: install dependencies.
-- `./scripts/validate.sh`: everything CI runs (format check, lint, type check, tests and build, through Nx), so CI, people and the Stop hook run the same thing.
+- `./scripts/validate.sh`: everything CI runs (format check, lint, type check, tests and build, through Nx), so CI, people and the Stop hook run the same thing. Extra arguments go to `nx run-many` (e.g. `--skip-nx-cache`).
 - `pnpm format`: format the repository with oxfmt.
 - `pnpm exec nx run <project>:<target>`: run one target of one project.
 
@@ -25,4 +25,5 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 - `nx run-many` exits 0 when no project has a target, so a lost target passes `validate` silently. The root is a project (with `format:check` and `lint`) only because of `"nx": {}` in `package.json`; keep it.
 - A new project under `libs/` or `apps/` needs `pnpm exec nx sync` (adds its reference to `tsconfig.json`), or `validate` fails as "out of sync".
 - Nx generators leave placeholders (`@org/...` names, an MIT `license`, an empty `dependencies`, a sample source and spec) and extras nothing uses (`@nx/js:lib` adds `@swc/helpers`, coverage and `vite`): drop them before committing. The implementer's hook can't delete the sample spec; the test writer does.
+- Headless Firefox (the only browser here) writes no screenshot without a profile: `firefox --headless --no-remote --profile <empty dir> --screenshot <file> <url>`.
 - `pnpm exec` installs missing or outdated dependencies itself (`verifyDepsBeforeRun` defaults to `install`); to make it fail instead, pass `--config.verify-deps-before-run=error`.
