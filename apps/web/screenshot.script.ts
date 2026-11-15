@@ -45,6 +45,9 @@ const flows: Record<string, TFlow> = {
         await options.nth(1).click();
         await shot("multiple-choice-after");
         await page.getByRole("button", { name: "Next" }).click();
+      } else {
+        // Each pass answers one Card, so an unknown view would loop forever.
+        throw new Error("answer flow: no Card view it knows is shown");
       }
     }
   },
