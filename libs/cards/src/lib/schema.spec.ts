@@ -80,6 +80,11 @@ describe("cardSchema", () => {
     ["empty English text", { ...qa, en: { ...qa.en, question: "" } }, ["en", "question"]],
     ["the unknown key translation", { ...qa, translation: qa.translations }, []],
     [
+      "a language other than German",
+      { ...qa, translations: { ...qa.translations, fr: { question: "Que prédit une feuille ?" } } },
+      ["translations"],
+    ],
+    [
       "a formula without wordFormula",
       { ...formula, en: { ...formula.en, wordFormula: undefined } },
       ["en", "wordFormula"],
@@ -87,6 +92,11 @@ describe("cardSchema", () => {
     [
       "a cloze without a gap",
       { ...cloze, en: { text: "A deeper tree has higher variance." } },
+      ["en", "text"],
+    ],
+    [
+      "a cloze with an empty gap",
+      { ...cloze, en: { text: "A deeper tree has {{}} variance." } },
       ["en", "text"],
     ],
     ["answerIndex past the last option", { ...multipleChoice, answerIndex: 2 }, ["answerIndex"]],
