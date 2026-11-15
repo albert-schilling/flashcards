@@ -1,7 +1,7 @@
 import { openDB } from "idb";
 import { describe, expect, it } from "vitest";
 import { addReview, loadCards, loadReviews, type TReview } from "./storage";
-import { qa } from "./test/cards";
+import { qa } from "./test/cards.fixtures";
 
 function review(cardId: string, answeredAt: string, right = true): TReview {
   return { cardId, cardVersion: 1, answeredAt, right, durationMs: 3000 };

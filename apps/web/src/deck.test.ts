@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { uploadDeck } from "./deck";
 import { loadCards } from "./storage";
-import { qa } from "./test/cards";
+import { qa } from "./test/cards.fixtures";
 
 function deck(...cards: unknown[]): string {
   return JSON.stringify({ cards });

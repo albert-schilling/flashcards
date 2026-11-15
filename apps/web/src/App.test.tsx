@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
 import { loadReviews } from "./storage";
-import { qa, tagged, trueFalse } from "./test/cards";
+import { qa, tagged, trueFalse } from "./test/cards.fixtures";
 
 function upload(...cards: TCard[]) {
   pick(new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }));

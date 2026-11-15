@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { allTags, canAnswer, pickCards } from "./session.helper";
-import { multipleChoice, qa, tagged, trueFalse } from "./test/cards";
+import { multipleChoice, qa, tagged, trueFalse } from "./test/cards.fixtures";
 
 const ids = (cards: { id: string }[]) => cards.map((card) => card.id).sort();
 
