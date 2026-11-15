@@ -376,6 +376,7 @@ it.each([
   {
     case: "multiple_choice, right",
     card: multipleChoice("mc", 1),
+    prompt: "Which is mc?",
     options: choices,
     click: "This",
     right: true,
@@ -385,6 +386,7 @@ it.each([
   {
     case: "multiple_choice, wrong",
     card: multipleChoice("mc", 1),
+    prompt: "Which is mc?",
     options: choices,
     click: "That",
     right: false,
@@ -394,6 +396,7 @@ it.each([
   {
     case: "true_false, true",
     card: trueFalse("tf", 1, true),
+    prompt: "tf is true.",
     options: trueOrFalse,
     click: "True",
     right: true,
@@ -402,6 +405,7 @@ it.each([
   {
     case: "true_false, false",
     card: trueFalse("tf", 1, false),
+    prompt: "tf is true.",
     options: trueOrFalse,
     click: "True",
     right: false,
@@ -415,7 +419,7 @@ it.each([
     vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
 
     startSession();
-    await screen.findByRole("button", { name: c.click });
+    await screen.findByText(c.prompt);
     expect(screen.queryByText(`Answer: ${c.shown}`)).toBeNull();
     if (c.explanation) expect(screen.queryByText(c.explanation)).toBeNull();
     vi.setSystemTime(new Date("2026-11-15T10:00:03.000Z"));
@@ -490,6 +494,20 @@ it("shows an error when a Review can't be stored, and the Session goes on", asyn
   expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
   await answer();
   await screen.findByText(/2 answered, 2 right/);
+});
+
+it("shows an error when a Review of an option click can't be stored, and the Card goes on", async () => {
+  render(<App />);
+  await uploaded(multipleChoice("mc", 1));
+  startSession();
+  blockStorage();
+
+  fireEvent.click(await screen.findByRole("button", { name: "This" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(screen.getByText("Right.")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText(/1 answered, 1 right/);
 });
 
 it("forgets a picked tag once no Card has it", async () => {
