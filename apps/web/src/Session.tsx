@@ -3,7 +3,7 @@ import { useState } from "react";
 import { addReview } from "./storage";
 
 // The one place Card text is chosen, so a German translation can plug in here.
-function RevealAnswer(props: {
+function CardQA(props: {
   card: TCardQA;
   revealed: boolean;
   onReveal: () => void;
@@ -67,12 +67,7 @@ export function Session(props: {
 
   return (
     <section>
-      <RevealAnswer
-        card={card}
-        revealed={revealed}
-        onReveal={() => setRevealed(true)}
-        onGrade={grade}
-      />
+      <CardQA card={card} revealed={revealed} onReveal={() => setRevealed(true)} onGrade={grade} />
     </section>
   );
 }
