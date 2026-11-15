@@ -193,3 +193,45 @@ it("clears all Cards after confirming, and they stay gone after a reload", async
     confirm.mockRestore();
   }
 });
+
+it("shows Clear all only while Cards are stored", async () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+  try {
+    render(<App />);
+    expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull();
+
+    upload(qa("ml.trees.leaf-mean", 1));
+    fireEvent.click(await screen.findByRole("button", { name: "Clear all" }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull());
+  } finally {
+    confirm.mockRestore();
+  }
+});
+
+it("keeps the report of the last upload after deleting a Card", async () => {
+  render(<App />);
+  upload(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
+
+  await expectNotListed(qa("ml.trees.leaf-mean", 1));
+  expect(screen.getByText(/2 added, 0 updated, 0 unchanged/)).toBeTruthy();
+});
+
+it("shows an error and keeps the Card when deleting fails", async () => {
+  render(<App />);
+  upload(qa("ml.trees.leaf-mean", 1));
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+  globalThis.indexedDB = {
+    open() {
+      throw new DOMException("Storage is blocked.", "SecurityError");
+    },
+  } as unknown as IDBFactory;
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+});
