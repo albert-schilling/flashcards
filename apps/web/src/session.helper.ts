@@ -1,6 +1,6 @@
 import type { TCard } from "@flashcards/cards";
 
-/** The Card types a Session can show; the others come later. */
+/** The Card types a Session can show; formula, numeric and cloze come later. */
 export type TCardAnswerable = Extract<TCard, { type: "qa" | "multiple_choice" | "true_false" }>;
 
 /** Whether a Session can show this Card yet. */
