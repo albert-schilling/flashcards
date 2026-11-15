@@ -1,4 +1,5 @@
 // Usage: pnpm screenshot <flow> <folder>. Writes <folder>/<flow>-<shot>.png.
+// pnpm runs the script from the repo root, so a relative <folder> is taken from there.
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium, type Page } from "playwright";
@@ -33,7 +34,7 @@ if (flowName === undefined || flow === undefined || folder === undefined) {
 
 await mkdir(folder, { recursive: true });
 await build({ root, logLevel: "warn" });
-const server = await preview({ root, preview: { open: false } });
+const server = await preview({ root });
 const browser = await chromium.launch();
 try {
   const page = await browser.newPage();
