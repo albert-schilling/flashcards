@@ -24,6 +24,16 @@ export function loadCards(): Promise<TCard[]> {
   return withDatabase((db) => db.getAll("cards"));
 }
 
+/** Removes the stored Card with this ID; Reviews of it stay in the Review log. */
+export function deleteCard(id: string): Promise<void> {
+  return withDatabase((db) => db.delete("cards", id));
+}
+
+/** Removes every stored Card; the Review log stays. */
+export function clearCards(): Promise<void> {
+  return withDatabase((db) => db.clear("cards"));
+}
+
 /** Stores the Cards, replacing any stored Card with the same ID. */
 export function saveCards(cards: TCard[]): Promise<void> {
   return withDatabase(async (db) => {

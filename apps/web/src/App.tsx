@@ -1,7 +1,7 @@
 import type { TCard } from "@flashcards/cards";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { uploadDeck, type TUploadReport } from "./deck";
-import { loadCards } from "./storage";
+import { clearCards, deleteCard, loadCards } from "./storage";
 
 export function App() {
   const [cards, setCards] = useState<TCard[]>([]);
@@ -34,6 +34,21 @@ export function App() {
     }
   }
 
+  async function remove(change: () => Promise<void>) {
+    try {
+      await change();
+      setCards(await loadCards());
+      setError(undefined);
+    } catch (failure) {
+      showError(failure);
+    }
+  }
+
+  async function clearAll() {
+    if (!window.confirm("Delete all Cards?")) return;
+    await remove(clearCards);
+  }
+
   return (
     <>
       <h1>Flashcards</h1>
@@ -63,10 +78,17 @@ export function App() {
       <ul>
         {cards.map((card) => (
           <li key={card.id}>
-            {card.id} ({card.type}, version {card.version})
+            {card.id} ({card.type}, version {card.version}){" "}
+            <button
+              aria-label={`Delete ${card.id}`}
+              onClick={() => remove(() => deleteCard(card.id))}
+            >
+              Delete
+            </button>
           </li>
         ))}
       </ul>
+      {cards.length > 0 && <button onClick={clearAll}>Clear all</button>}
     </>
   );
 }
