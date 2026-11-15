@@ -1,13 +1,13 @@
 import type { TCard } from "@flashcards/cards";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 
-interface FlashcardsDB extends DBSchema {
+interface TFlashcardsDB extends DBSchema {
   cards: { key: string; value: TCard };
 }
 
 // Open and close per operation, so a later version upgrade is never blocked by an open connection.
-async function withDatabase<T>(use: (db: IDBPDatabase<FlashcardsDB>) => Promise<T>): Promise<T> {
-  const db = await openDB<FlashcardsDB>("flashcards", 1, {
+async function withDatabase<T>(use: (db: IDBPDatabase<TFlashcardsDB>) => Promise<T>): Promise<T> {
+  const db = await openDB<TFlashcardsDB>("flashcards", 1, {
     upgrade(upgrading) {
       upgrading.createObjectStore("cards", { keyPath: "id" });
     },

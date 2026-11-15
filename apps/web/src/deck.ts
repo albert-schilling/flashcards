@@ -9,9 +9,9 @@ export type TUploadReport =
   | { ok: false; errors: TDeckError[] }
   | { ok: true; added: number; updated: number; unchanged: number; errors: TDeckError[] };
 
-type ReadDeck = { cards: TCard[] } | { errors: TDeckError[] };
+type TReadDeck = { cards: TCard[] } | { errors: TDeckError[] };
 
-function readDeck(text: string): ReadDeck {
+function readDeck(text: string): TReadDeck {
   let raw: unknown;
   try {
     raw = JSON.parse(text);
