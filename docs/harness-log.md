@@ -4,13 +4,15 @@ Entries for each pull request, added in that pull request: what the coding agent
 
 ## Entries
 
-| PR  | What went wrong                                                                                    | Harness change                                                             |
-| --- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| #11 | The `factory` skill can't be started by an agent, so an agent couldn't orchestrate several issues. | Local `factory-dark` copy; albert-schilling/skills#24.                     |
-| #11 | The implementer amended the branch's base commit, adding a stray generator README.                 | Orchestrator rebased; albert-schilling/skills#25 adds a base-commit check. |
-| #11 | Generator placeholders (`@org/source`, MIT license) got committed.                                 | Gotcha in `tooling.md`.                                                    |
-| #11 | The plan assumed `pnpm exec` fails without an install; it installs.                                | Gotcha in `tooling.md`.                                                    |
-| #11 | Both test passes saw "every change comes with tests" as broken by a tooling-only change.           | `pull-requests.md` allows red/green validate runs as proof.                |
+| PR  | What went wrong                                                                                      | Harness change                                                             |
+| --- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| #11 | The `factory` skill can't be started by an agent, so an agent couldn't orchestrate several issues.   | Local `factory-dark` copy; albert-schilling/skills#24.                     |
+| #11 | The implementer amended the branch's base commit, adding a stray generator README.                   | Orchestrator rebased; albert-schilling/skills#25 adds a base-commit check. |
+| #11 | Generator placeholders (`@org/source`, MIT license) got committed.                                   | Gotcha in `tooling.md`.                                                    |
+| #11 | The plan assumed `pnpm exec` fails without an install; it installs.                                  | Gotcha in `tooling.md`.                                                    |
+| #11 | Both test passes saw "every change comes with tests" as broken by a tooling-only change.             | `pull-requests.md` allows red/green validate runs as proof.                |
+| #13 | The implementer's hook blocked deleting the generator's placeholder spec.                            | Gotcha in `tooling.md`; albert-schilling/skills#28.                        |
+| #13 | Generator extras nothing uses (`@swc/helpers`, coverage, `vite`) got committed; review removed them. | Gotcha in `tooling.md`.                                                    |
 
 ## Factory runs
 
@@ -25,3 +27,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | PR  | Issue | Risk tier | Stops / questions | Review rounds | Review minutes | Reverts / incidents |
 | --- | ----- | --------- | ----------------- | ------------- | -------------- | ------------------- |
 | #11 | #2    | high      | 1 / 2             | 3             | 0              | none                |
+| #13 | #3    | medium    | 3 / 2             | 2             | 0              | none                |
