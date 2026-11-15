@@ -12,11 +12,11 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #11 | The plan assumed `pnpm exec` fails without an install; it installs.                                  | Gotcha in `tooling.md`.                                                    |
 | #11 | Both test passes saw "every change comes with tests" as broken by a tooling-only change.             | `pull-requests.md` allows red/green validate runs as proof.                |
 | #13 | The implementer's hook blocked deleting the generator's placeholder spec.                            | Gotcha in `tooling.md`; albert-schilling/skills#28.                        |
+| #13 | Generator extras nothing uses (`@swc/helpers`, coverage, `vite`) got committed; review removed them. | Gotcha in `tooling.md`.                                                    |
 | #15 | `gh` can't attach screenshots to a PR.                                                               | `pull-requests.md`: push them to `pr-assets` and link.                     |
 | #15 | Headless Firefox wrote no screenshot without a profile.                                              | Gotcha in `tooling.md`.                                                    |
 | #15 | Test files were named `.spec` in one project and `.test` in another.                                 | Naming rule in `code.md`; #14 renames.                                     |
 | #15 | `validate.sh` dropped arguments, so reviewers couldn't skip the Nx cache through it.                 | `validate.sh` passes arguments to Nx.                                      |
-| #13 | Generator extras nothing uses (`@swc/helpers`, coverage, `vite`) got committed; review removed them. | Gotcha in `tooling.md`.                                                    |
 
 ## Factory runs
 
