@@ -1,5 +1,5 @@
 import { CardChoice } from "./CardChoice";
-import { CardQA } from "./CardQA";
+import { CardReveal } from "./CardReveal";
 import type { TCardAnswerable } from "./session.helper";
 
 // The one place Card text is chosen, so a German translation can plug in here.
@@ -12,8 +12,9 @@ export function CardView(props: {
   switch (card.type) {
     case "qa":
       return (
-        <CardQA
-          card={card}
+        <CardReveal
+          prompt={[card.en.question]}
+          answer={[card.en.answer]}
           onGrade={(right) => {
             props.onAnswer(right);
             props.onNext();
