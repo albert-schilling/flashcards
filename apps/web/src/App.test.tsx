@@ -17,7 +17,18 @@ function qa(id: string, version: number, answer = "An answer."): TCardQA {
 
 function upload(...cards: TCard[]) {
   const file = new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" });
-  fireEvent.change(screen.getByLabelText("Upload Deck"), { target: { files: [file] } });
+  const input = screen.getByLabelText<HTMLInputElement>("Upload Deck");
+  // jsdom can't pick a file, so act like a browser: the value names the file until set to "".
+  let files = [file];
+  Object.defineProperty(input, "files", { configurable: true, get: () => files });
+  Object.defineProperty(input, "value", {
+    configurable: true,
+    get: () => (files.length ? `C:\\fakepath\\${files[0].name}` : ""),
+    set: (value: string) => {
+      if (value === "") files = [];
+    },
+  });
+  fireEvent.change(input);
 }
 
 async function expectListed(card: TCard) {
@@ -74,4 +85,25 @@ it("asks the browser to keep its storage", async () => {
   } finally {
     Reflect.deleteProperty(navigator, "storage");
   }
+});
+
+it("clears the file input after an upload, so the same file can be picked again", async () => {
+  render(<App />);
+
+  upload(qa("ml.trees.leaf-mean", 1));
+
+  await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+  expect(screen.getByLabelText<HTMLInputElement>("Upload Deck").value).toBe("");
+});
+
+it("shows an error when the browser storage fails", async () => {
+  globalThis.indexedDB = {
+    open() {
+      throw new DOMException("Storage is blocked.", "SecurityError");
+    },
+  } as unknown as IDBFactory;
+
+  render(<App />);
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
 });

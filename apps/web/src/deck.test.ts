@@ -81,6 +81,15 @@ describe("an invalid file", () => {
     expect(await loadCards()).toEqual([]);
   });
 
+  it("leaves out the field when the error is about the whole Card", async () => {
+    const report = await uploadDeck(JSON.stringify({ cards: [42] }));
+
+    expect(report).toStrictEqual({
+      ok: false,
+      errors: [{ cardId: "card 1", message: expect.any(String) }],
+    });
+  });
+
   it("rejects a Deck with a duplicate Card ID and names the Card", async () => {
     const report = await uploadDeck(deck(qa("a", 1), qa("a", 2)));
 
