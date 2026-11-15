@@ -51,9 +51,9 @@ export function App() {
               : "File rejected"}
           </p>
           <ul>
-            {report.errors.map((error, i) => (
+            {report.errors.map((deckError, i) => (
               <li key={i}>
-                {[error.cardId, error.field, error.message].filter(Boolean).join(": ")}
+                {[deckError.cardId, deckError.field, deckError.message].filter(Boolean).join(": ")}
               </li>
             ))}
           </ul>
