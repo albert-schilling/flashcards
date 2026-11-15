@@ -1,12 +1,17 @@
-import type { TCard } from "@flashcards/cards";
+import type { TCard, TCardQA } from "@flashcards/cards";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { uploadDeck, type TUploadReport } from "./deck";
+import { Session } from "./Session";
+import { allTags, canAnswer, pickCards } from "./session.helper";
 import { clearCards, deleteCard, loadCards } from "./storage";
 
 export function App() {
   const [cards, setCards] = useState<TCard[]>([]);
   const [report, setReport] = useState<TUploadReport>();
   const [error, setError] = useState<string>();
+  const [size, setSize] = useState(20);
+  const [tag, setTag] = useState("");
+  const [session, setSession] = useState<TCardQA[]>();
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.
@@ -49,10 +54,49 @@ export function App() {
     await remove(clearCards);
   }
 
+  const answerable = cards.filter(canAnswer);
+  const tags = allTags(answerable);
+  // A picked tag can vanish when Cards are deleted or replaced; the select then shows "Any tag".
+  const pickedTag = tags.includes(tag) ? tag : "";
+
+  if (session) {
+    return (
+      <>
+        <h1>Flashcards</h1>
+        {error && <p role="alert">{error}</p>}
+        <Session cards={session} onEnd={() => setSession(undefined)} onError={showError} />
+      </>
+    );
+  }
+
   return (
     <>
       <h1>Flashcards</h1>
       {error && <p role="alert">{error}</p>}
+      <label>
+        Cards{" "}
+        <input
+          type="number"
+          value={size}
+          onChange={(event) => setSize(event.target.valueAsNumber)}
+        />
+      </label>{" "}
+      <label>
+        Tag{" "}
+        <select value={pickedTag} onChange={(event) => setTag(event.target.value)}>
+          <option value="">Any tag</option>
+          {tags.map((name) => (
+            <option key={name}>{name}</option>
+          ))}
+        </select>
+      </label>{" "}
+      {/* An empty input gives NaN, so `size < 1` would let it through. */}
+      <button
+        disabled={answerable.length === 0 || !(size >= 1)}
+        onClick={() => setSession(pickCards(answerable, size, pickedTag || undefined))}
+      >
+        Start Session
+      </button>
       <input
         type="file"
         aria-label="Upload Deck"

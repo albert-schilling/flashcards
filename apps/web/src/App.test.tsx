@@ -1,19 +1,9 @@
-import type { TCard, TCardQA } from "@flashcards/cards";
+import type { TCard } from "@flashcards/cards";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
-
-function qa(id: string, version: number, answer = "An answer."): TCardQA {
-  return {
-    id,
-    version,
-    tags: { domain: ["Machine Learning"], topic: ["Decision Tree"] },
-    sourceIds: [],
-    lesson: "lesson-04",
-    type: "qa",
-    en: { question: `What is ${id}?`, answer },
-  };
-}
+import { loadReviews } from "./storage";
+import { qa, tagged, trueFalse } from "./test/cards.fixtures";
 
 function upload(...cards: TCard[]) {
   pick(new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }));
@@ -32,6 +22,15 @@ function pick(file: File) {
     },
   });
   fireEvent.change(input);
+}
+
+// The test setup gives each test a fresh IndexedDB, so this lasts one test.
+function blockStorage() {
+  globalThis.indexedDB = {
+    open() {
+      throw new DOMException("Storage is blocked.", "SecurityError");
+    },
+  } as unknown as IDBFactory;
 }
 
 async function expectListed(card: TCard) {
@@ -98,11 +97,7 @@ it("clears the file input after an upload, so the same file can be picked again"
 });
 
 it("shows an error when the browser storage fails", async () => {
-  globalThis.indexedDB = {
-    open() {
-      throw new DOMException("Storage is blocked.", "SecurityError");
-    },
-  } as unknown as IDBFactory;
+  blockStorage();
 
   render(<App />);
 
@@ -224,14 +219,198 @@ it("shows an error and keeps the Card when deleting fails", async () => {
   render(<App />);
   upload(qa("ml.trees.leaf-mean", 1));
   await expectListed(qa("ml.trees.leaf-mean", 1));
-  globalThis.indexedDB = {
-    open() {
-      throw new DOMException("Storage is blocked.", "SecurityError");
-    },
-  } as unknown as IDBFactory;
+  blockStorage();
 
   fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
 
   expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
   await expectListed(qa("ml.trees.leaf-mean", 1));
+});
+
+async function uploaded(...cards: TCard[]) {
+  upload(...cards);
+  await expectListed(cards[cards.length - 1]);
+}
+
+function startButton() {
+  return screen.getByRole<HTMLButtonElement>("button", { name: "Start Session" });
+}
+
+function startSession() {
+  fireEvent.click(startButton());
+}
+
+async function answer(knew = true) {
+  fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
+  fireEvent.click(screen.getByRole("button", { name: knew ? "Knew it" : "Didn't know" }));
+}
+
+it("starts a Session with 20 Cards by default, or the number set", async () => {
+  render(<App />);
+  await uploaded(...Array.from({ length: 25 }, (_, i) => qa(`card-${i + 1}`, 1)));
+  expect(screen.getByLabelText<HTMLInputElement>("Cards").value).toBe("20");
+
+  startSession();
+  for (let i = 0; i < 20; i++) await answer();
+  await screen.findByText(/20 answered, 20 right/);
+
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "3" } });
+  startSession();
+  for (let i = 0; i < 3; i++) await answer();
+  await screen.findByText(/3 answered, 3 right/);
+});
+
+it("starts a Session with only the qa Cards of the picked tag", async () => {
+  render(<App />);
+  await uploaded(
+    tagged(qa("reg-1", 1), ["Statistics"], ["Regression"]),
+    tagged(qa("reg-2", 1), ["Regression"], ["Bias"]),
+    tagged(qa("other", 1), ["Statistics"], ["Bias"]),
+    tagged(trueFalse("logic", 1), ["Regression"], ["Logic"]),
+  );
+  const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
+  expect(Array.from(tag.options, (option) => option.text)).toEqual([
+    "Any tag",
+    "Bias",
+    "Regression",
+    "Statistics",
+  ]);
+
+  fireEvent.change(tag, { target: { value: "Regression" } });
+  startSession();
+  await answer();
+  await answer();
+
+  await screen.findByText(/2 answered, 2 right/);
+});
+
+it("disables Start Session without qa Cards or with fewer than 1 Card", async () => {
+  render(<App />);
+  await uploaded(trueFalse("logic", 1));
+  expect(startButton().disabled).toBe(true);
+
+  await uploaded(qa("ml.trees.depth", 1));
+  expect(startButton().disabled).toBe(false);
+
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "0" } });
+  expect(startButton().disabled).toBe(true);
+
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "" } });
+  expect(startButton().disabled).toBe(true);
+});
+
+it("hides the upload and the Card list during a Session", async () => {
+  render(<App />);
+  await uploaded(qa("ml.trees.depth", 1));
+
+  startSession();
+
+  await screen.findByRole("button", { name: "Reveal" });
+  expect(screen.getByRole("heading", { name: "Flashcards" })).toBeTruthy();
+  expect(screen.queryByLabelText("Upload Deck")).toBeNull();
+  expect(screen.queryByText(/ml\.trees\.depth \(qa/)).toBeNull();
+});
+
+it("reveals the answer, and Knew it appends a right Review", async () => {
+  // Fake only the clock: Testing Library waits with real timers.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    render(<App />);
+    await uploaded(qa("ml.trees.depth", 1, "As deep as needed."));
+    vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
+
+    startSession();
+    await screen.findByText("What is ml.trees.depth?");
+    expect(screen.queryByText("As deep as needed.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Reveal" }));
+    expect(screen.getByText("As deep as needed.")).toBeTruthy();
+    vi.setSystemTime(new Date("2026-11-15T10:00:04.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Knew it" }));
+
+    await waitFor(async () =>
+      expect(await loadReviews()).toEqual([
+        {
+          cardId: "ml.trees.depth",
+          cardVersion: 1,
+          answeredAt: "2026-11-15T10:00:04.000Z",
+          right: true,
+          durationMs: 4000,
+        },
+      ]),
+    );
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("times each Card from when it is shown, not from the start of the Session", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    render(<App />);
+    await uploaded(qa("a", 1), qa("b", 1));
+    vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
+
+    startSession();
+    fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
+    vi.setSystemTime(new Date("2026-11-15T10:00:04.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Knew it" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
+    vi.setSystemTime(new Date("2026-11-15T10:00:10.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Knew it" }));
+
+    await waitFor(async () =>
+      expect(
+        (await loadReviews()).map((review) => review.durationMs).sort((x, y) => x - y),
+      ).toEqual([4000, 6000]),
+    );
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("the summary counts Cards answered and right, and Done goes back", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1), qa("c", 1));
+
+  startSession();
+  await answer(true);
+  await answer(false);
+  await answer(true);
+
+  await screen.findByText(/3 answered, 2 right/);
+  await waitFor(async () =>
+    expect((await loadReviews()).map((review) => review.right).sort()).toEqual([false, true, true]),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  expect(startButton()).toBeTruthy();
+  await expectListed(qa("a", 1));
+});
+
+it("shows an error when a Review can't be stored, and the Session goes on", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  startSession();
+  blockStorage();
+
+  await answer();
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  await answer();
+  await screen.findByText(/2 answered, 2 right/);
+});
+
+it("forgets a picked tag once no qa Card has it", async () => {
+  render(<App />);
+  const regression = tagged(qa("reg", 1), ["Statistics"], ["Regression"]);
+  await uploaded(regression, qa("ml.trees.depth", 1));
+  fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "Regression" } });
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete reg" }));
+  await expectNotListed(regression);
+
+  expect(screen.getByLabelText<HTMLSelectElement>("Tag").value).toBe("");
+  startSession();
+  await answer();
+  await screen.findByText(/1 answered, 1 right/);
 });

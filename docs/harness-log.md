@@ -21,6 +21,9 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #18 | The implementer's test-file hook blocked edits to non-test files.                                    | albert-schilling/skills#31.                                                |
 | #18 | The plan estimated ~260 lines; the PR came out at 592, found only at review.                         | #19: warn on oversized diffs.                                              |
 | #20 | Headless Firefox can't pick files, so the PR had no screenshot of the filled Card list.              | #21: Playwright screenshots of interactive states.                         |
+| #24 | The plan named `session.ts` and `Session.tsx`, which collide on a case-insensitive file system.      | File naming rule in `code.md` (purpose suffixes); #23 renames older files. |
+| #24 | The database moved to version 2, which a revert can't undo; nothing said to flag it.                 | `pull-requests.md`: a raised IndexedDB version is a one-way door.          |
+| #24 | The plan estimated ~310 lines; the PR came out at 550, mostly tests.                                 | #19 (size warning).                                                        |
 
 ## Factory runs
 
@@ -39,3 +42,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #15 | #4    | high      | 1 / 2             | 2             | 0              | none                |
 | #18 | #5    | medium    | 4 / 6             | 3             | 0              | none                |
 | #20 | #17   | medium    | 1 / 1             | 2             | 0              | none                |
+| #24 | #6    | medium    | 4 / 6             | 3             | 0              | none                |
