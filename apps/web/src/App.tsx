@@ -29,6 +29,7 @@ export function App() {
       setCards(await loadCards());
       setError(undefined);
     } catch (failure) {
+      setReport(undefined);
       showError(failure);
     }
   }
