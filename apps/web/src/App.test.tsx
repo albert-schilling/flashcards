@@ -32,9 +32,7 @@ function upload(...cards: TCard[]) {
 }
 
 async function expectListed(card: TCard) {
-  const item = (await screen.findByText(new RegExp(card.id.replaceAll(".", "\\.")))).closest("li");
-  expect(item?.textContent).toContain(card.type);
-  expect(item?.textContent).toContain(String(card.version));
+  await screen.findByText(`${card.id} (${card.type}, version ${card.version})`);
 }
 
 it("renders the start page with the app name", () => {
