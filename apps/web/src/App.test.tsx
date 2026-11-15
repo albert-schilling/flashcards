@@ -231,17 +231,17 @@ async function uploaded(...cards: TCard[]) {
   await expectListed(cards[cards.length - 1]);
 }
 
+function startButton() {
+  return screen.getByRole<HTMLButtonElement>("button", { name: "Start Session" });
+}
+
 function startSession() {
-  fireEvent.click(screen.getByRole("button", { name: "Start Session" }));
+  fireEvent.click(startButton());
 }
 
 async function answer(knew = true) {
   fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
   fireEvent.click(screen.getByRole("button", { name: knew ? "Knew it" : "Didn't know" }));
-}
-
-function startButton() {
-  return screen.getByRole<HTMLButtonElement>("button", { name: "Start Session" });
 }
 
 it("starts a Session with 20 Cards by default, or the number set", async () => {
@@ -266,7 +266,7 @@ it("starts a Session with only the qa Cards of the picked tag", async () => {
     tagged(qa("reg-1", 1), ["Statistics"], ["Regression"]),
     tagged(qa("reg-2", 1), ["Regression"], ["Bias"]),
     tagged(qa("other", 1), ["Statistics"], ["Bias"]),
-    tagged(trueFalse("logic", 1), ["Logic"], ["Logic"]),
+    tagged(trueFalse("logic", 1), ["Regression"], ["Logic"]),
   );
   const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
   expect(Array.from(tag.options, (option) => option.text)).toEqual([
@@ -278,23 +278,10 @@ it("starts a Session with only the qa Cards of the picked tag", async () => {
 
   fireEvent.change(tag, { target: { value: "Regression" } });
   startSession();
-  for (let i = 0; i < 2; i++) {
-    await screen.findByRole("button", { name: "Reveal" });
-    expect(screen.queryByText("What is other?")).toBeNull();
-    await answer();
-  }
-
-  await screen.findByText(/2 answered, 2 right/);
-});
-
-it("a Session shows only qa Cards", async () => {
-  render(<App />);
-  await uploaded(trueFalse("logic", 1), qa("ml.trees.depth", 1));
-
-  startSession();
+  await answer();
   await answer();
 
-  await screen.findByText(/1 answered, 1 right/);
+  await screen.findByText(/2 answered, 2 right/);
 });
 
 it("disables Start Session without qa Cards or with fewer than 1 Card", async () => {

@@ -5,7 +5,7 @@ import { multipleChoice, qa, tagged, trueFalse } from "./test/cards";
 const ids = (cards: { id: string }[]) => cards.map((card) => card.id).sort();
 
 describe("canAnswer", () => {
-  it("canAnswer takes qa Cards only", () => {
+  it("takes qa Cards only", () => {
     expect(canAnswer(qa("a", 1))).toBe(true);
     expect(canAnswer(trueFalse("b", 1))).toBe(false);
     expect(canAnswer(multipleChoice("c", 1))).toBe(false);
