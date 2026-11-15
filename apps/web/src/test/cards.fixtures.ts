@@ -1,4 +1,10 @@
-import type { TCard, TCardMultipleChoice, TCardQA, TCardTrueFalse } from "@flashcards/cards";
+import type {
+  TCard,
+  TCardCloze,
+  TCardMultipleChoice,
+  TCardQA,
+  TCardTrueFalse,
+} from "@flashcards/cards";
 
 const shared = {
   tags: { domain: ["Machine Learning"], topic: ["Decision Tree"] },
@@ -11,16 +17,21 @@ export function qa(id: string, version: number, answer = "An answer."): TCardQA 
   return { id, version, ...shared, type: "qa", en: { question: `What is ${id}?`, answer } };
 }
 
-/** A valid true_false Card. */
-export function trueFalse(id: string, version: number): TCardTrueFalse {
+/** A valid true_false Card; the statement names its ID. */
+export function trueFalse(id: string, version: number, answer = true): TCardTrueFalse {
   return {
     id,
     version,
     ...shared,
     type: "true_false",
     en: { statement: `${id} is true.` },
-    answer: true,
+    answer,
   };
+}
+
+/** A valid cloze Card, a type a Session can't show yet. */
+export function cloze(id: string, version: number): TCardCloze {
+  return { id, version, ...shared, type: "cloze", en: { text: `${id} has a {{gap}}.` } };
 }
 
 /** A valid multiple_choice Card. */

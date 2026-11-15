@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
 import { loadReviews } from "./storage";
-import { qa, tagged, trueFalse } from "./test/cards.fixtures";
+import { cloze, multipleChoice, qa, tagged, trueFalse } from "./test/cards.fixtures";
 
 function upload(...cards: TCard[]) {
   pick(new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }));
@@ -261,13 +261,13 @@ it("starts a Session with 20 Cards by default, or the number set", async () => {
   await screen.findByText(/3 answered, 3 right/);
 });
 
-it("starts a Session with only the qa Cards of the picked tag", async () => {
+it("starts a Session with only the Cards of the picked tag", async () => {
   render(<App />);
   await uploaded(
     tagged(qa("reg-1", 1), ["Statistics"], ["Regression"]),
     tagged(qa("reg-2", 1), ["Regression"], ["Bias"]),
     tagged(qa("other", 1), ["Statistics"], ["Bias"]),
-    tagged(trueFalse("logic", 1), ["Regression"], ["Logic"]),
+    tagged(cloze("logic", 1), ["Regression"], ["Logic"]),
   );
   const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
   expect(Array.from(tag.options, (option) => option.text)).toEqual([
@@ -285,9 +285,9 @@ it("starts a Session with only the qa Cards of the picked tag", async () => {
   await screen.findByText(/2 answered, 2 right/);
 });
 
-it("disables Start Session without qa Cards or with fewer than 1 Card", async () => {
+it("disables Start Session without Cards it can show or with fewer than 1 Card", async () => {
   render(<App />);
-  await uploaded(trueFalse("logic", 1));
+  await uploaded(cloze("logic", 1));
   expect(startButton().disabled).toBe(true);
 
   await uploaded(qa("ml.trees.depth", 1));
@@ -369,6 +369,98 @@ it("times each Card from when it is shown, not from the start of the Session", a
   }
 });
 
+const choices = ["This", "That"];
+const trueOrFalse = ["True", "False"];
+
+it.each([
+  {
+    case: "multiple_choice, right",
+    card: multipleChoice("mc", 1),
+    options: choices,
+    click: "This",
+    right: true,
+    shown: "This",
+    explanation: "This one.",
+  },
+  {
+    case: "multiple_choice, wrong",
+    card: multipleChoice("mc", 1),
+    options: choices,
+    click: "That",
+    right: false,
+    shown: "This",
+    explanation: "This one.",
+  },
+  {
+    case: "true_false, true",
+    card: trueFalse("tf", 1, true),
+    options: trueOrFalse,
+    click: "True",
+    right: true,
+    shown: "True",
+  },
+  {
+    case: "true_false, false",
+    card: trueFalse("tf", 1, false),
+    options: trueOrFalse,
+    click: "True",
+    right: false,
+    shown: "False",
+  },
+])("shows right or wrong after a click on an option ($case)", async (c) => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    render(<App />);
+    await uploaded(c.card);
+    vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
+
+    startSession();
+    await screen.findByRole("button", { name: c.click });
+    expect(screen.queryByText(`Answer: ${c.shown}`)).toBeNull();
+    if (c.explanation) expect(screen.queryByText(c.explanation)).toBeNull();
+    vi.setSystemTime(new Date("2026-11-15T10:00:03.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: c.click }));
+
+    expect(screen.getByText(c.right ? "Right." : "Wrong.")).toBeTruthy();
+    expect(screen.getByText(`Answer: ${c.shown}`)).toBeTruthy();
+    if (c.explanation) expect(screen.getByText(c.explanation)).toBeTruthy();
+    for (const option of c.options) {
+      expect(screen.getByRole<HTMLButtonElement>("button", { name: option }).disabled).toBe(true);
+    }
+    await waitFor(async () =>
+      expect(await loadReviews()).toEqual([
+        {
+          cardId: c.card.id,
+          cardVersion: 1,
+          answeredAt: "2026-11-15T10:00:03.000Z",
+          right: c.right,
+          durationMs: 3000,
+        },
+      ]),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText(`1 answered, ${c.right ? 1 : 0} right`);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("a new Card starts unanswered", async () => {
+  render(<App />);
+  await uploaded(multipleChoice("a", 1), multipleChoice("b", 1));
+
+  startSession();
+  fireEvent.click(await screen.findByRole("button", { name: "That" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+  expect(screen.queryByText("Wrong.")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+  expect(screen.getByRole<HTMLButtonElement>("button", { name: "This" }).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "This" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText("2 answered, 1 right");
+});
+
 it("the summary counts Cards answered and right, and Done goes back", async () => {
   render(<App />);
   await uploaded(qa("a", 1), qa("b", 1), qa("c", 1));
@@ -400,7 +492,7 @@ it("shows an error when a Review can't be stored, and the Session goes on", asyn
   await screen.findByText(/2 answered, 2 right/);
 });
 
-it("forgets a picked tag once no qa Card has it", async () => {
+it("forgets a picked tag once no Card has it", async () => {
   render(<App />);
   const regression = tagged(qa("reg", 1), ["Statistics"], ["Regression"]);
   await uploaded(regression, qa("ml.trees.depth", 1));
