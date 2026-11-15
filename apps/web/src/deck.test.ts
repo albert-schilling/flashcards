@@ -54,6 +54,17 @@ describe("an invalid file", () => {
     expect(await loadCards()).toEqual([]);
   });
 
+  it.each([
+    ["null", "null"],
+    ["an object without Cards", "{}"],
+    ["a Deck with an unknown key", JSON.stringify({ cards: [], name: "Trees" })],
+  ])("rejects JSON that is not a Deck (%s) without a Card ID", async (_, text) => {
+    const report = await uploadDeck(text);
+
+    expect(report).toEqual({ ok: false, errors: [{ message: expect.any(String) }] });
+    expect(await loadCards()).toEqual([]);
+  });
+
   it("rejects an invalid Deck with the Card ID and field of each error and stores nothing", async () => {
     // JSON.stringify drops the undefined ID, so the third Card has none.
     const withoutId = { ...qa("unused", 1), id: undefined };
@@ -66,6 +77,16 @@ describe("an invalid file", () => {
         { cardId: "bad.answer", field: "en.answer", message: expect.any(String) },
         { cardId: "card 3", field: "id", message: expect.any(String) },
       ],
+    });
+    expect(await loadCards()).toEqual([]);
+  });
+
+  it("rejects a Deck with a duplicate Card ID and names the Card", async () => {
+    const report = await uploadDeck(deck(qa("a", 1), qa("a", 2)));
+
+    expect(report).toEqual({
+      ok: false,
+      errors: [{ cardId: "a", field: "id", message: expect.stringContaining("duplicate") }],
     });
     expect(await loadCards()).toEqual([]);
   });
