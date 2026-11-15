@@ -3,7 +3,15 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
 import { loadReviews } from "./storage";
-import { cloze, multipleChoice, qa, tagged, trueFalse } from "./test/cards.fixtures";
+import {
+  cloze,
+  formula,
+  multipleChoice,
+  numeric,
+  qa,
+  tagged,
+  trueFalse,
+} from "./test/cards.fixtures";
 
 function upload(...cards: TCard[]) {
   pick(new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }));
@@ -267,7 +275,7 @@ it("starts a Session with only the Cards of the picked tag", async () => {
     tagged(qa("reg-1", 1), ["Statistics"], ["Regression"]),
     tagged(qa("reg-2", 1), ["Regression"], ["Bias"]),
     tagged(qa("other", 1), ["Statistics"], ["Bias"]),
-    tagged(cloze("logic", 1), ["Regression"], ["Logic"]),
+    tagged(numeric("logic", 1), ["Regression"], ["Logic"]),
   );
   const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
   expect(Array.from(tag.options, (option) => option.text)).toEqual([
@@ -287,7 +295,7 @@ it("starts a Session with only the Cards of the picked tag", async () => {
 
 it("disables Start Session without Cards it can show or with fewer than 1 Card", async () => {
   render(<App />);
-  await uploaded(cloze("logic", 1));
+  await uploaded(numeric("logic", 1));
   expect(startButton().disabled).toBe(true);
 
   await uploaded(qa("ml.trees.depth", 1));
@@ -364,6 +372,60 @@ it("times each Card from when it is shown, not from the start of the Session", a
         (await loadReviews()).map((review) => review.durationMs).sort((x, y) => x - y),
       ).toEqual([4000, 6000]),
     );
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it.each([
+  {
+    case: "formula with an example, Knew it",
+    card: formula("norm", 1, "norm of 2 and 3 is 6."),
+    prompt: ["The norm formula", "norm is a times b."],
+    answer: ["norm = a · b", "norm of 2 and 3 is 6."],
+    knew: true,
+  },
+  {
+    case: "formula without an example, Didn't know",
+    card: formula("norm", 1),
+    prompt: ["The norm formula", "norm is a times b."],
+    answer: ["norm = a · b"],
+    knew: false,
+  },
+  {
+    case: "cloze with two gaps, Didn't know",
+    card: cloze("depth", 1, "A {{deep}} tree has {{high}} variance."),
+    prompt: ["A ____ tree has ____ variance."],
+    answer: ["A deep tree has high variance."],
+    knew: false,
+  },
+])("shows the prompt, Reveal shows the answer, and grading appends a Review ($case)", async (c) => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    render(<App />);
+    await uploaded(c.card);
+    vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
+
+    startSession();
+    for (const line of c.prompt) await screen.findByText(line);
+    for (const line of c.answer) expect(screen.queryByText(line)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Reveal" }));
+    for (const line of c.answer) expect(screen.getByText(line)).toBeTruthy();
+    vi.setSystemTime(new Date("2026-11-15T10:00:05.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: c.knew ? "Knew it" : "Didn't know" }));
+
+    await waitFor(async () =>
+      expect(await loadReviews()).toEqual([
+        {
+          cardId: c.card.id,
+          cardVersion: 1,
+          answeredAt: "2026-11-15T10:00:05.000Z",
+          right: c.knew,
+          durationMs: 5000,
+        },
+      ]),
+    );
+    await screen.findByText(`1 answered, ${c.knew ? 1 : 0} right`);
   } finally {
     vi.useRealTimers();
   }

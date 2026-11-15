@@ -1,6 +1,9 @@
 import { CardChoice } from "./CardChoice";
-import { CardQA } from "./CardQA";
+import { CardReveal } from "./CardReveal";
 import type { TCardAnswerable } from "./session.helper";
+
+// A cloze gap, `{{word}}`; the group is the word that fills it.
+const gap = /\{\{(.+?)\}\}/g;
 
 // The one place Card text is chosen, so a German translation can plug in here.
 export function CardView(props: {
@@ -9,15 +12,27 @@ export function CardView(props: {
   onNext: () => void;
 }) {
   const { card } = props;
+  const grade = (right: boolean) => {
+    props.onAnswer(right);
+    props.onNext();
+  };
   switch (card.type) {
     case "qa":
+      return <CardReveal prompt={[card.en.question]} answer={[card.en.answer]} onGrade={grade} />;
+    case "formula":
       return (
-        <CardQA
-          card={card}
-          onGrade={(right) => {
-            props.onAnswer(right);
-            props.onNext();
-          }}
+        <CardReveal
+          prompt={[card.en.name, card.en.wordFormula]}
+          answer={card.en.example ? [card.formula, card.en.example] : [card.formula]}
+          onGrade={grade}
+        />
+      );
+    case "cloze":
+      return (
+        <CardReveal
+          prompt={[card.en.text.replaceAll(gap, "____")]}
+          answer={[card.en.text.replaceAll(gap, "$1")]}
+          onGrade={grade}
         />
       );
     case "multiple_choice":

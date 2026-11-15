@@ -1,7 +1,9 @@
 import type {
   TCard,
   TCardCloze,
+  TCardFormula,
   TCardMultipleChoice,
+  TCardNumeric,
   TCardQA,
   TCardTrueFalse,
 } from "@flashcards/cards";
@@ -29,9 +31,38 @@ export function trueFalse(id: string, version: number, answer = true): TCardTrue
   };
 }
 
-/** A valid cloze Card, a type a Session can't show yet. */
-export function cloze(id: string, version: number): TCardCloze {
-  return { id, version, ...shared, type: "cloze", en: { text: `${id} has a {{gap}}.` } };
+/** A valid cloze Card. */
+export function cloze(id: string, version: number, text = `${id} has a {{gap}}.`): TCardCloze {
+  return { id, version, ...shared, type: "cloze", en: { text } };
+}
+
+/** A valid formula Card; the name names its ID. */
+export function formula(id: string, version: number, example?: string): TCardFormula {
+  return {
+    id,
+    version,
+    ...shared,
+    type: "formula",
+    en: {
+      name: `The ${id} formula`,
+      wordFormula: `${id} is a times b.`,
+      ...(example === undefined ? {} : { example }),
+    },
+    formula: `${id} = a · b`,
+  };
+}
+
+/** A valid numeric Card, a type a Session can't show yet. */
+export function numeric(id: string, version: number): TCardNumeric {
+  return {
+    id,
+    version,
+    ...shared,
+    type: "numeric",
+    en: { question: `How much is ${id}?` },
+    answer: 5,
+    allowedError: 0.01,
+  };
 }
 
 /** A valid multiple_choice Card. */

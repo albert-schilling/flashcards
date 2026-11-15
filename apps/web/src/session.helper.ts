@@ -1,11 +1,11 @@
 import type { TCard } from "@flashcards/cards";
 
-/** The Card types a Session can show; formula, numeric and cloze come later. */
-export type TCardAnswerable = Extract<TCard, { type: "qa" | "multiple_choice" | "true_false" }>;
+/** The Card types a Session can show; numeric comes later. */
+export type TCardAnswerable = Exclude<TCard, { type: "numeric" }>;
 
 /** Whether a Session can show this Card yet. */
 export function canAnswer(card: TCard): card is TCardAnswerable {
-  return card.type === "qa" || card.type === "multiple_choice" || card.type === "true_false";
+  return card.type !== "numeric";
 }
 
 /** Every domain and topic tag of the Cards, sorted, each once. */
