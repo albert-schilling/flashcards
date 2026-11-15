@@ -132,9 +132,7 @@ describe("deckSchema", () => {
     expect(new Set(deck.cards.map((card) => card.type))).toEqual(
       new Set(["qa", "multiple_choice", "formula", "numeric", "cloze", "true_false"]),
     );
-    expect(new URL(example.$schema, exampleUrl).href).toBe(
-      new URL("../../deck.schema.json", import.meta.url).href,
-    );
+    expect(example.$schema).toBe("./deck.schema.json");
   });
 
   it("accepts a Deck with no Cards", () => {
