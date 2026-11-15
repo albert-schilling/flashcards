@@ -4,6 +4,7 @@
 - Every change comes with tests. A tooling or CI change with no code to test is proved instead by red/green runs of `./scripts/validate.sh` shown in the pull request.
 - Commits are labelled `structural:` (tidying that changes no behaviour), `behavioural:` (the change itself) or `harness:` (conventions, checks and the harness log). A pull request may tidy only the code it is about to change, in a structural commit before the behavioural one; anything else it notices is filed as an issue.
 - A pull request that changes what people see includes screenshots or output from the running thing. Take them with `pnpm screenshot <flow> <folder>` (`apps/web/screenshot.script.ts`); add a flow there when none shows the change. `gh` can't upload images: push them to the `pr-assets` branch and link the raw URL.
+- A pull request that only moves code shows `git diff origin/main --color-moved`: only imports and `export` lines may stand out. (`git diff -M` finds renamed files, not code moved between files that both stay.)
 - A pull request that raises the IndexedDB version is a one-way door: older code can't open the upgraded database. Say so under Merge danger, and test that the upgrade keeps stored data.
 - Before pushing a change to a CI workflow file, check that it parses and look at the CI run on that push: an invalid workflow starts no jobs.
 - Add the harness log entries to [`docs/harness-log.md`](../harness-log.md) in the pull request that caused them, as a commit after it is opened, so the entry carries its number. Don't wait for the merge.

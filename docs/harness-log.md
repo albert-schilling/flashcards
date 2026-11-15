@@ -24,6 +24,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #24 | The plan named `session.ts` and `Session.tsx`, which collide on a case-insensitive file system.      | File naming rule in `code.md` (purpose suffixes); #23 renames older files. |
 | #24 | The database moved to version 2, which a revert can't undo; nothing said to flag it.                 | `pull-requests.md`: a raised IndexedDB version is a one-way door.          |
 | #24 | The plan estimated ~310 lines; the PR came out at 550, mostly tests.                                 | #19 (size warning).                                                        |
+| #29 | The issue named `git diff -M` to prove a move; it doesn't show code moved between files that stay.   | `pull-requests.md`: moves are shown with `--color-moved`.                  |
 
 ## Factory runs
 
@@ -45,3 +46,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #24 | #6    | medium    | 4 / 6             | 3             | 0              | none                |
 | #25 | #21   | medium    | 1 / 1             | 2             | 0              | none                |
 | #26 | #22   | medium    | 1 / 2             | 2             | 0              | none                |
+| #29 | #27   | medium    | 1 / 2             | 1             | 0              | none                |
