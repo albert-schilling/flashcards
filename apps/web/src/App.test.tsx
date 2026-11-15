@@ -118,3 +118,16 @@ it("shows an error when the file can't be read", async () => {
 
   expect((await screen.findByRole("alert")).textContent).toContain("The file is gone.");
 });
+
+it("hides the report of the last upload when the next one fails", async () => {
+  render(<App />);
+  upload(qa("ml.trees.leaf-mean", 1));
+  await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+
+  const file = new File([], "deck.json");
+  file.text = () => Promise.reject(new DOMException("The file is gone.", "NotReadableError"));
+  pick(file);
+
+  await screen.findByRole("alert");
+  expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
+});
