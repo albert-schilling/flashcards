@@ -5,7 +5,8 @@
   "scripts": {
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "lint": "oxlint --deny-warnings --no-error-on-unmatched-pattern"
+    "lint": "oxlint --deny-warnings --no-error-on-unmatched-pattern",
+    "screenshot": "pnpm --filter @flashcards/web exec playwright install chromium && node apps/web/screenshot.script.ts"
   },
   "devDependencies": {
     "@nx/js": "^24.0.6",
