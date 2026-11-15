@@ -307,6 +307,9 @@ it("disables Start Session without qa Cards or with fewer than 1 Card", async ()
 
   fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "0" } });
   expect(startButton().disabled).toBe(true);
+
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "" } });
+  expect(startButton().disabled).toBe(true);
 });
 
 it("hides the upload and the Card list during a Session", async () => {
@@ -347,6 +350,31 @@ it("reveals the answer, and Knew it appends a right Review", async () => {
           durationMs: 4000,
         },
       ]),
+    );
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("times each Card from when it is shown, not from the start of the Session", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    render(<App />);
+    await uploaded(qa("a", 1), qa("b", 1));
+    vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
+
+    startSession();
+    fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
+    vi.setSystemTime(new Date("2026-11-15T10:00:04.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Knew it" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
+    vi.setSystemTime(new Date("2026-11-15T10:00:10.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Knew it" }));
+
+    await waitFor(async () =>
+      expect(
+        (await loadReviews()).map((review) => review.durationMs).sort((x, y) => x - y),
+      ).toEqual([4000, 6000]),
     );
   } finally {
     vi.useRealTimers();
