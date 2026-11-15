@@ -1,7 +1,10 @@
-import type { TCard, TCardQA } from "@flashcards/cards";
+import type { TCard } from "@flashcards/cards";
 
-/** Whether a Session can show this Card yet; other Card types come in later issues. */
-export function canAnswer(card: TCard): card is TCardQA {
+/** The Card types a Session can show; the others come later. */
+export type TCardAnswerable = Extract<TCard, { type: "qa" }>;
+
+/** Whether a Session can show this Card yet. */
+export function canAnswer(card: TCard): card is TCardAnswerable {
   return card.type === "qa";
 }
 
