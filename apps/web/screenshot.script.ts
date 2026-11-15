@@ -37,8 +37,10 @@ await build({ root, logLevel: "warn" });
 const server = await preview({ root });
 const browser = await chromium.launch();
 try {
+  const url = server.resolvedUrls?.local[0];
+  if (url === undefined) throw new Error("vite preview has no local URL");
   const page = await browser.newPage();
-  await page.goto(server.resolvedUrls?.local[0] ?? "");
+  await page.goto(url);
   await flow(page, async (name) => {
     await page.screenshot({ path: resolve(folder, `${flowName}-${name}.png`), fullPage: true });
   });
