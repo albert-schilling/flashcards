@@ -13,7 +13,7 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 
 ## The Factory
 
-`/factory <issue>` runs one issue through the Factory, installed by `factory-setup`. Its settings are in `.agents/factory.json`; `factory.schema.json`, next to the Factory's skill, explains each key. Don't edit the Factory's installed files: an update replaces them. Propose changes to it as an issue in the repository it was installed from.
+`/factory <issue>` runs one issue through the Factory, installed by `factory-setup`. Its settings are in `.agents/factory.json`; `factory.schema.json`, next to the Factory's skill, explains each key. Don't edit the Factory's installed files: an update replaces them. Propose changes to it as an issue in the repository it was installed from. `factory-dark` is a local copy an agent may start itself; keep it in sync with `factory`.
 
 ## Gotchas
 
@@ -24,4 +24,5 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 - `oxlint` exits 1 when it finds no files, so `lint` passes `--no-error-on-unmatched-pattern`; it passes `--deny-warnings` because warnings (like `debugger`) otherwise exit 0.
 - `nx run-many` exits 0 when no project has a target, so a lost target passes `validate` silently. The root is a project (with `format:check` and `lint`) only because of `"nx": {}` in `package.json`; keep it.
 - A new project under `libs/` or `apps/` needs `pnpm exec nx sync` (adds its reference to `tsconfig.json`), or `validate` fails as "out of sync".
+- Nx generators leave placeholders (`@org/...` names, an MIT `license`): check generated files and replace or drop them before committing.
 - `pnpm exec` installs missing or outdated dependencies itself (`verifyDepsBeforeRun` defaults to `install`); to make it fail instead, pass `--config.verify-deps-before-run=error`.
