@@ -9,16 +9,19 @@ export function CardView(props: {
   onNext: () => void;
 }) {
   const { card } = props;
+  const grade = (right: boolean) => {
+    props.onAnswer(right);
+    props.onNext();
+  };
   switch (card.type) {
     case "qa":
+      return <CardReveal prompt={[card.en.question]} answer={[card.en.answer]} onGrade={grade} />;
+    case "formula":
       return (
         <CardReveal
-          prompt={[card.en.question]}
-          answer={[card.en.answer]}
-          onGrade={(right) => {
-            props.onAnswer(right);
-            props.onNext();
-          }}
+          prompt={[card.en.name, card.en.wordFormula]}
+          answer={card.en.example ? [card.formula, card.en.example] : [card.formula]}
+          onGrade={grade}
         />
       );
     case "multiple_choice":
