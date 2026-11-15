@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { allTags, canAnswer, pickCards } from "./session.helper";
-import { multipleChoice, qa, tagged, trueFalse } from "./test/cards.fixtures";
+import { cloze, multipleChoice, qa, tagged, trueFalse } from "./test/cards.fixtures";
 
 const ids = (cards: { id: string }[]) => cards.map((card) => card.id).sort();
 
 describe("canAnswer", () => {
-  it("takes qa Cards only", () => {
+  it("takes qa, multiple_choice and true_false Cards, not cloze", () => {
     expect(canAnswer(qa("a", 1))).toBe(true);
-    expect(canAnswer(trueFalse("b", 1))).toBe(false);
-    expect(canAnswer(multipleChoice("c", 1))).toBe(false);
+    expect(canAnswer(multipleChoice("b", 1))).toBe(true);
+    expect(canAnswer(trueFalse("c", 1))).toBe(true);
+    expect(canAnswer(cloze("d", 1))).toBe(false);
   });
 });
 

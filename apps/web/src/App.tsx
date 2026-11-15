@@ -1,8 +1,8 @@
-import type { TCard, TCardQA } from "@flashcards/cards";
+import type { TCard } from "@flashcards/cards";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { uploadDeck, type TUploadReport } from "./deck";
 import { Session } from "./Session";
-import { allTags, canAnswer, pickCards } from "./session.helper";
+import { allTags, canAnswer, pickCards, type TCardAnswerable } from "./session.helper";
 import { clearCards, deleteCard, loadCards } from "./storage";
 
 export function App() {
@@ -11,7 +11,7 @@ export function App() {
   const [error, setError] = useState<string>();
   const [size, setSize] = useState(20);
   const [tag, setTag] = useState("");
-  const [session, setSession] = useState<TCardQA[]>();
+  const [session, setSession] = useState<TCardAnswerable[]>();
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.
