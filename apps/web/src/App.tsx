@@ -22,11 +22,10 @@ export function App() {
     const input = event.target;
     const file = input.files?.[0];
     if (!file) return;
-    const text = await file.text();
     // Clear the input so picking the same file again triggers another change.
     input.value = "";
     try {
-      setReport(await uploadDeck(text));
+      setReport(await uploadDeck(await file.text()));
       setCards(await loadCards());
       setError(undefined);
     } catch (failure) {
