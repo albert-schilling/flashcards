@@ -24,6 +24,15 @@ function pick(file: File) {
   fireEvent.change(input);
 }
 
+// The test setup gives each test a fresh IndexedDB, so this lasts one test.
+function blockStorage() {
+  globalThis.indexedDB = {
+    open() {
+      throw new DOMException("Storage is blocked.", "SecurityError");
+    },
+  } as unknown as IDBFactory;
+}
+
 async function expectListed(card: TCard) {
   await screen.findByText(`${card.id} (${card.type}, version ${card.version})`);
 }
@@ -88,11 +97,7 @@ it("clears the file input after an upload, so the same file can be picked again"
 });
 
 it("shows an error when the browser storage fails", async () => {
-  globalThis.indexedDB = {
-    open() {
-      throw new DOMException("Storage is blocked.", "SecurityError");
-    },
-  } as unknown as IDBFactory;
+  blockStorage();
 
   render(<App />);
 
@@ -214,11 +219,7 @@ it("shows an error and keeps the Card when deleting fails", async () => {
   render(<App />);
   upload(qa("ml.trees.leaf-mean", 1));
   await expectListed(qa("ml.trees.leaf-mean", 1));
-  globalThis.indexedDB = {
-    open() {
-      throw new DOMException("Storage is blocked.", "SecurityError");
-    },
-  } as unknown as IDBFactory;
+  blockStorage();
 
   fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
 
@@ -390,11 +391,7 @@ it("shows an error when a Review can't be stored, and the Session goes on", asyn
   render(<App />);
   await uploaded(qa("a", 1), qa("b", 1));
   startSession();
-  globalThis.indexedDB = {
-    open() {
-      throw new DOMException("Storage is blocked.", "SecurityError");
-    },
-  } as unknown as IDBFactory;
+  blockStorage();
 
   await answer();
 
