@@ -22,7 +22,7 @@ const flows: Record<string, TFlow> = {
     await uploadExampleDeck(page);
     await shot("card-list");
   },
-  // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), qa as known.
+  // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), Reveal Cards as known.
   answer: async (page, shot) => {
     await uploadExampleDeck(page);
     await page.getByLabel("Cards").fill("6");
@@ -31,9 +31,14 @@ const flows: Record<string, TFlow> = {
     const reveal = page.getByRole("button", { name: "Reveal" });
     const wrong = page.getByRole("button", { name: "False" });
     const options = page.locator("section button");
+    // Sessions are shuffled, so Reveal Cards (qa, formula, cloze) are numbered, not named by type.
+    let revealed = 0;
     while (!(await done.isVisible())) {
       if (await reveal.isVisible()) {
+        revealed++;
+        await shot(`reveal-${revealed}-before`);
         await reveal.click();
+        await shot(`reveal-${revealed}-after`);
         await page.getByRole("button", { name: "Knew it" }).click();
       } else if (await wrong.isVisible()) {
         await shot("true-false-before");
