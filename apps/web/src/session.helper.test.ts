@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allTags, canAnswer, pickCards } from "./session";
+import { allTags, canAnswer, pickCards } from "./session.helper";
 import { multipleChoice, qa, tagged, trueFalse } from "./test/cards";
 
 const ids = (cards: { id: string }[]) => cards.map((card) => card.id).sort();
