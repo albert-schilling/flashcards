@@ -70,6 +70,12 @@ describe("cardSchema", () => {
     expect(cardSchema.safeParse(card).success).toBe(true);
   });
 
+  it("accepts a Card with no translations", () => {
+    const { translations: _translations, ...card } = multipleChoice;
+
+    expect(cardSchema.safeParse(card).success).toBe(true);
+  });
+
   it.each([
     ["an unknown type", { ...qa, type: "essay" }, ["type"]],
     ["no lesson", { ...qa, lesson: undefined }, ["lesson"]],
