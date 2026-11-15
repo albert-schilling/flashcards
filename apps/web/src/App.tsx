@@ -1,11 +1,11 @@
-import type { Card } from "@flashcards/cards";
+import type { TCard } from "@flashcards/cards";
 import { useEffect, useState, type ChangeEvent } from "react";
-import { uploadDeck, type UploadReport } from "./deck";
+import { uploadDeck, type TUploadReport } from "./deck";
 import { loadCards } from "./storage";
 
 export function App() {
-  const [cards, setCards] = useState<Card[]>([]);
-  const [report, setReport] = useState<UploadReport>();
+  const [cards, setCards] = useState<TCard[]>([]);
+  const [report, setReport] = useState<TUploadReport>();
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.

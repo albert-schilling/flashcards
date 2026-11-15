@@ -1,15 +1,15 @@
-import { deckSchema, type Card } from "@flashcards/cards";
+import { ZDeck, type TCard } from "@flashcards/cards";
 import { loadCards, saveCards } from "./storage";
 
 /** One problem with an uploaded Deck: which Card, which field, and what is wrong. */
-export type DeckError = { cardId?: string; field?: string; message: string };
+export type TDeckError = { cardId?: string; field?: string; message: string };
 
 /** What an upload did. A file that is not a valid Deck stores nothing; otherwise each Card is added, updated, unchanged or rejected with an error. */
-export type UploadReport =
-  | { ok: false; errors: DeckError[] }
-  | { ok: true; added: number; updated: number; unchanged: number; errors: DeckError[] };
+export type TUploadReport =
+  | { ok: false; errors: TDeckError[] }
+  | { ok: true; added: number; updated: number; unchanged: number; errors: TDeckError[] };
 
-type ReadDeck = { cards: Card[] } | { errors: DeckError[] };
+type ReadDeck = { cards: TCard[] } | { errors: TDeckError[] };
 
 function readDeck(text: string): ReadDeck {
   let raw: unknown;
@@ -18,7 +18,7 @@ function readDeck(text: string): ReadDeck {
   } catch (error) {
     return { errors: [{ message: error instanceof Error ? error.message : "Not JSON" }] };
   }
-  const result = deckSchema.safeParse(raw);
+  const result = ZDeck.safeParse(raw);
   if (result.success) return { cards: result.data.cards };
 
   const rawCards = (raw as { cards?: { id?: unknown }[] } | null)?.cards;
@@ -37,14 +37,14 @@ function readDeck(text: string): ReadDeck {
 }
 
 // Zod output has the schema's key order, so equal content gives equal JSON.
-function sameContent(a: Card, b: Card): boolean {
+function sameContent(a: TCard, b: TCard): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function merge(stored: Card[], cards: Card[]) {
+function merge(stored: TCard[], cards: TCard[]) {
   const storedById = new Map(stored.map((card) => [card.id, card]));
-  const toSave: Card[] = [];
-  const errors: DeckError[] = [];
+  const toSave: TCard[] = [];
+  const errors: TDeckError[] = [];
   let added = 0;
   let updated = 0;
   let unchanged = 0;
@@ -77,7 +77,7 @@ function merge(stored: Card[], cards: Card[]) {
 }
 
 /** Reads a Deck file and stores its Cards by the Card version rules: a higher version replaces the stored Card, the same version must have the same content, a lower version is rejected, and stored Cards missing from the Deck stay. */
-export async function uploadDeck(text: string): Promise<UploadReport> {
+export async function uploadDeck(text: string): Promise<TUploadReport> {
   const deck = readDeck(text);
   if ("errors" in deck) return { ok: false, errors: deck.errors };
 
