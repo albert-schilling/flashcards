@@ -29,7 +29,7 @@ function readDeck(text: string): TReadDeck {
       const id = Array.isArray(rawCards) ? rawCards[index]?.id : undefined;
       return {
         cardId: typeof id === "string" ? id : `card ${index + 1}`,
-        field: rest.join("."),
+        ...(rest.length > 0 && { field: rest.join(".") }),
         message: issue.message,
       };
     }),

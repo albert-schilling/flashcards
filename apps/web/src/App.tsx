@@ -6,23 +6,38 @@ import { loadCards } from "./storage";
 export function App() {
   const [cards, setCards] = useState<TCard[]>([]);
   const [report, setReport] = useState<TUploadReport>();
+  const [error, setError] = useState<string>();
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.
     void navigator.storage?.persist();
-    void loadCards().then(setCards);
+    loadCards().then(setCards, showError);
   }, []);
 
+  function showError(failure: unknown) {
+    setError(failure instanceof Error ? failure.message : String(failure));
+  }
+
   async function upload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const input = event.target;
+    const file = input.files?.[0];
     if (!file) return;
-    setReport(await uploadDeck(await file.text()));
-    setCards(await loadCards());
+    const text = await file.text();
+    // Clear the input so picking the same file again triggers another change.
+    input.value = "";
+    try {
+      setReport(await uploadDeck(text));
+      setCards(await loadCards());
+      setError(undefined);
+    } catch (failure) {
+      showError(failure);
+    }
   }
 
   return (
     <>
       <h1>Flashcards</h1>
+      {error && <p role="alert">{error}</p>}
       <input
         type="file"
         aria-label="Upload Deck"
