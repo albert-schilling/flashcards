@@ -55,6 +55,9 @@ export function App() {
   }
 
   const answerable = cards.filter(canAnswer);
+  const tags = allTags(answerable);
+  // A picked tag can vanish when Cards are deleted or replaced; the select then shows "Any tag".
+  const pickedTag = tags.includes(tag) ? tag : "";
 
   if (session) {
     return (
@@ -80,16 +83,16 @@ export function App() {
       </label>{" "}
       <label>
         Tag{" "}
-        <select value={tag} onChange={(event) => setTag(event.target.value)}>
+        <select value={pickedTag} onChange={(event) => setTag(event.target.value)}>
           <option value="">Any tag</option>
-          {allTags(answerable).map((name) => (
+          {tags.map((name) => (
             <option key={name}>{name}</option>
           ))}
         </select>
       </label>{" "}
       <button
         disabled={answerable.length === 0 || !(size >= 1)}
-        onClick={() => setSession(pickCards(answerable, size, tag || undefined))}
+        onClick={() => setSession(pickCards(answerable, size, pickedTag || undefined))}
       >
         Start Session
       </button>

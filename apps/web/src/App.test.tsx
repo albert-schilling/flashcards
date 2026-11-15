@@ -415,3 +415,18 @@ it("shows an error when a Review can't be stored, and the Session goes on", asyn
   await answer();
   await screen.findByText(/2 answered, 2 right/);
 });
+
+it("forgets a picked tag once no qa Card has it", async () => {
+  render(<App />);
+  const regression = tagged(qa("reg", 1), ["Statistics"], ["Regression"]);
+  await uploaded(regression, qa("ml.trees.depth", 1));
+  fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "Regression" } });
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete reg" }));
+  await expectNotListed(regression);
+
+  expect(screen.getByLabelText<HTMLSelectElement>("Tag").value).toBe("");
+  startSession();
+  await answer();
+  await screen.findByText(/1 answered, 1 right/);
+});
