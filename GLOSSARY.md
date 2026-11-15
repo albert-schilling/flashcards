@@ -5,7 +5,7 @@ Flashcards made from the AI modeling lessons, and a web app to memorize them.
 ## Language
 
 **Card**:
-One thing to memorize, with a stable ID, a version, a type, English source text and a German translation.
+One thing to memorize, with a stable ID, a version, a type, English source text and, optionally, a German translation.
 _Avoid_: Question, flashcard, item
 
 **Card type**:
