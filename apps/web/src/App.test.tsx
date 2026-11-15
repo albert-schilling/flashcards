@@ -1,19 +1,8 @@
-import type { TCard, TCardQA } from "@flashcards/cards";
+import type { TCard } from "@flashcards/cards";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
-
-function qa(id: string, version: number, answer = "An answer."): TCardQA {
-  return {
-    id,
-    version,
-    tags: { domain: ["Machine Learning"], topic: ["Decision Tree"] },
-    sourceIds: [],
-    lesson: "lesson-04",
-    type: "qa",
-    en: { question: `What is ${id}?`, answer },
-  };
-}
+import { qa } from "./test/cards";
 
 function upload(...cards: TCard[]) {
   pick(new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }));

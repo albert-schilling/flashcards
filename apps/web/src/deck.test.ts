@@ -1,19 +1,7 @@
-import type { TCardQA } from "@flashcards/cards";
 import { describe, expect, it } from "vitest";
 import { uploadDeck } from "./deck";
 import { loadCards } from "./storage";
-
-function qa(id: string, version: number, answer = "An answer."): TCardQA {
-  return {
-    id,
-    version,
-    tags: { domain: ["Machine Learning"], topic: ["Decision Tree"] },
-    sourceIds: [],
-    lesson: "lesson-04",
-    type: "qa",
-    en: { question: `What is ${id}?`, answer },
-  };
-}
+import { qa } from "./test/cards";
 
 function deck(...cards: unknown[]): string {
   return JSON.stringify({ cards });
