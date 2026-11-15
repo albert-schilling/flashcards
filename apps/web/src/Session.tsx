@@ -1,5 +1,5 @@
-import type { TCardQA } from "@flashcards/cards";
 import { useState } from "react";
+import { CardQA } from "./CardQA";
 import type { TCardAnswerable } from "./session.helper";
 import { addReview } from "./storage";
 
@@ -78,24 +78,6 @@ function CardChoice(props: {
           {props.explanation && <p>{props.explanation}</p>}
           <button onClick={props.onNext}>Next</button>
         </>
-      )}
-    </>
-  );
-}
-
-function CardQA(props: { card: TCardQA; onGrade: (right: boolean) => void }) {
-  const [revealed, setRevealed] = useState(false);
-  return (
-    <>
-      <p>{props.card.en.question}</p>
-      {revealed ? (
-        <>
-          <p>{props.card.en.answer}</p>
-          <button onClick={() => props.onGrade(true)}>Knew it</button>
-          <button onClick={() => props.onGrade(false)}>Didn't know</button>
-        </>
-      ) : (
-        <button onClick={() => setRevealed(true)}>Reveal</button>
       )}
     </>
   );
