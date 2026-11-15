@@ -58,9 +58,10 @@ function CardChoice(props: {
   return (
     <>
       <p>{props.prompt}</p>
+      {/* Keyed by position: options may repeat, and never reorder. */}
       {props.options.map((option, i) => (
         <button
-          key={option}
+          key={i}
           disabled={picked !== undefined}
           onClick={() => {
             setPicked(i);
