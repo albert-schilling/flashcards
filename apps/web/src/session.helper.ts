@@ -1,11 +1,11 @@
 import type { TCard } from "@flashcards/cards";
 
 /** The Card types a Session can show; numeric comes later. */
-export type TCardAnswerable = Exclude<TCard, { type: "numeric" | "cloze" }>;
+export type TCardAnswerable = Exclude<TCard, { type: "numeric" }>;
 
 /** Whether a Session can show this Card yet. */
 export function canAnswer(card: TCard): card is TCardAnswerable {
-  return card.type !== "numeric" && card.type !== "cloze";
+  return card.type !== "numeric";
 }
 
 /** Every domain and topic tag of the Cards, sorted, each once. */
