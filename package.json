@@ -1,0 +1,26 @@
+{
+  "name": "@flashcards/source",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint --deny-warnings --no-error-on-unmatched-pattern"
+  },
+  "devDependencies": {
+    "@nx/js": "^24.0.6",
+    "@nx/vitest": "^24.0.6",
+    "@types/node": "^26.6.6",
+    "nx": "^24.0.6",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
+    "tslib": "^2.9.1",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=26"
+  },
+  "packageManager": "pnpm@12.6.0",
+  "nx": {}
+}

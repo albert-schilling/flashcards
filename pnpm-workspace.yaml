@@ -1,0 +1,7 @@
+packages:
+  - "apps/*"
+  - "libs/*"
+
+# pnpm blocks dependency build scripts unless allowed; Nx needs its install script.
+allowBuilds:
+  nx: true

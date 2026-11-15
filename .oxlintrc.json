@@ -1,0 +1,8 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    // Installed Factory files; an update replaces them.
+    ".claude/",
+    ".agents/"
+  ]
+}

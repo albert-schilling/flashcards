@@ -27,11 +27,11 @@ Status (2026-11-11): idea and first plan only. Nothing built yet.
 
 All in `teach/ai-modeling/`:
 
-| Source | Count | Becomes |
-| --- | --- | --- |
-| Quiz questions in lessons 1–12 (`lessons/*.html`, `Quiz.mount(...)` blocks) | ~170 | `multiple_choice` cards, almost directly |
-| `reference/formulas.html` (already English and German, with word formulas) | 63 | `formula` cards |
-| `reference/glossary.html` (English term + German name) | 97 | `qa` (term) cards |
+| Source                                                                      | Count | Becomes                                  |
+| --------------------------------------------------------------------------- | ----- | ---------------------------------------- |
+| Quiz questions in lessons 1–12 (`lessons/*.html`, `Quiz.mount(...)` blocks) | ~170  | `multiple_choice` cards, almost directly |
+| `reference/formulas.html` (already English and German, with word formulas)  | 63    | `formula` cards                          |
+| `reference/glossary.html` (English term + German name)                      | 97    | `qa` (term) cards                        |
 
 Total is about 330 cards. The drills create random numbers each time, so they don't fit as cards. A few fixed worked examples from them can become `numeric` cards.
 
@@ -51,14 +51,14 @@ Fields every card shares:
 
 Card types:
 
-| type | what the card stores |
-| --- | --- |
-| `qa` | question, answer |
-| `multiple_choice` | options, the index of the right one, a short explanation |
-| `formula` | the formula, the word formula, how to read it aloud, an example |
-| `numeric` | question, answer, allowed error, unit |
-| `cloze` | text with a gap to fill |
-| `true_false` | statement, true or false |
+| type              | what the card stores                                            |
+| ----------------- | --------------------------------------------------------------- |
+| `qa`              | question, answer                                                |
+| `multiple_choice` | options, the index of the right one, a short explanation        |
+| `formula`         | the formula, the word formula, how to read it aloud, an example |
+| `numeric`         | question, answer, allowed error, unit                           |
+| `cloze`           | text with a gap to fill                                         |
+| `true_false`      | statement, true or false                                        |
 
 With Zod 4, `z.toJSONSchema()` turns the schema into a JSON Schema. Then plain JSON files can be checked in an editor, in Python, or in CI.
 
