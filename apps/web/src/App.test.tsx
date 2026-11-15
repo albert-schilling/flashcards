@@ -1,9 +1,9 @@
-import type { Card } from "@flashcards/cards";
+import type { TCard, TCardQA } from "@flashcards/cards";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
 
-function qa(id: string, version: number, answer = "An answer."): Card {
+function qa(id: string, version: number, answer = "An answer."): TCardQA {
   return {
     id,
     version,
@@ -15,12 +15,12 @@ function qa(id: string, version: number, answer = "An answer."): Card {
   };
 }
 
-function upload(...cards: Card[]) {
+function upload(...cards: TCard[]) {
   const file = new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" });
   fireEvent.change(screen.getByLabelText("Upload Deck"), { target: { files: [file] } });
 }
 
-async function expectListed(card: Card) {
+async function expectListed(card: TCard) {
   const item = (await screen.findByText(new RegExp(card.id.replaceAll(".", "\\.")))).closest("li");
   expect(item?.textContent).toContain(card.type);
   expect(item?.textContent).toContain(String(card.version));

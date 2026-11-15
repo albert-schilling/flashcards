@@ -1,9 +1,9 @@
-import type { Card } from "@flashcards/cards";
+import type { TCardQA } from "@flashcards/cards";
 import { describe, expect, it } from "vitest";
 import { uploadDeck } from "./deck";
 import { loadCards } from "./storage";
 
-function qa(id: string, version: number, answer = "An answer."): Card {
+function qa(id: string, version: number, answer = "An answer."): TCardQA {
   return {
     id,
     version,

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { cardSchema, deckSchema } from "../index.js";
+import { ZCard, ZDeck } from "../index.js";
 
 const shared = {
   version: 1,
@@ -63,17 +63,17 @@ function issuePaths(result: { error?: { issues: { path: PropertyKey[] }[] } }) {
   return result.error?.issues.map((issue) => issue.path) ?? [];
 }
 
-describe("cardSchema", () => {
+describe("ZCard", () => {
   it("accepts German with fields missing", () => {
     const card = { ...multipleChoice, translations: { de: { question: "Welches Kriterium?" } } };
 
-    expect(cardSchema.safeParse(card).success).toBe(true);
+    expect(ZCard.safeParse(card).success).toBe(true);
   });
 
   it("accepts a Card with no translations", () => {
     const { translations: _translations, ...card } = multipleChoice;
 
-    expect(cardSchema.safeParse(card).success).toBe(true);
+    expect(ZCard.safeParse(card).success).toBe(true);
   });
 
   it.each([
@@ -115,19 +115,19 @@ describe("cardSchema", () => {
       ["translations", "de", "options"],
     ],
   ])("rejects a Card with %s", (_name, card, path) => {
-    const result = cardSchema.safeParse(card);
+    const result = ZCard.safeParse(card);
 
     expect(result.success).toBe(false);
     expect(issuePaths(result)).toContainEqual(path);
   });
 });
 
-describe("deckSchema", () => {
+describe("ZDeck", () => {
   it("the example Deck is valid and has a Card of each type", () => {
     const exampleUrl = new URL("../../example-deck.json", import.meta.url);
     const example = JSON.parse(readFileSync(exampleUrl, "utf8"));
 
-    const deck = deckSchema.parse(example);
+    const deck = ZDeck.parse(example);
 
     expect(new Set(deck.cards.map((card) => card.type))).toEqual(
       new Set(["qa", "multiple_choice", "formula", "numeric", "cloze", "true_false"]),
@@ -136,18 +136,18 @@ describe("deckSchema", () => {
   });
 
   it("accepts a Deck with no Cards", () => {
-    expect(deckSchema.safeParse({ cards: [] }).success).toBe(true);
+    expect(ZDeck.safeParse({ cards: [] }).success).toBe(true);
   });
 
   it("rejects a Deck with two Cards of the same ID", () => {
-    const result = deckSchema.safeParse({ cards: [qa, { ...cloze, id: qa.id }] });
+    const result = ZDeck.safeParse({ cards: [qa, { ...cloze, id: qa.id }] });
 
     expect(result.success).toBe(false);
     expect(issuePaths(result)).toContainEqual(["cards", 1, "id"]);
   });
 
   it("deck.schema.json matches the schema", async () => {
-    const jsonSchema = `${JSON.stringify(z.toJSONSchema(deckSchema), null, 2)}\n`;
+    const jsonSchema = `${JSON.stringify(z.toJSONSchema(ZDeck), null, 2)}\n`;
 
     await expect(jsonSchema).toMatchFileSnapshot("../../deck.schema.json");
   });
