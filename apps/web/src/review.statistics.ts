@@ -36,20 +36,16 @@ function totals(cards: TCardStatistics[], pick: (card: TCard) => string[]): TTag
 export function statistics(cards: TCard[], reviews: TReview[]): TStatistics {
   const perCard = cards.map((card): TCardStatistics => {
     const current = reviews.filter((r) => r.cardId === card.id && r.cardVersion === card.version);
-    // ISO times in one format sort as text, so the maximum is the latest.
-    const last = current
-      .map((r) => r.answeredAt)
-      .reduce<string | undefined>(
-        (latest, at) => (latest === undefined || at > latest ? at : latest),
-        undefined,
-      );
-    const result: TCardStatistics = {
+    return {
       card,
       reviews: current.length,
       right: current.filter((r) => r.right).length,
+      // ISO times in one format sort as text, so the last one is the latest.
+      lastReviewedAt: current
+        .map((r) => r.answeredAt)
+        .sort()
+        .at(-1),
     };
-    if (last !== undefined) result.lastReviewedAt = last;
-    return result;
   });
   return {
     cards: perCard,
