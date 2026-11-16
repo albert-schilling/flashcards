@@ -6,8 +6,7 @@ export function withinAllowedError(
   card: Pick<TCardNumeric, "answer" | "allowedError">,
 ): boolean {
   return (
-    Math.abs(given - card.answer) <=
-    card.allowedError + 1e-9 * Math.max(1, Math.abs(card.answer))
+    Math.abs(given - card.answer) <= card.allowedError + 1e-9 * Math.max(1, Math.abs(card.answer))
   );
 }
 
