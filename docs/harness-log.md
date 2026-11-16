@@ -26,6 +26,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #24 | The plan estimated ~310 lines; the PR came out at 550, mostly tests.                                 | #19 (size warning).                                                        |
 | #29 | The issue named `git diff -M` to prove a move; it doesn't show code moved between files that stay.   | `pull-requests.md`: moves are shown with `--color-moved`.                  |
 | #34 | Research missed seven existing tests the repeat changed, so the first plan for #8 was far too small. | albert-schilling/skills#32: research lists tests the issue changes.        |
+| #37 | A test from #5 was flaky in CI; reviews of #18 hadn't caught that overlapping uploads race.          | Deterministic race test and fix; #36 for the upload/delete race.           |
 
 ## Factory runs
 
@@ -52,3 +53,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #31 | #28   | medium    | 1 / 1             | 2             | 0              | none                |
 | #33 | #8    | medium    | 2 / 4             | 2             | 0              | none                |
 | #34 | #32   | medium    | 1 / 2             | 2             | 0              | none                |
+| #37 | #35   | medium    | 2 / 2             | 1             | 0              | none                |

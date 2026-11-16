@@ -135,6 +135,29 @@ it("hides the report of the last upload when the next one fails", async () => {
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
 
+it("keeps the error of a failed upload when an earlier upload finishes later", async () => {
+  render(<App />);
+  const deck = JSON.stringify({ cards: [qa("ml.trees.leaf-mean", 1)] });
+  const slow = new File([deck], "deck.json", { type: "application/json" });
+  // Hold the first file open, so the second upload fails before the first one finishes.
+  let finishReading = () => {};
+  slow.text = () =>
+    new Promise((resolve) => {
+      finishReading = () => resolve(deck);
+    });
+  pick(slow);
+  const failing = new File([], "deck.json");
+  failing.text = () => Promise.reject(new DOMException("The file is gone.", "NotReadableError"));
+  pick(failing);
+  await screen.findByRole("alert");
+
+  finishReading();
+
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+  expect(screen.getByRole("alert").textContent).toContain("The file is gone.");
+  expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
+});
+
 async function expectNotListed(card: TCard) {
   await waitFor(() =>
     expect(screen.queryByText(`${card.id} (${card.type}, version ${card.version})`)).toBeNull(),
