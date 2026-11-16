@@ -1,11 +1,14 @@
-import type { TCard } from "@flashcards/cards";
+import type { TCard, TCardNumeric } from "@flashcards/cards";
 
-/** The Card types a Session can show; numeric comes later. */
-export type TCardAnswerable = Exclude<TCard, { type: "numeric" }>;
-
-/** Whether a Session can show this Card yet. */
-export function canAnswer(card: TCard): card is TCardAnswerable {
-  return card.type !== "numeric";
+/** Whether `given` is within the Card's allowed error; a tiny slack keeps an answer on the edge right despite float rounding. */
+export function withinAllowedError(
+  given: number,
+  card: Pick<TCardNumeric, "answer" | "allowedError">,
+): boolean {
+  return (
+    Math.abs(given - card.answer) <=
+    card.allowedError + 1e-9 * Math.max(1, Math.abs(card.answer))
+  );
 }
 
 /** Every domain and topic tag of the Cards, sorted, each once. */
