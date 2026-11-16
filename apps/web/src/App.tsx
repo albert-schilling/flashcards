@@ -107,7 +107,7 @@ export function App() {
         onClick={() => setSession(pickCards(cards, size, pickedTag || undefined))}
       >
         Start Session
-      </button>
+      </button>{" "}
       <button onClick={() => loadReviews().then(setReviews, showError)}>Statistics</button>
       <input
         type="file"
