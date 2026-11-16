@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { allTags, pickCards, withinAllowedError } from "./session.helper";
-import { qa, tagged } from "./test/cards.fixtures";
+import { qa, review, tagged } from "./test/cards.fixtures";
 
 const ids = (cards: { id: string }[]) => cards.map((card) => card.id).sort();
 
@@ -37,11 +37,22 @@ describe("pickCards", () => {
   const cards = ["a", "b", "c", "d", "e"].map((id) => qa(id, 1));
 
   it("picks `size` different Cards from more, and all of fewer", () => {
-    const picked = pickCards(cards, 3);
+    const picked = pickCards(cards, [], 3);
 
     expect(new Set(ids(picked)).size).toBe(3);
     expect(ids(cards)).toEqual(expect.arrayContaining(ids(picked)));
-    expect(ids(pickCards(cards, 10))).toEqual(["a", "b", "c", "d", "e"]);
+    expect(ids(pickCards(cards, [], 10))).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  it("picks the weakest Cards", () => {
+    const reviews = [
+      review("a", 1, "2026-11-15T10:00:00.000Z"),
+      review("b", 1, "2026-11-15T10:01:00.000Z"),
+      review("c", 1, "2026-11-15T10:02:00.000Z", false),
+      review("d", 1, "2026-11-15T10:03:00.000Z"),
+    ];
+
+    expect(pickCards(cards, reviews, 2).map((card) => card.id)).toEqual(["e", "c"]);
   });
 
   it("keeps only Cards with the tag as domain or topic tag", () => {
@@ -51,6 +62,6 @@ describe("pickCards", () => {
       tagged(qa("neither", 1), ["Statistics"], ["Bias"]),
     ];
 
-    expect(ids(pickCards(mixed, 10, "Regression"))).toEqual(["domain", "topic"]);
+    expect(ids(pickCards(mixed, [], 10, "Regression"))).toEqual(["domain", "topic"]);
   });
 });

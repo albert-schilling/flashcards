@@ -7,6 +7,7 @@ import type {
   TCardQA,
   TCardTrueFalse,
 } from "@flashcards/cards";
+import type { TReview } from "../storage";
 
 const shared = {
   tags: { domain: ["Machine Learning"], topic: ["Decision Tree"] },
@@ -76,6 +77,16 @@ export function multipleChoice(id: string, version: number): TCardMultipleChoice
     en: { question: `Which is ${id}?`, options: ["This", "That"], explanation: "This one." },
     answerIndex: 0,
   };
+}
+
+/** A Review of this version of the Card, answered at this ISO time, that took 3 seconds. */
+export function review(
+  cardId: string,
+  cardVersion: number,
+  answeredAt: string,
+  right = true,
+): TReview {
+  return { cardId, cardVersion, answeredAt, right, durationMs: 3000 };
 }
 
 /** The Card with these domain and topic tags. */
