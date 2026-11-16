@@ -152,22 +152,30 @@ export function App() {
         Start Session
       </button>{" "}
       <button onClick={() => loadReviews().then(setReviews, showError)}>Statistics</button>
-      <input
-        type="file"
-        aria-label="Upload Deck"
-        accept=".json,application/json"
-        onChange={(event) => upload(event, uploadDeck)}
-      />
-      <input
-        type="file"
-        aria-label="Upload Review log"
-        accept=".json,application/json"
-        onChange={(event) => upload(event, uploadReviewLog)}
-      />
-      <button onClick={() => download(downloadDeck)}>Download Cards</button>{" "}
-      <button onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}>
-        Download Review log
-      </button>
+      <p>
+        <label>
+          Upload Deck{" "}
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={(event) => upload(event, uploadDeck)}
+          />
+        </label>{" "}
+        <label>
+          Upload Review log{" "}
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={(event) => upload(event, uploadReviewLog)}
+          />
+        </label>
+      </p>
+      <p>
+        <button onClick={() => download(downloadDeck)}>Download Cards</button>{" "}
+        <button onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}>
+          Download Review log
+        </button>
+      </p>
       <p>
         {lastDownload
           ? `Days since the last download: ${Math.floor((Date.now() - Date.parse(lastDownload)) / DAY_MS)}`
