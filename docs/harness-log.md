@@ -25,6 +25,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #24 | The database moved to version 2, which a revert can't undo; nothing said to flag it.                 | `pull-requests.md`: a raised IndexedDB version is a one-way door.          |
 | #24 | The plan estimated ~310 lines; the PR came out at 550, mostly tests.                                 | #19 (size warning).                                                        |
 | #29 | The issue named `git diff -M` to prove a move; it doesn't show code moved between files that stay.   | `pull-requests.md`: moves are shown with `--color-moved`.                  |
+| #34 | Research missed seven existing tests the repeat changed, so the first plan for #8 was far too small. | albert-schilling/skills#32: research lists tests the issue changes.        |
 
 ## Factory runs
 
@@ -50,3 +51,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #30 | #7    | medium    | 2 / 3             | 1             | 0              | none                |
 | #31 | #28   | medium    | 1 / 1             | 2             | 0              | none                |
 | #33 | #8    | medium    | 2 / 4             | 2             | 0              | none                |
+| #34 | #32   | medium    | 1 / 2             | 2             | 0              | none                |

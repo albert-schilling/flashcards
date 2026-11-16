@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { statistics } from "./review.statistics";
-import type { TReview } from "./storage";
-import { qa, tagged } from "./test/cards.fixtures";
+import { statistics, weakestFirst } from "./review.statistics";
+import { qa, review, tagged } from "./test/cards.fixtures";
 
-function review(cardId: string, cardVersion: number, answeredAt: string, right = true): TReview {
-  return { cardId, cardVersion, answeredAt, right, durationMs: 3000 };
-}
+const ids = (cards: { id: string }[]) => cards.map((card) => card.id);
 
 describe("statistics", () => {
   it("counts each Card's Reviews and right ones, and its latest Review", () => {
@@ -61,5 +58,53 @@ describe("statistics", () => {
       domain: [{ tag: "Machine Learning", cards: 1, reviews: 1, right: 0 }],
       topic: [{ tag: "Decision Tree", cards: 1, reviews: 1, right: 0 }],
     });
+  });
+});
+
+describe("weakestFirst", () => {
+  it("orders Cards never reviewed first, then by share right over the last 5 Reviews, ties to the one reviewed longest ago", () => {
+    const cards = ["steady-new", "steady-old", "half", "slipping", "z-unseen", "a-unseen"].map(
+      (id) => qa(id, 1),
+    );
+    const reviews = [
+      review("steady-new", 1, "2026-11-13T10:00:00.000Z"),
+      review("steady-old", 1, "2026-11-09T10:00:00.000Z"),
+      review("half", 1, "2026-11-11T10:00:00.000Z"),
+      review("half", 1, "2026-11-11T11:00:00.000Z", false),
+      // 6 of 10 right in all, so after "half"; but 1 of the last 5, so before it.
+      ...[10, 11, 12, 13, 14].map((h) => review("slipping", 1, `2026-11-10T${h}:00:00.000Z`)),
+      ...[10, 11, 12, 13, 14].map((h) =>
+        review("slipping", 1, `2026-11-12T${h}:00:00.000Z`, h === 10),
+      ),
+    ].reverse(); // The log is not in time order.
+
+    expect(ids(weakestFirst(cards, reviews))).toEqual([
+      "z-unseen",
+      "a-unseen",
+      "slipping",
+      "half",
+      "steady-old",
+      "steady-new",
+    ]);
+  });
+
+  it("counts only Reviews of the current version", () => {
+    const half = qa("half", 1);
+    const missed = qa("missed", 2);
+    const unseen = qa("unseen", 2);
+    const reviews = [
+      review("half", 1, "2026-11-10T10:00:00.000Z"),
+      review("half", 1, "2026-11-10T11:00:00.000Z", false),
+      review("missed", 1, "2026-11-11T10:00:00.000Z"),
+      review("missed", 1, "2026-11-11T11:00:00.000Z"),
+      review("missed", 2, "2026-11-12T10:00:00.000Z", false),
+      review("unseen", 1, "2026-11-12T11:00:00.000Z"),
+    ];
+
+    expect(ids(weakestFirst([half, missed, unseen], reviews))).toEqual([
+      "unseen",
+      "missed",
+      "half",
+    ]);
   });
 });

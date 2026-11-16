@@ -3,17 +3,18 @@ import { useState } from "react";
 import { CardView } from "./CardView";
 import { addReview } from "./storage";
 
-/** Shows the Cards in order, appends a Review for each answer, then a summary; `onEnd` leaves it. */
+/** Shows the Cards in order, then each one answered wrong once more; appends a Review for each answer, then a summary; `onEnd` leaves it. */
 export function Session(props: {
   cards: TCard[];
   onEnd: () => void;
   onError: (failure: unknown) => void;
 }) {
+  const [queue, setQueue] = useState(props.cards);
   const [index, setIndex] = useState(0);
   const [rightCount, setRightCount] = useState(0);
   const [shownAt, setShownAt] = useState(() => Date.now());
 
-  const card = props.cards[index];
+  const card = queue[index];
 
   if (!card) {
     return (
@@ -37,6 +38,8 @@ export function Session(props: {
       durationMs: answeredAt - shownAt,
     }).catch(props.onError);
     if (right) setRightCount(rightCount + 1);
+    // A Card answered wrong comes back once, at the end.
+    else if (index < props.cards.length) setQueue([...queue, card]);
   }
 
   function next() {

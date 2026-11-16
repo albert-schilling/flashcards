@@ -32,19 +32,23 @@ function totals(cards: TCardStatistics[], pick: (card: TCard) => string[]): TTag
   return [...byTag.values()].sort((a, b) => a.tag.localeCompare(b.tag));
 }
 
+/** The Reviews of the Card's current version, oldest first. */
+function currentReviews(card: TCard, reviews: TReview[]): TReview[] {
+  // ISO times in one format sort as text.
+  return reviews
+    .filter((r) => r.cardId === card.id && r.cardVersion === card.version)
+    .sort((a, b) => a.answeredAt.localeCompare(b.answeredAt));
+}
+
 /** Statistics of the given Cards from the Review log; Reviews of an older version or of a Card not given don't count. */
 export function statistics(cards: TCard[], reviews: TReview[]): TStatistics {
   const perCard = cards.map((card): TCardStatistics => {
-    const current = reviews.filter((r) => r.cardId === card.id && r.cardVersion === card.version);
+    const current = currentReviews(card, reviews);
     return {
       card,
       reviews: current.length,
       right: current.filter((r) => r.right).length,
-      // ISO times in one format sort as text, so the last one is the latest.
-      lastReviewedAt: current
-        .map((r) => r.answeredAt)
-        .sort()
-        .at(-1),
+      lastReviewedAt: current.at(-1)?.answeredAt,
     };
   });
   return {
@@ -52,4 +56,19 @@ export function statistics(cards: TCard[], reviews: TReview[]): TStatistics {
     domain: totals(perCard, (card) => card.tags.domain),
     topic: totals(perCard, (card) => card.tags.topic),
   };
+}
+
+/** The Cards weakest first: never reviewed, then the lowest share right over the last 5 Reviews of the current version, ties to the one reviewed longest ago. Cards that rank the same keep their order. */
+export function weakestFirst<T extends TCard>(cards: T[], reviews: TReview[]): T[] {
+  const ranked = cards.map((card) => {
+    const last5 = currentReviews(card, reviews).slice(-5);
+    const share = last5.filter((r) => r.right).length / last5.length;
+    return { card, unseen: last5.length === 0, share, last: last5.at(-1)?.answeredAt ?? "" };
+  });
+  return ranked
+    .sort((x, y) => {
+      if (x.unseen || y.unseen) return Number(y.unseen) - Number(x.unseen);
+      return x.share - y.share || x.last.localeCompare(y.last);
+    })
+    .map((ranking) => ranking.card);
 }

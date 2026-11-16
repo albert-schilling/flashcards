@@ -22,6 +22,8 @@ async function answerEveryCard(page: Page, shot: (name: string) => Promise<void>
   await uploadExampleDeck(page);
   await page.getByLabel("Cards").fill("6");
   await page.getByRole("button", { name: "Start Session" }).click();
+  // Start loads the Review log first, so wait for the first Card.
+  await page.locator("section button").first().waitFor();
   const done = page.getByRole("button", { name: "Done" });
   const reveal = page.getByRole("button", { name: "Reveal" });
   const check = page.getByRole("button", { name: "Check" });
@@ -29,6 +31,8 @@ async function answerEveryCard(page: Page, shot: (name: string) => Promise<void>
   const options = page.locator("section button");
   // Sessions are shuffled, so Reveal Cards (qa, formula, cloze) are numbered, not named by type.
   let revealed = 0;
+  // The wrong true_false comes back once, so it is numbered too.
+  let trueFalse = 0;
   while (!(await done.isVisible())) {
     if (await reveal.isVisible()) {
       revealed++;
@@ -37,9 +41,10 @@ async function answerEveryCard(page: Page, shot: (name: string) => Promise<void>
       await shot(`reveal-${revealed}-after`);
       await page.getByRole("button", { name: "Knew it" }).click();
     } else if (await wrong.isVisible()) {
-      await shot("true-false-before");
+      trueFalse++;
+      await shot(`true-false-${trueFalse}-before`);
       await wrong.click();
-      await shot("true-false-after");
+      await shot(`true-false-${trueFalse}-after`);
       await page.getByRole("button", { name: "Next" }).click();
     } else if (await check.isVisible()) {
       await shot("numeric-before");

@@ -292,6 +292,46 @@ it("starts a Session with only the Cards of the picked tag", async () => {
   await screen.findByText(/2 answered, 2 right/);
 });
 
+it("a Session asks Cards never reviewed first, then those answered wrong", async () => {
+  await addReview({
+    cardId: "known",
+    cardVersion: 1,
+    answeredAt: "2026-11-15T10:00:00.000Z",
+    right: true,
+    durationMs: 3000,
+  });
+  await addReview({
+    cardId: "missed",
+    cardVersion: 1,
+    answeredAt: "2026-11-15T10:01:00.000Z",
+    right: false,
+    durationMs: 3000,
+  });
+  render(<App />);
+  await uploaded(qa("known", 1), qa("missed", 1), qa("unseen", 1));
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "2" } });
+
+  startSession();
+  await screen.findByText("What is unseen?");
+  await answer();
+  await screen.findByText("What is missed?");
+  await answer();
+
+  await screen.findByText("2 answered, 2 right");
+});
+
+it("shows an error and starts no Session when the Review log can't be loaded", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  blockStorage();
+
+  startSession();
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(startButton()).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
+});
+
 it("disables Start Session with no Cards or with fewer than 1 Card", async () => {
   render(<App />);
   expect(startButton().disabled).toBe(true);
@@ -423,7 +463,8 @@ it.each([
         },
       ]),
     );
-    await screen.findByText(`1 answered, ${c.knew ? 1 : 0} right`);
+    // A wrong Card comes back, so only a right one ends this one-Card Session.
+    if (c.knew) await screen.findByText("1 answered, 1 right");
   } finally {
     vi.useRealTimers();
   }
@@ -503,7 +544,8 @@ it.each([
       ]),
     );
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await screen.findByText(`1 answered, ${c.right ? 1 : 0} right`);
+    // A wrong Card comes back, so only a right one ends this one-Card Session.
+    if (c.right) await screen.findByText("1 answered, 1 right");
   } finally {
     vi.useRealTimers();
   }
@@ -563,7 +605,8 @@ it.each([
       ]),
     );
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await screen.findByText(`1 answered, ${c.right ? 1 : 0} right`);
+    // A wrong Card comes back, so only a right one ends this one-Card Session.
+    if (c.right) await screen.findByText("1 answered, 1 right");
   } finally {
     vi.useRealTimers();
   }
@@ -600,7 +643,10 @@ it("a new Card starts unanswered", async () => {
   expect(screen.getByRole<HTMLButtonElement>("button", { name: "This" }).disabled).toBe(false);
   fireEvent.click(screen.getByRole("button", { name: "This" }));
   fireEvent.click(screen.getByRole("button", { name: "Next" }));
-  await screen.findByText("2 answered, 1 right");
+  // The first Card, answered wrong, comes back.
+  fireEvent.click(screen.getByRole("button", { name: "This" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText("3 answered, 2 right");
 });
 
 it("the summary counts Cards answered and right, and Done goes back", async () => {
@@ -611,20 +657,44 @@ it("the summary counts Cards answered and right, and Done goes back", async () =
   await answer(true);
   await answer(false);
   await answer(true);
+  // The Card answered wrong comes back.
+  await answer(true);
 
-  await screen.findByText(/3 answered, 2 right/);
+  await screen.findByText(/4 answered, 3 right/);
   await waitFor(async () =>
-    expect((await loadReviews()).map((review) => review.right).sort()).toEqual([false, true, true]),
+    expect((await loadReviews()).map((review) => review.right).sort()).toEqual([
+      false,
+      true,
+      true,
+      true,
+    ]),
   );
   fireEvent.click(screen.getByRole("button", { name: "Done" }));
   expect(startButton()).toBeTruthy();
   await expectListed(qa("a", 1));
 });
 
+it("a Card answered wrong comes back once, at the end", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  const asked = async () => (await screen.findByText(/^What is [ab]\?$/)).textContent;
+
+  startSession();
+  const first = await asked();
+  await answer(false);
+  expect(await asked()).not.toBe(first);
+  await answer(true);
+  expect(await asked()).toBe(first);
+  await answer(false);
+
+  await screen.findByText("3 answered, 1 right");
+});
+
 it("shows an error when a Review can't be stored, and the Session goes on", async () => {
   render(<App />);
   await uploaded(qa("a", 1), qa("b", 1));
   startSession();
+  await screen.findByRole("button", { name: "Reveal" });
   blockStorage();
 
   await answer();
@@ -638,9 +708,10 @@ it("shows an error when a Review of an option click can't be stored, and the Car
   render(<App />);
   await uploaded(multipleChoice("mc", 1));
   startSession();
+  const option = await screen.findByRole("button", { name: "This" });
   blockStorage();
 
-  fireEvent.click(await screen.findByRole("button", { name: "This" }));
+  fireEvent.click(option);
 
   expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
   expect(screen.getByText("Right.")).toBeTruthy();

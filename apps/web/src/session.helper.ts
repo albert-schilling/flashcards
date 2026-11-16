@@ -1,4 +1,6 @@
 import type { TCard, TCardNumeric } from "@flashcards/cards";
+import { weakestFirst } from "./review.statistics";
+import type { TReview } from "./storage";
 
 /** Whether `given` is within the Card's allowed error; a tiny slack keeps an answer on the edge right despite float rounding. */
 export function withinAllowedError(
@@ -15,15 +17,20 @@ export function allTags(cards: TCard[]): string[] {
   return [...new Set(cards.flatMap((card) => [...card.tags.domain, ...card.tags.topic]))].sort();
 }
 
-/** Up to `size` Cards in random order, only those with `tag` as a domain or topic tag if given. */
-export function pickCards<T extends TCard>(cards: T[], size: number, tag?: string): T[] {
+/** Up to `size` Cards, weakest first, only those with `tag` as a domain or topic tag if given. */
+export function pickCards<T extends TCard>(
+  cards: T[],
+  reviews: TReview[],
+  size: number,
+  tag?: string,
+): T[] {
   const picked = cards.filter(
     (card) => !tag || card.tags.domain.includes(tag) || card.tags.topic.includes(tag),
   );
-  // Fisher–Yates.
+  // Fisher–Yates; shuffling first keeps unseen and tied Cards in random order.
   for (let i = picked.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [picked[i], picked[j]] = [picked[j], picked[i]];
   }
-  return picked.slice(0, size);
+  return weakestFirst(picked, reviews).slice(0, size);
 }
