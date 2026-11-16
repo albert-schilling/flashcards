@@ -3,6 +3,7 @@ import type { TFileError } from "./deck";
 import { downloadFile } from "./download.helper";
 import { addNewReviews, loadReviews, saveLastDownload, type TReview } from "./storage";
 
+/** One Review in a Review log file, with no keys beyond those of a stored Review. */
 export const ZReview: z.ZodType<TReview> = z.strictObject({
   cardId: z.string().min(1),
   cardVersion: z.int().min(1),
