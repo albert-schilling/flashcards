@@ -52,8 +52,8 @@ export function formula(id: string, version: number, example?: string): TCardFor
   };
 }
 
-/** A valid numeric Card, a type a Session can't show yet. */
-export function numeric(id: string, version: number): TCardNumeric {
+/** A valid numeric Card: answer 5, allowed error 0.01; the question names its ID. */
+export function numeric(id: string, version: number, unit?: string): TCardNumeric {
   return {
     id,
     version,
@@ -62,6 +62,7 @@ export function numeric(id: string, version: number): TCardNumeric {
     en: { question: `How much is ${id}?` },
     answer: 5,
     allowedError: 0.01,
+    ...(unit === undefined ? {} : { unit }),
   };
 }
 
