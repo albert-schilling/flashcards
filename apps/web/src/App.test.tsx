@@ -1,8 +1,8 @@
 import type { TCard } from "@flashcards/cards";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
-import { loadReviews } from "./storage";
+import { addReview, loadReviews } from "./storage";
 import {
   cloze,
   formula,
@@ -661,4 +661,65 @@ it("forgets a picked tag once no Card has it", async () => {
   startSession();
   await answer();
   await screen.findByText(/1 answered, 1 right/);
+});
+
+/** The text of each cell of the table with this name, row by row, header row first. */
+function rows(name: string) {
+  return within(screen.getByRole("table", { name }))
+    .getAllByRole("row")
+    .map((row) => Array.from(row.querySelectorAll("th, td"), (cell) => cell.textContent));
+}
+
+it("Statistics shows the figures from the Review log, and Back goes back", async () => {
+  const review = { cardId: "a", cardVersion: 2, durationMs: 3000 };
+  await addReview({ ...review, answeredAt: "2026-11-13T10:00:00.000Z", right: true });
+  await addReview({ ...review, answeredAt: "2026-11-15T10:00:00.000Z", right: false });
+  await addReview({ ...review, answeredAt: "2026-11-14T10:00:00.000Z", right: true });
+  // A later Review of the older version doesn't count.
+  await addReview({
+    ...review,
+    cardVersion: 1,
+    answeredAt: "2026-11-16T10:00:00.000Z",
+    right: true,
+  });
+  render(<App />);
+  await uploaded(tagged(qa("a", 2), ["Statistics"], ["Regression"]), qa("b", 1));
+
+  fireEvent.click(screen.getByRole("button", { name: "Statistics" }));
+
+  await screen.findByRole("table", { name: "Cards" });
+  expect(screen.queryByLabelText("Upload Deck")).toBeNull();
+  const lastReviewed = new Date("2026-11-15T10:00:00.000Z").toLocaleDateString();
+  expect(rows("Cards")).toEqual([
+    ["Card", "Reviews", "Share right", "Last reviewed"],
+    ["a", "3", "67%", lastReviewed],
+    ["b", "0", "–", "never"],
+  ]);
+  expect(rows("Domain tags")).toEqual([
+    ["Tag", "Cards", "Reviews", "Share right"],
+    ["Machine Learning", "1", "0", "–"],
+    ["Statistics", "1", "3", "67%"],
+  ]);
+  expect(rows("Topic tags")).toEqual([
+    ["Tag", "Cards", "Reviews", "Share right"],
+    ["Decision Tree", "1", "0", "–"],
+    ["Regression", "1", "3", "67%"],
+  ]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+  expect(startButton()).toBeTruthy();
+  await expectListed(qa("b", 1));
+});
+
+it("shows an error when the Review log can't be loaded", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  blockStorage();
+
+  fireEvent.click(screen.getByRole("button", { name: "Statistics" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(startButton()).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
 });

@@ -49,3 +49,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #29 | #27   | medium    | 1 / 2             | 1             | 0              | none                |
 | #30 | #7    | medium    | 2 / 3             | 1             | 0              | none                |
 | #31 | #28   | medium    | 1 / 1             | 2             | 0              | none                |
+| #33 | #8    | medium    | 2 / 4             | 2             | 0              | none                |

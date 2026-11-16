@@ -3,7 +3,8 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import { uploadDeck, type TUploadReport } from "./deck";
 import { Session } from "./Session";
 import { allTags, pickCards } from "./session.helper";
-import { clearCards, deleteCard, loadCards } from "./storage";
+import { Statistics } from "./Statistics";
+import { clearCards, deleteCard, loadCards, loadReviews, type TReview } from "./storage";
 
 export function App() {
   const [cards, setCards] = useState<TCard[]>([]);
@@ -12,6 +13,7 @@ export function App() {
   const [size, setSize] = useState(20);
   const [tag, setTag] = useState("");
   const [session, setSession] = useState<TCard[]>();
+  const [reviews, setReviews] = useState<TReview[]>();
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.
@@ -58,6 +60,16 @@ export function App() {
   // A picked tag can vanish when Cards are deleted or replaced; the select then shows "Any tag".
   const pickedTag = tags.includes(tag) ? tag : "";
 
+  if (reviews) {
+    return (
+      <>
+        <h1>Flashcards</h1>
+        {error && <p role="alert">{error}</p>}
+        <Statistics cards={cards} reviews={reviews} onBack={() => setReviews(undefined)} />
+      </>
+    );
+  }
+
   if (session) {
     return (
       <>
@@ -95,7 +107,8 @@ export function App() {
         onClick={() => setSession(pickCards(cards, size, pickedTag || undefined))}
       >
         Start Session
-      </button>
+      </button>{" "}
+      <button onClick={() => loadReviews().then(setReviews, showError)}>Statistics</button>
       <input
         type="file"
         aria-label="Upload Deck"
