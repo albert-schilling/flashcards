@@ -22,7 +22,7 @@ const flows: Record<string, TFlow> = {
     await uploadExampleDeck(page);
     await shot("card-list");
   },
-  // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), Reveal Cards as known.
+  // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01), Reveal Cards as known.
   answer: async (page, shot) => {
     await uploadExampleDeck(page);
     await page.getByLabel("Cards").fill("6");
