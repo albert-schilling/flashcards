@@ -104,7 +104,12 @@ export function App() {
       {/* An empty input gives NaN, so `size < 1` would let it through. */}
       <button
         disabled={cards.length === 0 || !(size >= 1)}
-        onClick={() => setSession(pickCards(cards, size, pickedTag || undefined))}
+        onClick={() =>
+          loadReviews().then(
+            (log) => setSession(pickCards(cards, log, size, pickedTag || undefined)),
+            showError,
+          )
+        }
       >
         Start Session
       </button>{" "}

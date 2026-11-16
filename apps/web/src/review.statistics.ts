@@ -57,3 +57,20 @@ export function statistics(cards: TCard[], reviews: TReview[]): TStatistics {
     topic: totals(perCard, (card) => card.tags.topic),
   };
 }
+
+/** The Cards weakest first: never reviewed, then the lowest share right over the last 5 Reviews of the current version, ties to the one reviewed longest ago. Cards that rank the same keep their order. */
+export function weakestFirst<T extends TCard>(cards: T[], reviews: TReview[]): T[] {
+  const rank = new Map(
+    cards.map((card) => {
+      const last5 = currentReviews(card, reviews).slice(-5);
+      const share = last5.filter((r) => r.right).length / last5.length;
+      return [card, { unseen: last5.length === 0, share, last: last5.at(-1)?.answeredAt ?? "" }];
+    }),
+  );
+  return [...cards].sort((a, b) => {
+    const x = rank.get(a)!;
+    const y = rank.get(b)!;
+    if (x.unseen || y.unseen) return Number(y.unseen) - Number(x.unseen);
+    return x.share - y.share || x.last.localeCompare(y.last);
+  });
+}
