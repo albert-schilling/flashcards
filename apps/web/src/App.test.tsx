@@ -275,7 +275,6 @@ it("starts a Session with only the Cards of the picked tag", async () => {
     tagged(qa("reg-1", 1), ["Statistics"], ["Regression"]),
     tagged(qa("reg-2", 1), ["Regression"], ["Bias"]),
     tagged(qa("other", 1), ["Statistics"], ["Bias"]),
-    tagged(numeric("logic", 1), ["Regression"], ["Logic"]),
   );
   const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
   expect(Array.from(tag.options, (option) => option.text)).toEqual([
@@ -293,9 +292,8 @@ it("starts a Session with only the Cards of the picked tag", async () => {
   await screen.findByText(/2 answered, 2 right/);
 });
 
-it("disables Start Session without Cards it can show or with fewer than 1 Card", async () => {
+it("disables Start Session with no Cards or with fewer than 1 Card", async () => {
   render(<App />);
-  await uploaded(numeric("logic", 1));
   expect(startButton().disabled).toBe(true);
 
   await uploaded(qa("ml.trees.depth", 1));
@@ -509,6 +507,84 @@ it.each([
   } finally {
     vi.useRealTimers();
   }
+});
+
+it.each([
+  {
+    case: "5.01 with a unit, Check, right",
+    card: numeric("mean", 1, "cm"),
+    typed: "5.01",
+    enter: false,
+    right: true,
+    shown: "5 cm",
+  },
+  {
+    case: "5.02 without a unit, Enter, wrong",
+    card: numeric("mean", 1),
+    typed: "5.02",
+    enter: true,
+    right: false,
+    shown: "5",
+  },
+])("checks a typed number within the allowed error ($case)", async (c) => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    render(<App />);
+    await uploaded(c.card);
+    vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
+
+    startSession();
+    await screen.findByText("How much is mean?");
+    if (c.card.unit) expect(screen.getByText(c.card.unit)).toBeTruthy();
+    const input = screen.getByLabelText<HTMLInputElement>("Answer");
+    const check = screen.getByRole<HTMLButtonElement>("button", { name: "Check" });
+    expect(check.disabled).toBe(true);
+    fireEvent.change(input, { target: { value: c.typed } });
+    expect(check.disabled).toBe(false);
+    expect(screen.queryByText(`Answer: ${c.shown}`)).toBeNull();
+    vi.setSystemTime(new Date("2026-11-15T10:00:07.000Z"));
+    // Enter in an input submits its form.
+    if (c.enter) fireEvent.submit(input.form!);
+    else fireEvent.click(check);
+
+    expect(screen.getByText(c.right ? "Right." : "Wrong.")).toBeTruthy();
+    expect(screen.getByText(`Answer: ${c.shown}`)).toBeTruthy();
+    expect(input.disabled).toBe(true);
+    expect(check.disabled).toBe(true);
+    await waitFor(async () =>
+      expect(await loadReviews()).toEqual([
+        {
+          cardId: "mean",
+          cardVersion: 1,
+          answeredAt: "2026-11-15T10:00:07.000Z",
+          right: c.right,
+          durationMs: 7000,
+        },
+      ]),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText(`1 answered, ${c.right ? 1 : 0} right`);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("Enter with an empty input or after Check answers nothing", async () => {
+  render(<App />);
+  await uploaded(numeric("mean", 1));
+  startSession();
+  const input = await screen.findByLabelText<HTMLInputElement>("Answer");
+
+  fireEvent.submit(input.form!);
+  expect(screen.queryByText(/^(Right|Wrong)\.$/)).toBeNull();
+  expect(input.disabled).toBe(false);
+
+  fireEvent.change(input, { target: { value: "5" } });
+  fireEvent.submit(input.form!);
+  fireEvent.submit(input.form!);
+
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText("1 answered, 1 right");
 });
 
 it("a new Card starts unanswered", async () => {

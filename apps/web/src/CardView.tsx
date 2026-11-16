@@ -1,13 +1,14 @@
+import type { TCard } from "@flashcards/cards";
 import { CardChoice } from "./CardChoice";
+import { CardNumeric } from "./CardNumeric";
 import { CardReveal } from "./CardReveal";
-import type { TCardAnswerable } from "./session.helper";
 
 // A cloze gap, `{{word}}`; the group is the word that fills it.
 const gap = /\{\{(.+?)\}\}/g;
 
 // The one place Card text is chosen, so a German translation can plug in here.
 export function CardView(props: {
-  card: TCardAnswerable;
+  card: TCard;
   onAnswer: (right: boolean) => void;
   onNext: () => void;
 }) {
@@ -52,6 +53,17 @@ export function CardView(props: {
           prompt={card.en.statement}
           options={["True", "False"]}
           answerIndex={card.answer ? 0 : 1}
+          onAnswer={props.onAnswer}
+          onNext={props.onNext}
+        />
+      );
+    case "numeric":
+      return (
+        <CardNumeric
+          prompt={card.en.question}
+          answer={card.answer}
+          allowedError={card.allowedError}
+          unit={card.unit}
           onAnswer={props.onAnswer}
           onNext={props.onNext}
         />

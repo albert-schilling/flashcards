@@ -1,11 +1,11 @@
+import type { TCard } from "@flashcards/cards";
 import { useState } from "react";
 import { CardView } from "./CardView";
-import type { TCardAnswerable } from "./session.helper";
 import { addReview } from "./storage";
 
 /** Shows the Cards in order, appends a Review for each answer, then a summary; `onEnd` leaves it. */
 export function Session(props: {
-  cards: TCardAnswerable[];
+  cards: TCard[];
   onEnd: () => void;
   onError: (failure: unknown) => void;
 }) {

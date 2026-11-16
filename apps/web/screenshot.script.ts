@@ -22,13 +22,14 @@ const flows: Record<string, TFlow> = {
     await uploadExampleDeck(page);
     await shot("card-list");
   },
-  // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), Reveal Cards as known.
+  // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01), Reveal Cards as known.
   answer: async (page, shot) => {
     await uploadExampleDeck(page);
     await page.getByLabel("Cards").fill("6");
     await page.getByRole("button", { name: "Start Session" }).click();
     const done = page.getByRole("button", { name: "Done" });
     const reveal = page.getByRole("button", { name: "Reveal" });
+    const check = page.getByRole("button", { name: "Check" });
     const wrong = page.getByRole("button", { name: "False" });
     const options = page.locator("section button");
     // Sessions are shuffled, so Reveal Cards (qa, formula, cloze) are numbered, not named by type.
@@ -44,6 +45,13 @@ const flows: Record<string, TFlow> = {
         await shot("true-false-before");
         await wrong.click();
         await shot("true-false-after");
+        await page.getByRole("button", { name: "Next" }).click();
+      } else if (await check.isVisible()) {
+        await shot("numeric-before");
+        // On the edge of the allowed error, so right.
+        await page.getByLabel("Answer").fill("5.01");
+        await check.click();
+        await shot("numeric-after");
         await page.getByRole("button", { name: "Next" }).click();
       } else if ((await options.count()) > 0) {
         await shot("multiple-choice-before");

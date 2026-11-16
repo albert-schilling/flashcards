@@ -1,25 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { allTags, canAnswer, pickCards } from "./session.helper";
-import {
-  cloze,
-  formula,
-  multipleChoice,
-  numeric,
-  qa,
-  tagged,
-  trueFalse,
-} from "./test/cards.fixtures";
+import { allTags, pickCards, withinAllowedError } from "./session.helper";
+import { qa, tagged } from "./test/cards.fixtures";
 
 const ids = (cards: { id: string }[]) => cards.map((card) => card.id).sort();
 
-describe("canAnswer", () => {
-  it("takes qa, multiple_choice, true_false, formula and cloze Cards, not numeric", () => {
-    expect(canAnswer(qa("a", 1))).toBe(true);
-    expect(canAnswer(multipleChoice("b", 1))).toBe(true);
-    expect(canAnswer(trueFalse("c", 1))).toBe(true);
-    expect(canAnswer(formula("d", 1))).toBe(true);
-    expect(canAnswer(cloze("e", 1))).toBe(true);
-    expect(canAnswer(numeric("f", 1))).toBe(false);
+describe("withinAllowedError", () => {
+  it.each([
+    { answer: 5, allowedError: 0.01, given: 5, right: true },
+    { answer: 5, allowedError: 0.01, given: 5.01, right: true },
+    { answer: 5, allowedError: 0.01, given: 4.99, right: true },
+    { answer: 5, allowedError: 0.01, given: 5.02, right: false },
+    { answer: 5, allowedError: 0.01, given: 4.98, right: false },
+    // 0.4 - 0.3 is 0.10000000000000003 in floats.
+    { answer: 0.3, allowedError: 0.1, given: 0.4, right: true },
+    { answer: 0.3, allowedError: 0.1, given: 0.2, right: true },
+    { answer: 0.3, allowedError: 0.1, given: 0.41, right: false },
+    { answer: 5, allowedError: 0, given: 5, right: true },
+    { answer: 5, allowedError: 0, given: 5.001, right: false },
+  ])("$given for $answer ± $allowedError is right: $right", ({ given, right, ...card }) => {
+    expect(withinAllowedError(given, card)).toBe(right);
   });
 });
 

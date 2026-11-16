@@ -2,7 +2,7 @@ import type { TCard } from "@flashcards/cards";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { uploadDeck, type TUploadReport } from "./deck";
 import { Session } from "./Session";
-import { allTags, canAnswer, pickCards, type TCardAnswerable } from "./session.helper";
+import { allTags, pickCards } from "./session.helper";
 import { clearCards, deleteCard, loadCards } from "./storage";
 
 export function App() {
@@ -11,7 +11,7 @@ export function App() {
   const [error, setError] = useState<string>();
   const [size, setSize] = useState(20);
   const [tag, setTag] = useState("");
-  const [session, setSession] = useState<TCardAnswerable[]>();
+  const [session, setSession] = useState<TCard[]>();
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.
@@ -54,8 +54,7 @@ export function App() {
     await remove(clearCards);
   }
 
-  const answerable = cards.filter(canAnswer);
-  const tags = allTags(answerable);
+  const tags = allTags(cards);
   // A picked tag can vanish when Cards are deleted or replaced; the select then shows "Any tag".
   const pickedTag = tags.includes(tag) ? tag : "";
 
@@ -92,8 +91,8 @@ export function App() {
       </label>{" "}
       {/* An empty input gives NaN, so `size < 1` would let it through. */}
       <button
-        disabled={answerable.length === 0 || !(size >= 1)}
-        onClick={() => setSession(pickCards(answerable, size, pickedTag || undefined))}
+        disabled={cards.length === 0 || !(size >= 1)}
+        onClick={() => setSession(pickCards(cards, size, pickedTag || undefined))}
       >
         Start Session
       </button>
