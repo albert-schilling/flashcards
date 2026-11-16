@@ -17,56 +17,58 @@ async function uploadExampleDeck(page: Page): Promise<void> {
   await page.getByText("6 added, 0 updated, 0 unchanged").waitFor();
 }
 
+// Answers every Card: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01), Reveal Cards as known.
+async function answerEveryCard(page: Page, shot: (name: string) => Promise<void>): Promise<void> {
+  await uploadExampleDeck(page);
+  await page.getByLabel("Cards").fill("6");
+  await page.getByRole("button", { name: "Start Session" }).click();
+  const done = page.getByRole("button", { name: "Done" });
+  const reveal = page.getByRole("button", { name: "Reveal" });
+  const check = page.getByRole("button", { name: "Check" });
+  const wrong = page.getByRole("button", { name: "False" });
+  const options = page.locator("section button");
+  // Sessions are shuffled, so Reveal Cards (qa, formula, cloze) are numbered, not named by type.
+  let revealed = 0;
+  while (!(await done.isVisible())) {
+    if (await reveal.isVisible()) {
+      revealed++;
+      await shot(`reveal-${revealed}-before`);
+      await reveal.click();
+      await shot(`reveal-${revealed}-after`);
+      await page.getByRole("button", { name: "Knew it" }).click();
+    } else if (await wrong.isVisible()) {
+      await shot("true-false-before");
+      await wrong.click();
+      await shot("true-false-after");
+      await page.getByRole("button", { name: "Next" }).click();
+    } else if (await check.isVisible()) {
+      await shot("numeric-before");
+      // On the edge of the allowed error, so right.
+      await page.getByLabel("Answer").fill("5.01");
+      await check.click();
+      await shot("numeric-after");
+      await page.getByRole("button", { name: "Next" }).click();
+    } else if ((await options.count()) > 0) {
+      await shot("multiple-choice-before");
+      await options.nth(1).click();
+      await shot("multiple-choice-after");
+      await page.getByRole("button", { name: "Next" }).click();
+    } else {
+      // Each pass answers one Card, so an unknown view would loop forever.
+      throw new Error("answer flow: no Card view it knows is shown");
+    }
+  }
+}
+
 const flows: Record<string, TFlow> = {
   upload: async (page, shot) => {
     await uploadExampleDeck(page);
     await shot("card-list");
   },
-  // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01), Reveal Cards as known.
-  answer: async (page, shot) => {
-    await uploadExampleDeck(page);
-    await page.getByLabel("Cards").fill("6");
-    await page.getByRole("button", { name: "Start Session" }).click();
-    const done = page.getByRole("button", { name: "Done" });
-    const reveal = page.getByRole("button", { name: "Reveal" });
-    const check = page.getByRole("button", { name: "Check" });
-    const wrong = page.getByRole("button", { name: "False" });
-    const options = page.locator("section button");
-    // Sessions are shuffled, so Reveal Cards (qa, formula, cloze) are numbered, not named by type.
-    let revealed = 0;
-    while (!(await done.isVisible())) {
-      if (await reveal.isVisible()) {
-        revealed++;
-        await shot(`reveal-${revealed}-before`);
-        await reveal.click();
-        await shot(`reveal-${revealed}-after`);
-        await page.getByRole("button", { name: "Knew it" }).click();
-      } else if (await wrong.isVisible()) {
-        await shot("true-false-before");
-        await wrong.click();
-        await shot("true-false-after");
-        await page.getByRole("button", { name: "Next" }).click();
-      } else if (await check.isVisible()) {
-        await shot("numeric-before");
-        // On the edge of the allowed error, so right.
-        await page.getByLabel("Answer").fill("5.01");
-        await check.click();
-        await shot("numeric-after");
-        await page.getByRole("button", { name: "Next" }).click();
-      } else if ((await options.count()) > 0) {
-        await shot("multiple-choice-before");
-        await options.nth(1).click();
-        await shot("multiple-choice-after");
-        await page.getByRole("button", { name: "Next" }).click();
-      } else {
-        // Each pass answers one Card, so an unknown view would loop forever.
-        throw new Error("answer flow: no Card view it knows is shown");
-      }
-    }
-  },
-  // Answers every Card as in the answer flow, then opens Statistics.
+  answer: answerEveryCard,
+  // Answers every Card without shots, then opens Statistics.
   statistics: async (page, shot) => {
-    await flows.answer!(page, async () => {});
+    await answerEveryCard(page, async () => {});
     await page.getByRole("button", { name: "Done" }).click();
     await page.getByRole("button", { name: "Statistics" }).click();
     await page.getByRole("table", { name: "Cards" }).waitFor();
