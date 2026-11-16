@@ -8,7 +8,8 @@ function share(reviews: number, right: number): string {
 
 function TagTable({ name, rows }: { name: string; rows: TTagStatistics[] }) {
   return (
-    <table aria-label={name}>
+    <table>
+      <caption>{name}</caption>
       <thead>
         <tr>
           <th>Tag</th>
@@ -37,7 +38,8 @@ export function Statistics(props: { cards: TCard[]; reviews: TReview[]; onBack: 
   return (
     <>
       <button onClick={props.onBack}>Back</button>
-      <table aria-label="Cards">
+      <table>
+        <caption>Cards</caption>
         <thead>
           <tr>
             <th>Card</th>
