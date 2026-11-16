@@ -63,10 +63,17 @@ export function addNewReviews(reviews: TReview[]): Promise<number> {
     const tx = db.transaction("reviews", "readwrite");
     let added = 0;
     // Awaiting each one keeps a repeat in the list from passing the check twice.
-    for (const review of reviews) {
-      if ((await tx.store.getKey([review.cardId, review.answeredAt])) !== undefined) continue;
-      await tx.store.add(review);
-      added++;
+    try {
+      for (const review of reviews) {
+        if ((await tx.store.getKey([review.cardId, review.answeredAt])) !== undefined) continue;
+        await tx.store.add(review);
+        added++;
+      }
+    } catch (error) {
+      // An invalid key throws without aborting, so abort to drop the earlier adds.
+      tx.done.catch(() => {});
+      tx.abort();
+      throw error;
     }
     await tx.done;
     return added;
