@@ -569,6 +569,24 @@ it.each([
   }
 });
 
+it("Enter with an empty input or after Check answers nothing", async () => {
+  render(<App />);
+  await uploaded(numeric("mean", 1));
+  startSession();
+  const input = await screen.findByLabelText<HTMLInputElement>("Answer");
+
+  fireEvent.submit(input.form!);
+  expect(screen.queryByText(/^(Right|Wrong)\.$/)).toBeNull();
+  expect(input.disabled).toBe(false);
+
+  fireEvent.change(input, { target: { value: "5" } });
+  fireEvent.submit(input.form!);
+  fireEvent.submit(input.form!);
+
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText("1 answered, 1 right");
+});
+
 it("a new Card starts unanswered", async () => {
   render(<App />);
   await uploaded(multipleChoice("a", 1), multipleChoice("b", 1));
