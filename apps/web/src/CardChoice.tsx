@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CardVerdict } from "./CardVerdict";
 
 /** Options to click. The click answers; then it shows right or wrong, the right option, the explanation if any, and Next. */
 export function CardChoice(props: {
@@ -27,12 +28,12 @@ export function CardChoice(props: {
         </button>
       ))}
       {picked !== undefined && (
-        <>
-          <p>{picked === props.answerIndex ? "Right." : "Wrong."}</p>
-          <p>Answer: {props.options[props.answerIndex]}</p>
-          {props.explanation && <p>{props.explanation}</p>}
-          <button onClick={props.onNext}>Next</button>
-        </>
+        <CardVerdict
+          right={picked === props.answerIndex}
+          answer={props.options[props.answerIndex]}
+          explanation={props.explanation}
+          onNext={props.onNext}
+        />
       )}
     </>
   );
