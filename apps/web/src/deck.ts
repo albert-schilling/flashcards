@@ -1,4 +1,5 @@
 import { ZDeck, type TCard } from "@flashcards/cards";
+import { downloadFile } from "./download.helper";
 import { loadCards, saveCards } from "./storage";
 
 /** One problem with an uploaded file: where (a Card ID, "card 3" or "review 3"), which field, and what is wrong. */
@@ -84,4 +85,9 @@ export async function uploadDeck(text: string): Promise<TUploadReport> {
   const { toSave, ...report } = merge(await loadCards(), deck.cards);
   await saveCards(toSave);
   return { ok: true, ...report };
+}
+
+/** Downloads the stored Cards as a Deck file that uploads again unchanged. */
+export async function downloadDeck(): Promise<void> {
+  downloadFile("deck.json", JSON.stringify({ cards: await loadCards() }, null, 2));
 }
