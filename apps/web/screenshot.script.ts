@@ -64,6 +64,14 @@ const flows: Record<string, TFlow> = {
       }
     }
   },
+  // Answers every Card as in the answer flow, then opens Statistics.
+  statistics: async (page, shot) => {
+    await flows.answer!(page, async () => {});
+    await page.getByRole("button", { name: "Done" }).click();
+    await page.getByRole("button", { name: "Statistics" }).click();
+    await page.getByRole("table", { name: "Cards" }).waitFor();
+    await shot("statistics");
+  },
 };
 
 const [flowName, folder] = process.argv.slice(2);

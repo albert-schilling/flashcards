@@ -37,10 +37,12 @@ export function statistics(cards: TCard[], reviews: TReview[]): TStatistics {
   const perCard = cards.map((card): TCardStatistics => {
     const current = reviews.filter((r) => r.cardId === card.id && r.cardVersion === card.version);
     // ISO times in one format sort as text, so the maximum is the latest.
-    const last = current.map((r) => r.answeredAt).reduce<string | undefined>(
-      (latest, at) => (latest === undefined || at > latest ? at : latest),
-      undefined,
-    );
+    const last = current
+      .map((r) => r.answeredAt)
+      .reduce<string | undefined>(
+        (latest, at) => (latest === undefined || at > latest ? at : latest),
+        undefined,
+      );
     const result: TCardStatistics = {
       card,
       reviews: current.length,
