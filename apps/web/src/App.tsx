@@ -1,5 +1,5 @@
 import type { TCard } from "@flashcards/cards";
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { uploadDeck, type TUploadReport } from "./deck";
 import { Session } from "./Session";
 import { allTags, pickCards } from "./session.helper";
@@ -14,6 +14,8 @@ export function App() {
   const [tag, setTag] = useState("");
   const [session, setSession] = useState<TCard[]>();
   const [reviews, setReviews] = useState<TReview[]>();
+  // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
+  const uploads = useRef(0);
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.
@@ -31,11 +33,16 @@ export function App() {
     if (!file) return;
     // Clear the input so picking the same file again triggers another change.
     input.value = "";
+    const current = ++uploads.current;
     try {
-      setReport(await uploadDeck(await file.text()));
+      const result = await uploadDeck(await file.text());
+      // Cards come from storage, so even an outdated upload refreshes the list.
       setCards(await loadCards());
+      if (current !== uploads.current) return;
+      setReport(result);
       setError(undefined);
     } catch (failure) {
+      if (current !== uploads.current) return;
       setReport(undefined);
       showError(failure);
     }
