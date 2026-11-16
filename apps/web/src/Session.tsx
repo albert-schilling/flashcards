@@ -1,5 +1,5 @@
-import { useState } from "react";
 import type { TCard } from "@flashcards/cards";
+import { useState } from "react";
 import { CardView } from "./CardView";
 import { addReview } from "./storage";
 
