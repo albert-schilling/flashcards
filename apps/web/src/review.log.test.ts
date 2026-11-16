@@ -71,6 +71,18 @@ describe("an invalid file", () => {
     expect(await loadReviews()).toEqual([]);
   });
 
+  it("rejects a Review with an unknown key", async () => {
+    const report = await uploadReviewLog(
+      log({ ...review("a", 1, "2026-11-15T10:00:00.000Z"), device: "Laptop" }),
+    );
+
+    expect(report).toEqual({
+      ok: false,
+      errors: [{ where: "review 1", message: expect.any(String) }],
+    });
+    expect(await loadReviews()).toEqual([]);
+  });
+
   it.each([
     ["an empty Card ID", { cardId: "" }, "cardId"],
     ["a fractional Card version", { cardVersion: 1.5 }, "cardVersion"],

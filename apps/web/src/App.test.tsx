@@ -950,3 +950,25 @@ it.each(["Download Cards", "Download Review log"])(
     }
   },
 );
+
+it("a Deck upload that finishes after a newer Review log upload keeps the Review log report", async () => {
+  render(<App />);
+  const deck = JSON.stringify({ cards: [qa("a", 1)] });
+  const slow = new File([deck], "deck.json", { type: "application/json" });
+  // Hold the Deck open, so the Review log upload finishes first.
+  let finishReading = () => {};
+  slow.text = () =>
+    new Promise((resolve) => {
+      finishReading = () => resolve(deck);
+    });
+  pick(slow, "Upload Deck");
+  const text = JSON.stringify({ reviews: [review("a", 1, "2026-11-15T10:00:00.000Z")] });
+  pick(new File([text], "review-log.json", { type: "application/json" }), "Upload Review log");
+  await screen.findByText(/1 added, 0 skipped/);
+
+  finishReading();
+
+  await expectListed(qa("a", 1));
+  expect(screen.getByText(/1 added, 0 skipped/)).toBeTruthy();
+  expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
+});

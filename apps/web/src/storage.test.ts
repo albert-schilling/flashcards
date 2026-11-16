@@ -1,6 +1,7 @@
 import { openDB } from "idb";
 import { describe, expect, it } from "vitest";
 import {
+  addNewReviews,
   addReview,
   loadCards,
   loadLastDownload,
@@ -34,6 +35,16 @@ describe("the Review log", () => {
       name: "ConstraintError",
     });
     expect(await loadReviews()).toEqual([review("a", "2026-11-15T10:00:00.000Z")]);
+  });
+
+  it("adding new Reviews stores none of them when one can't be stored", async () => {
+    // An object is no valid IndexedDB key, so the second Review fails after the first is added.
+    const unstorable = { ...review("b", "2026-11-15T10:01:00.000Z"), answeredAt: {} };
+
+    await expect(
+      addNewReviews([review("a", "2026-11-15T10:00:00.000Z"), unstorable as unknown as TReview]),
+    ).rejects.toMatchObject({ name: "DataError" });
+    expect(await loadReviews()).toEqual([]);
   });
 
   it("upgrading from version 1 keeps the stored Cards and adds the Review log", async () => {
