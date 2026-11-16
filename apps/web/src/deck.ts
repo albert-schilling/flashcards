@@ -1,15 +1,15 @@
 import { ZDeck, type TCard } from "@flashcards/cards";
 import { loadCards, saveCards } from "./storage";
 
-/** One problem with an uploaded Deck: which Card, which field, and what is wrong. */
-export type TDeckError = { cardId?: string; field?: string; message: string };
+/** One problem with an uploaded file: where (a Card ID, "card 3" or "review 3"), which field, and what is wrong. */
+export type TFileError = { where?: string; field?: string; message: string };
 
 /** What an upload did. A file that is not a valid Deck stores nothing; otherwise each Card is added, updated, unchanged or rejected with an error. */
 export type TUploadReport =
-  | { ok: false; errors: TDeckError[] }
-  | { ok: true; added: number; updated: number; unchanged: number; errors: TDeckError[] };
+  | { ok: false; errors: TFileError[] }
+  | { ok: true; added: number; updated: number; unchanged: number; errors: TFileError[] };
 
-type TReadDeck = { cards: TCard[] } | { errors: TDeckError[] };
+type TReadDeck = { cards: TCard[] } | { errors: TFileError[] };
 
 function readDeck(text: string): TReadDeck {
   let raw: unknown;
@@ -28,7 +28,7 @@ function readDeck(text: string): TReadDeck {
       if (first !== "cards" || typeof index !== "number") return { message: issue.message };
       const id = Array.isArray(rawCards) ? rawCards[index]?.id : undefined;
       return {
-        cardId: typeof id === "string" ? id : `card ${index + 1}`,
+        where: typeof id === "string" ? id : `card ${index + 1}`,
         ...(rest.length > 0 && { field: rest.join(".") }),
         message: issue.message,
       };
@@ -44,7 +44,7 @@ function sameContent(a: TCard, b: TCard): boolean {
 function merge(stored: TCard[], cards: TCard[]) {
   const storedById = new Map(stored.map((card) => [card.id, card]));
   const toSave: TCard[] = [];
-  const errors: TDeckError[] = [];
+  const errors: TFileError[] = [];
   let added = 0;
   let updated = 0;
   let unchanged = 0;
@@ -59,7 +59,7 @@ function merge(stored: TCard[], cards: TCard[]) {
       toSave.push(card);
     } else if (card.version < old.version) {
       errors.push({
-        cardId: card.id,
+        where: card.id,
         field: "version",
         message: `Version ${card.version} is lower than the stored version ${old.version}.`,
       });
@@ -67,7 +67,7 @@ function merge(stored: TCard[], cards: TCard[]) {
       unchanged++;
     } else {
       errors.push({
-        cardId: card.id,
+        where: card.id,
         field: "version",
         message: `Content changed but the version is still ${card.version}; raise it.`,
       });
