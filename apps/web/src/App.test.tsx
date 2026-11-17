@@ -993,6 +993,7 @@ it.each([
   ["de", "de"],
   ["en-US", "en"],
   ["fr-FR", "en"],
+  ["DE-AT", "de"],
 ])("with browser language %s, the language is %s until the Learner picks one", (browser, shown) =>
   withBrowserLanguage(browser, async () => {
     render(<App />);
@@ -1049,6 +1050,24 @@ it.each([
     after: ["Ein tiefer Baum."],
   },
   {
+    case: "formula with only a German name",
+    card: german(formula("norm", 1), { name: "Die norm-Formel" }),
+    language: "de",
+    prompt: ["Die norm-Formel", "norm is a times b."],
+    hidden: ["The norm formula"],
+    click: "Reveal",
+    after: ["norm = a · b"],
+  },
+  {
+    case: "true_false with a German statement, True and False stay English",
+    card: german(trueFalse("tf", 1), { statement: "tf ist wahr." }),
+    language: "de",
+    prompt: ["tf ist wahr.", "True", "False"],
+    hidden: ["tf is true."],
+    click: "True",
+    after: ["Answer: True"],
+  },
+  {
     case: "German Card, English picked",
     card: german(qa("q", 1, "An answer."), { question: "Was ist q?", answer: "Eine Antwort." }),
     language: "en",
@@ -1068,4 +1087,19 @@ it.each([
   for (const text of c.hidden) expect(screen.queryByText(text)).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: c.click }));
   for (const text of c.after) expect(screen.getByText(text)).toBeTruthy();
+});
+
+it("shows an error when the picked language can't be saved, and the language still changes", async () => {
+  render(<App />);
+  await uploaded(german(qa("q", 1), { question: "Was ist q?" }));
+  blockStorage();
+
+  fireEvent.change(languageSelect(), { target: { value: "de" } });
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(languageSelect().value).toBe("de");
+  // Storage works again, so the Session can load the Review log.
+  globalThis.indexedDB = new IDBFactory();
+  startSession();
+  await screen.findByText("Was ist q?");
 });
