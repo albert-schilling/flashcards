@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useText } from "./language.context";
 
 /** Shows the `prompt` lines and Reveal; after Reveal, the `answer` lines with Knew it and Didn't know, which call `onGrade`. */
 export function CardReveal(props: {
@@ -6,6 +7,7 @@ export function CardReveal(props: {
   answer: string[];
   onGrade: (right: boolean) => void;
 }) {
+  const text = useText();
   const [revealed, setRevealed] = useState(false);
   return (
     <>
@@ -17,11 +19,11 @@ export function CardReveal(props: {
           {props.answer.map((line, i) => (
             <p key={i}>{line}</p>
           ))}
-          <button onClick={() => props.onGrade(true)}>Knew it</button>
-          <button onClick={() => props.onGrade(false)}>Didn't know</button>
+          <button onClick={() => props.onGrade(true)}>{text.knewIt}</button>
+          <button onClick={() => props.onGrade(false)}>{text.didntKnow}</button>
         </>
       ) : (
-        <button onClick={() => setRevealed(true)}>Reveal</button>
+        <button onClick={() => setRevealed(true)}>{text.reveal}</button>
       )}
     </>
   );

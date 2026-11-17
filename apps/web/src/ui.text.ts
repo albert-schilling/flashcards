@@ -24,6 +24,19 @@ const en = {
   delete: "Delete",
   clearAll: "Clear all",
   confirmClearAll: "Delete all Cards?",
+  sessionResult: (answered: number, right: number) => `${answered} answered, ${right} right`,
+  done: "Done",
+  reveal: "Reveal",
+  knewIt: "Knew it",
+  didntKnow: "Didn't know",
+  right: "Right.",
+  wrong: "Wrong.",
+  correctAnswer: (answer: string) => `Answer: ${answer}`,
+  next: "Next",
+  answer: "Answer",
+  check: "Check",
+  true: "True",
+  false: "False",
 };
 
 /** The UI texts of one language; templates are functions. */
@@ -51,6 +64,19 @@ const de: TUiText = {
   delete: "Löschen",
   clearAll: "Alle löschen",
   confirmClearAll: "Alle Karten löschen?",
+  sessionResult: (answered, right) => `${answered} beantwortet, ${right} richtig`,
+  done: "Fertig",
+  reveal: "Aufdecken",
+  knewIt: "Gewusst",
+  didntKnow: "Nicht gewusst",
+  right: "Richtig.",
+  wrong: "Falsch.",
+  correctAnswer: (answer) => `Antwort: ${answer}`,
+  next: "Weiter",
+  answer: "Antwort",
+  check: "Prüfen",
+  true: "Wahr",
+  false: "Falsch",
 };
 
 /** UI text by language; `de` is typed TUiText, so a missing German text fails the type check. */

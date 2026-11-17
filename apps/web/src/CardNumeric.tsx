@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CardVerdict } from "./CardVerdict";
+import { useText } from "./language.context";
 import { withinAllowedError } from "./session.helper";
 
 /** A number to type, with the unit after it; Check (or Enter) answers within the allowed error, then shows the verdict. */
@@ -11,6 +12,7 @@ export function CardNumeric(props: {
   onAnswer: (right: boolean) => void;
   onNext: () => void;
 }) {
+  const text = useText();
   const [typed, setTyped] = useState("");
   const [right, setRight] = useState<boolean>();
   const answered = right !== undefined;
@@ -29,7 +31,7 @@ export function CardNumeric(props: {
         <input
           type="number"
           step="any"
-          aria-label="Answer"
+          aria-label={text.answer}
           value={typed}
           disabled={answered}
           onChange={(event) => setTyped(event.target.value)}
@@ -40,7 +42,7 @@ export function CardNumeric(props: {
             <span>{props.unit}</span>
           </>
         )}{" "}
-        <button disabled={answered || typed === ""}>Check</button>
+        <button disabled={answered || typed === ""}>{text.check}</button>
       </form>
       {answered && (
         <CardVerdict
