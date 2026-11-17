@@ -28,3 +28,4 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 - `pnpm screenshot <flow> <folder>` builds the web app, runs a Playwright flow in headless Chromium and writes `<folder>/<flow>-<shot>.png`. The first run downloads Chromium; `validate` and CI don't run it.
 - `pnpm exec` installs missing or outdated dependencies itself (`verifyDepsBeforeRun` defaults to `install`); to make it fail instead, pass `--config.verify-deps-before-run=error`.
 - In a worktree under `.claude/worktrees/`, the guard refuses chained or compound shell commands (`&&`, `;`, a heredoc then a test run): run them one at a time and edit files with Edit/Write.
+- An inherited `NX_WORKSPACE_ROOT_PATH` points Nx at another checkout: `validate.sh` resets it, but a direct `pnpm exec nx …` in a worktree needs `NX_WORKSPACE_ROOT_PATH=$PWD` in front.
