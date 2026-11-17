@@ -71,6 +71,11 @@ const flows: Record<string, TFlow> = {
     await shot("card-list");
   },
   answer: answerEveryCard,
+  // Picks Deutsch, then answers every Card; Cards without a German field show it in English.
+  german: async (page, shot) => {
+    await page.getByLabel("Language").selectOption("de");
+    await answerEveryCard(page, shot);
+  },
   // Answers every Card without shots, then opens Statistics.
   statistics: async (page, shot) => {
     await answerEveryCard(page, async () => {});

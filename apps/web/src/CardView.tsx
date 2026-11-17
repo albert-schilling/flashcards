@@ -1,18 +1,26 @@
 import type { TCard } from "@flashcards/cards";
+import { useContext } from "react";
 import { CardChoice } from "./CardChoice";
 import { CardNumeric } from "./CardNumeric";
 import { CardReveal } from "./CardReveal";
+import { LanguageContext, type TLanguage } from "./language.context";
 
 // A cloze gap, `{{word}}`; the group is the word that fills it.
 const gap = /\{\{(.+?)\}\}/g;
 
-// The one place Card text is chosen, so a German translation can plug in here.
+// German fields replace English ones; a missing German field stays English.
+function inLanguage(card: TCard, language: TLanguage): TCard {
+  if (language === "en") return card;
+  return { ...card, en: { ...card.en, ...card.translations?.de } } as TCard;
+}
+
+// The one place Card text is chosen.
 export function CardView(props: {
   card: TCard;
   onAnswer: (right: boolean) => void;
   onNext: () => void;
 }) {
-  const { card } = props;
+  const card = inLanguage(props.card, useContext(LanguageContext));
   const grade = (right: boolean) => {
     props.onAnswer(right);
     props.onNext();
