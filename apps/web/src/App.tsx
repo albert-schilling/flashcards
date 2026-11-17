@@ -1,19 +1,37 @@
 import type { TCard } from "@flashcards/cards";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { uploadDeck, type TUploadReport } from "./deck";
+import { downloadDeck, uploadDeck, type TUploadReport } from "./deck";
+import { downloadReviewLog, uploadReviewLog, type TReviewLogReport } from "./review.log";
 import { Session } from "./Session";
 import { allTags, pickCards } from "./session.helper";
 import { Statistics } from "./Statistics";
-import { clearCards, deleteCard, loadCards, loadReviews, type TReview } from "./storage";
+import {
+  clearCards,
+  deleteCard,
+  loadCards,
+  loadLastDownload,
+  loadReviews,
+  type TReview,
+} from "./storage";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function summary(report: TUploadReport | TReviewLogReport): string {
+  if (!report.ok) return "File rejected";
+  return "skipped" in report
+    ? `${report.added} added, ${report.skipped} skipped`
+    : `${report.added} added, ${report.updated} updated, ${report.unchanged} unchanged`;
+}
 
 export function App() {
   const [cards, setCards] = useState<TCard[]>([]);
-  const [report, setReport] = useState<TUploadReport>();
+  const [report, setReport] = useState<TUploadReport | TReviewLogReport>();
   const [error, setError] = useState<string>();
   const [size, setSize] = useState(20);
   const [tag, setTag] = useState("");
   const [session, setSession] = useState<TCard[]>();
   const [reviews, setReviews] = useState<TReview[]>();
+  const [lastDownload, setLastDownload] = useState<string>();
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
 
@@ -21,13 +39,17 @@ export function App() {
     // Ask the browser not to evict the stored Cards.
     void navigator.storage?.persist();
     loadCards().then(setCards, showError);
+    loadLastDownload().then(setLastDownload, showError);
   }, []);
 
   function showError(failure: unknown) {
     setError(failure instanceof Error ? failure.message : String(failure));
   }
 
-  async function upload(event: ChangeEvent<HTMLInputElement>) {
+  async function upload(
+    event: ChangeEvent<HTMLInputElement>,
+    read: (text: string) => Promise<TUploadReport | TReviewLogReport>,
+  ) {
     const input = event.target;
     const file = input.files?.[0];
     if (!file) return;
@@ -35,7 +57,7 @@ export function App() {
     input.value = "";
     const current = ++uploads.current;
     try {
-      const result = await uploadDeck(await file.text());
+      const result = await read(await file.text());
       // Cards come from storage, so even an outdated upload refreshes the list.
       setCards(await loadCards());
       if (current !== uploads.current) return;
@@ -44,6 +66,15 @@ export function App() {
     } catch (failure) {
       if (current !== uploads.current) return;
       setReport(undefined);
+      showError(failure);
+    }
+  }
+
+  async function download(save: () => Promise<unknown>) {
+    try {
+      await save();
+      setError(undefined);
+    } catch (failure) {
       showError(failure);
     }
   }
@@ -121,23 +152,42 @@ export function App() {
         Start Session
       </button>{" "}
       <button onClick={() => loadReviews().then(setReviews, showError)}>Statistics</button>
-      <input
-        type="file"
-        aria-label="Upload Deck"
-        accept=".json,application/json"
-        onChange={upload}
-      />
+      <p>
+        <label>
+          Upload Deck{" "}
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={(event) => upload(event, uploadDeck)}
+          />
+        </label>{" "}
+        <label>
+          Upload Review log{" "}
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={(event) => upload(event, uploadReviewLog)}
+          />
+        </label>
+      </p>
+      <p>
+        <button onClick={() => download(downloadDeck)}>Download Cards</button>{" "}
+        <button onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}>
+          Download Review log
+        </button>
+      </p>
+      <p>
+        {lastDownload
+          ? `Days since the last download: ${Math.floor((Date.now() - Date.parse(lastDownload)) / DAY_MS)}`
+          : "No download yet"}
+      </p>
       {report && (
         <section>
-          <p>
-            {report.ok
-              ? `${report.added} added, ${report.updated} updated, ${report.unchanged} unchanged`
-              : "File rejected"}
-          </p>
+          <p>{summary(report)}</p>
           <ul>
-            {report.errors.map((deckError, i) => (
+            {("errors" in report ? report.errors : []).map((fileError, i) => (
               <li key={i}>
-                {[deckError.cardId, deckError.field, deckError.message].filter(Boolean).join(": ")}
+                {[fileError.where, fileError.field, fileError.message].filter(Boolean).join(": ")}
               </li>
             ))}
           </ul>

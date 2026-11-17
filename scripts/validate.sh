@@ -3,4 +3,5 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-pnpm exec nx run-many -t format:check lint typecheck test build "$@"
+# Static output prints a failing task's log inline instead of only a path to it.
+pnpm exec nx run-many -t format:check lint typecheck test build --output-style=static "$@"

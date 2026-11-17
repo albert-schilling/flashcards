@@ -62,8 +62,8 @@ describe("an invalid file", () => {
     expect(report).toEqual({
       ok: false,
       errors: [
-        { cardId: "bad.answer", field: "en.answer", message: expect.any(String) },
-        { cardId: "card 3", field: "id", message: expect.any(String) },
+        { where: "bad.answer", field: "en.answer", message: expect.any(String) },
+        { where: "card 3", field: "id", message: expect.any(String) },
       ],
     });
     expect(await loadCards()).toEqual([]);
@@ -74,7 +74,7 @@ describe("an invalid file", () => {
 
     expect(report).toStrictEqual({
       ok: false,
-      errors: [{ cardId: "card 1", message: expect.any(String) }],
+      errors: [{ where: "card 1", message: expect.any(String) }],
     });
   });
 
@@ -83,7 +83,7 @@ describe("an invalid file", () => {
 
     expect(report).toEqual({
       ok: false,
-      errors: [{ cardId: "a", field: "id", message: expect.stringContaining("duplicate") }],
+      errors: [{ where: "a", field: "id", message: expect.stringContaining("duplicate") }],
     });
     expect(await loadCards()).toEqual([]);
   });
@@ -109,7 +109,7 @@ describe("Card versions", () => {
       added: 1,
       updated: 0,
       unchanged: 0,
-      errors: [{ cardId: "a", field: "version", message: expect.any(String) }],
+      errors: [{ where: "a", field: "version", message: expect.any(String) }],
     });
     expect(await loadCards()).toEqual([qa("a", 1, "Old answer."), qa("b", 1)]);
   });
@@ -124,7 +124,7 @@ describe("Card versions", () => {
       added: 0,
       updated: 0,
       unchanged: 0,
-      errors: [{ cardId: "a", field: "version", message: expect.any(String) }],
+      errors: [{ where: "a", field: "version", message: expect.any(String) }],
     });
     expect(await loadCards()).toEqual([qa("a", 2, "New answer.")]);
   });

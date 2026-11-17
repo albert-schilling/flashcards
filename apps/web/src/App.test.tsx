@@ -1,5 +1,6 @@
 import type { TCard } from "@flashcards/cards";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { IDBFactory } from "fake-indexeddb";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
 import { addReview, loadReviews } from "./storage";
@@ -9,16 +10,20 @@ import {
   multipleChoice,
   numeric,
   qa,
+  review,
   tagged,
   trueFalse,
 } from "./test/cards.fixtures";
 
 function upload(...cards: TCard[]) {
-  pick(new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }));
+  pick(
+    new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }),
+    "Upload Deck",
+  );
 }
 
-function pick(file: File) {
-  const input = screen.getByLabelText<HTMLInputElement>("Upload Deck");
+function pick(file: File, label: string) {
+  const input = screen.getByLabelText<HTMLInputElement>(label);
   // jsdom can't pick a file, so act like a browser: the value names the file until set to "".
   let files = [file];
   Object.defineProperty(input, "files", { configurable: true, get: () => files });
@@ -117,7 +122,7 @@ it("shows an error when the file can't be read", async () => {
   file.text = () => Promise.reject(new DOMException("The file is gone.", "NotReadableError"));
   render(<App />);
 
-  pick(file);
+  pick(file, "Upload Deck");
 
   expect((await screen.findByRole("alert")).textContent).toContain("The file is gone.");
 });
@@ -129,7 +134,7 @@ it("hides the report of the last upload when the next one fails", async () => {
 
   const file = new File([], "deck.json");
   file.text = () => Promise.reject(new DOMException("The file is gone.", "NotReadableError"));
-  pick(file);
+  pick(file, "Upload Deck");
 
   await screen.findByRole("alert");
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
@@ -145,10 +150,10 @@ it("keeps the error of a failed upload when an earlier upload finishes later", a
     new Promise((resolve) => {
       finishReading = () => resolve(deck);
     });
-  pick(slow);
+  pick(slow, "Upload Deck");
   const failing = new File([], "deck.json");
   failing.text = () => Promise.reject(new DOMException("The file is gone.", "NotReadableError"));
-  pick(failing);
+  pick(failing, "Upload Deck");
   await screen.findByRole("alert");
 
   finishReading();
@@ -816,4 +821,154 @@ it("shows an error when the Review log can't be loaded", async () => {
   expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
   expect(startButton()).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+});
+
+/** Clicks the button and returns the file it downloads. jsdom can't download, so this fakes the browser's part. */
+async function download(button: string): Promise<File> {
+  const blobs = new Map<string, Blob>();
+  const create = vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
+    const url = `blob:download-${blobs.size}`;
+    blobs.set(url, blob as Blob);
+    return url;
+  });
+  const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+  const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  try {
+    fireEvent.click(screen.getByRole("button", { name: button }));
+
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    const link = click.mock.contexts[0] as HTMLAnchorElement;
+    const url = link.getAttribute("href")!;
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith(url));
+    return new File([blobs.get(url)!], link.download, { type: "application/json" });
+  } finally {
+    click.mockRestore();
+    create.mockRestore();
+    revoke.mockRestore();
+  }
+}
+
+it("downloads the Cards as a Deck that uploads again unchanged", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 2));
+
+  const file = await download("Download Cards");
+
+  expect(file.name).toBe("deck.json");
+  pick(file, "Upload Deck");
+  await screen.findByText(/0 added, 0 updated, 2 unchanged/);
+});
+
+it("downloads every Review, and the file restores them in an empty browser", async () => {
+  const reviews = [
+    review("a", 1, "2026-11-15T10:00:00.000Z"),
+    review("a", 1, "2026-11-15T10:05:00.000Z", false),
+    review("b", 2, "2026-11-15T10:01:00.000Z"),
+  ];
+  for (const each of reviews) await addReview(each);
+  const { unmount } = render(<App />);
+
+  const file = await download("Download Review log");
+
+  expect(file.name).toBe("review-log.json");
+  expect(JSON.parse(await file.text())).toEqual({ reviews });
+  unmount();
+  globalThis.indexedDB = new IDBFactory();
+  render(<App />);
+  pick(file, "Upload Review log");
+  await screen.findByText(/3 added, 0 skipped/);
+  expect(await loadReviews()).toEqual(reviews);
+  pick(file, "Upload Review log");
+  await screen.findByText(/0 added, 3 skipped/);
+  expect(await loadReviews()).toEqual(reviews);
+});
+
+it("shows the errors of an invalid Review log", async () => {
+  render(<App />);
+  const text = JSON.stringify({ reviews: [review("a", 0, "2026-11-15T10:00:00.000Z")] });
+
+  pick(new File([text], "review-log.json", { type: "application/json" }), "Upload Review log");
+
+  await screen.findByText(/File rejected/);
+  expect(screen.getByText(/review 1: cardVersion: /)).toBeTruthy();
+  expect(await loadReviews()).toEqual([]);
+});
+
+it("shows No download yet, which only a Review log download resets", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  expect(screen.getByText("No download yet")).toBeTruthy();
+
+  await download("Download Cards");
+  expect(screen.getByText("No download yet")).toBeTruthy();
+
+  await download("Download Review log");
+  await screen.findByText("Days since the last download: 0");
+  expect(screen.queryByText("No download yet")).toBeNull();
+});
+
+it("shows the days since the last download after a reload", async () => {
+  // Fake only the clock: Testing Library waits with real timers.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(new Date("2026-11-12T10:00:00.000Z"));
+    const first = render(<App />);
+    await download("Download Review log");
+    await screen.findByText("Days since the last download: 0");
+    first.unmount();
+
+    // Only whole 24-hour periods count.
+    vi.setSystemTime(new Date("2026-11-15T09:59:00.000Z"));
+    const second = render(<App />);
+    await screen.findByText("Days since the last download: 2");
+    second.unmount();
+
+    vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
+    render(<App />);
+    await screen.findByText("Days since the last download: 3");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it.each(["Download Cards", "Download Review log"])(
+  "shows an error and downloads nothing when %s can't read storage",
+  async (button) => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      render(<App />);
+      await uploaded(qa("a", 1));
+      blockStorage();
+
+      fireEvent.click(screen.getByRole("button", { name: button }));
+
+      expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+      expect(click).not.toHaveBeenCalled();
+      expect(screen.getByText("No download yet")).toBeTruthy();
+    } finally {
+      click.mockRestore();
+    }
+  },
+);
+
+it("a Deck upload that finishes after a newer Review log upload keeps the Review log report", async () => {
+  render(<App />);
+  const deck = JSON.stringify({ cards: [qa("a", 1)] });
+  const slow = new File([deck], "deck.json", { type: "application/json" });
+  // Hold the Deck open, so the Review log upload finishes first.
+  let finishReading = () => {};
+  slow.text = () =>
+    new Promise((resolve) => {
+      finishReading = () => resolve(deck);
+    });
+  pick(slow, "Upload Deck");
+  const text = JSON.stringify({ reviews: [review("a", 1, "2026-11-15T10:00:00.000Z")] });
+  pick(new File([text], "review-log.json", { type: "application/json" }), "Upload Review log");
+  await screen.findByText(/1 added, 0 skipped/);
+
+  finishReading();
+
+  await expectListed(qa("a", 1));
+  expect(screen.getByText(/1 added, 0 skipped/)).toBeTruthy();
+  expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
