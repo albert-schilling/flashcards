@@ -82,7 +82,7 @@ const flows: Record<string, TFlow> = {
     await uploadExampleDeck(page);
     await shot("card-list");
   },
-  answer: (page, shot) => answerEveryCard(page, shot),
+  answer: answerEveryCard,
   // Picks Deutsch, answers every Card, then shows the start page and Statistics; Cards without a German field show it in English.
   german: async (page, shot) => {
     // Not exact: the label's name includes the option names.
