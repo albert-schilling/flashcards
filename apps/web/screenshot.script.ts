@@ -71,24 +71,34 @@ async function answerEveryCard(
   }
 }
 
+// From the start page, opens Statistics and waits for its Cards table.
+async function openStatistics(page: Page, text: TUiText): Promise<void> {
+  await page.getByRole("button", { name: text.statistics, exact: true }).click();
+  await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
+}
+
 const flows: Record<string, TFlow> = {
   upload: async (page, shot) => {
     await uploadExampleDeck(page);
     await shot("card-list");
   },
   answer: (page, shot) => answerEveryCard(page, shot),
-  // Picks Deutsch, then answers every Card; Cards without a German field show it in English.
+  // Picks Deutsch, answers every Card, then shows the start page and Statistics; Cards without a German field show it in English.
   german: async (page, shot) => {
     // Not exact: the label's name includes the option names.
     await page.getByLabel(uiText.en.language).selectOption("de");
     await answerEveryCard(page, shot, uiText.de);
+    await page.getByRole("button", { name: uiText.de.done, exact: true }).click();
+    await page.getByRole("button", { name: uiText.de.statistics, exact: true }).waitFor();
+    await shot("start-page");
+    await openStatistics(page, uiText.de);
+    await shot("statistics");
   },
   // Answers every Card without shots, then opens Statistics.
   statistics: async (page, shot) => {
     await answerEveryCard(page, async () => {});
     await page.getByRole("button", { name: uiText.en.done, exact: true }).click();
-    await page.getByRole("button", { name: uiText.en.statistics, exact: true }).click();
-    await page.getByRole("table", { name: uiText.en.cards, exact: true }).waitFor();
+    await openStatistics(page, uiText.en);
     await shot("statistics");
   },
 };
