@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-/** The language of the app: UI text (from #41) and Card text. */
+/** The language of the app: Card text now, UI text once issue #41 translates it. */
 export type TLanguage = "en" | "de";
 
 /** German if the browser language starts with "de", else English. */

@@ -11,6 +11,7 @@ const gap = /\{\{(.+?)\}\}/g;
 // German fields replace English ones; a missing German field stays English.
 function inLanguage(card: TCard, language: TLanguage): TCard {
   if (language === "en") return card;
+  // The German fields are those of the same Card type, which TypeScript can't follow through the union.
   return { ...card, en: { ...card.en, ...card.translations?.de } } as TCard;
 }
 
