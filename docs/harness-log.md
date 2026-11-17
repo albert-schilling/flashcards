@@ -27,6 +27,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #29 | The issue named `git diff -M` to prove a move; it doesn't show code moved between files that stay.   | `pull-requests.md`: moves are shown with `--color-moved`.                  |
 | #34 | Research missed seven existing tests the repeat changed, so the first plan for #8 was far too small. | albert-schilling/skills#32: research lists tests the issue changes.        |
 | #37 | A test from #5 was flaky in CI; reviews of #18 hadn't caught that overlapping uploads race.          | Deterministic race test and fix; #36 for the upload/delete race.           |
+| #40 | Agents re-ran checks to read failures, because `validate.sh` printed only Nx's summary.              | `validate.sh` uses `--output-style=static`.                                |
 
 ## Factory runs
 
@@ -54,3 +55,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #33 | #8    | medium    | 2 / 4             | 2             | 0              | none                |
 | #34 | #32   | medium    | 1 / 2             | 2             | 0              | none                |
 | #37 | #35   | medium    | 2 / 2             | 1             | 0              | none                |
+| #40 | #9    | medium    | 2 / 6             | 2             | 0              | none                |
