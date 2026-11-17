@@ -1122,6 +1122,14 @@ function pickGerman() {
   fireEvent.change(languageSelect(), { target: { value: "de" } });
 }
 
+// languageSelect() and startButton() match both languages, so this pins the English names.
+it("labels the language select Language and the start button Start Session in English", () => {
+  render(<App />);
+
+  expect(screen.getByLabelText("Language")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Start Session" })).toBeTruthy();
+});
+
 it("shows the start page in German once Deutsch is picked", () => {
   render(<App />);
 
