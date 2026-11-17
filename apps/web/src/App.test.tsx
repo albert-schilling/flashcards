@@ -270,7 +270,9 @@ async function uploaded(...cards: TCard[]) {
 }
 
 function startButton() {
-  return screen.getByRole<HTMLButtonElement>("button", { name: "Start Session" });
+  return screen.getByRole<HTMLButtonElement>("button", {
+    name: /^(Start Session|Sitzung starten)$/,
+  });
 }
 
 function startSession() {
@@ -789,10 +791,9 @@ it("Statistics shows the figures from the Review log, and Back goes back", async
 
   await screen.findByRole("table", { name: "Cards" });
   expect(screen.queryByLabelText("Upload Deck")).toBeNull();
-  const lastReviewed = new Date("2026-11-15T10:00:00.000Z").toLocaleDateString();
   expect(rows("Cards")).toEqual([
     ["Card", "Reviews", "Share right", "Last reviewed"],
-    ["a", "3", "67%", lastReviewed],
+    ["a", "3", "67%", "11/15/2026"],
     ["b", "0", "–", "never"],
   ]);
   expect(rows("Domain tags")).toEqual([
@@ -985,7 +986,7 @@ async function withBrowserLanguage(language: string, test: () => Promise<void>) 
 }
 
 function languageSelect() {
-  return screen.getByLabelText<HTMLSelectElement>("Language");
+  return screen.getByLabelText<HTMLSelectElement>(/^(Language|Sprache)$/);
 }
 
 it.each([
@@ -1025,7 +1026,7 @@ it.each([
     language: "de",
     prompt: ["Was ist q?"],
     hidden: ["What is q?"],
-    click: "Reveal",
+    click: "Aufdecken",
     after: ["An answer."],
   },
   {
@@ -1038,7 +1039,7 @@ it.each([
     prompt: ["Welches ist mc?", "Dies", "Das"],
     hidden: ["Which is mc?", "This", "That"],
     click: "Dies",
-    after: ["Answer: Dies", "This one."],
+    after: ["Antwort: Dies", "This one."],
   },
   {
     case: "cloze with German text",
@@ -1046,7 +1047,7 @@ it.each([
     language: "de",
     prompt: ["Ein ____ Baum."],
     hidden: ["A ____ tree."],
-    click: "Reveal",
+    click: "Aufdecken",
     after: ["Ein tiefer Baum."],
   },
   {
@@ -1055,17 +1056,17 @@ it.each([
     language: "de",
     prompt: ["Die norm-Formel", "norm is a times b."],
     hidden: ["The norm formula"],
-    click: "Reveal",
+    click: "Aufdecken",
     after: ["norm = a · b"],
   },
   {
-    case: "true_false with a German statement, True and False stay English",
+    case: "true_false with a German statement, and Wahr and Falsch as options",
     card: german(trueFalse("tf", 1), { statement: "tf ist wahr." }),
     language: "de",
-    prompt: ["tf ist wahr.", "True", "False"],
-    hidden: ["tf is true."],
-    click: "True",
-    after: ["Answer: True"],
+    prompt: ["tf ist wahr.", "Wahr", "Falsch"],
+    hidden: ["tf is true.", "True", "False"],
+    click: "Wahr",
+    after: ["Antwort: Wahr"],
   },
   {
     case: "German Card, English picked",
@@ -1115,4 +1116,166 @@ it("clears the error once the picked language is saved", async () => {
   fireEvent.change(languageSelect(), { target: { value: "en" } });
 
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});
+
+function pickGerman() {
+  fireEvent.change(languageSelect(), { target: { value: "de" } });
+}
+
+it("shows the start page in German once Deutsch is picked", () => {
+  render(<App />);
+
+  pickGerman();
+
+  expect(screen.getByLabelText("Sprache")).toBeTruthy();
+  expect(screen.getByLabelText("Karten")).toBeTruthy();
+  const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
+  expect(Array.from(tag.options, (option) => option.text)).toEqual(["Alle Tags"]);
+  for (const name of [
+    "Sitzung starten",
+    "Statistik",
+    "Karten herunterladen",
+    "Lernprotokoll herunterladen",
+  ]) {
+    expect(screen.getByRole("button", { name })).toBeTruthy();
+  }
+  expect(screen.getByLabelText("Deck hochladen")).toBeTruthy();
+  expect(screen.getByLabelText("Lernprotokoll hochladen")).toBeTruthy();
+  expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
+});
+
+it("shows the days since the last download in German", async () => {
+  render(<App />);
+  pickGerman();
+
+  await download("Lernprotokoll herunterladen");
+
+  await screen.findByText("Tage seit dem letzten Herunterladen: 0");
+});
+
+it("shows a Deck upload in German: the counts, the Card list and its buttons", async () => {
+  render(<App />);
+  pickGerman();
+
+  const deck = JSON.stringify({ cards: [qa("q", 1)] });
+  pick(new File([deck], "deck.json", { type: "application/json" }), "Deck hochladen");
+
+  await screen.findByText("1 hinzugefügt, 0 aktualisiert, 0 unverändert");
+  expect(screen.getByText("q (qa, Version 1)")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "q löschen" }).textContent).toBe("Löschen");
+  expect(screen.getByRole("button", { name: "Alle löschen" })).toBeTruthy();
+});
+
+it("shows a Review log upload in German, and a rejected file keeps its details in English", async () => {
+  render(<App />);
+  pickGerman();
+  const valid = JSON.stringify({ reviews: [review("a", 1, "2026-11-15T10:00:00.000Z")] });
+  const invalid = JSON.stringify({ reviews: [review("a", 0, "2026-11-15T10:00:00.000Z")] });
+
+  pick(
+    new File([valid], "review-log.json", { type: "application/json" }),
+    "Lernprotokoll hochladen",
+  );
+  await screen.findByText("1 hinzugefügt, 0 übersprungen");
+  pick(
+    new File([invalid], "review-log.json", { type: "application/json" }),
+    "Lernprotokoll hochladen",
+  );
+
+  await screen.findByText("Datei abgelehnt");
+  expect(screen.getByText(/review 1: cardVersion: /)).toBeTruthy();
+});
+
+it("asks in German before clearing all Cards", async () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  try {
+    render(<App />);
+    await uploaded(qa("q", 1));
+    pickGerman();
+
+    fireEvent.click(screen.getByRole("button", { name: "Alle löschen" }));
+
+    expect(confirm).toHaveBeenCalledWith("Alle Karten löschen?");
+  } finally {
+    confirm.mockRestore();
+  }
+});
+
+it.each([
+  {
+    case: "qa: Aufdecken, then Gewusst and Nicht gewusst",
+    card: qa("q", 1),
+    async answer() {
+      fireEvent.click(await screen.findByRole("button", { name: "Aufdecken" }));
+      expect(screen.getByRole("button", { name: "Nicht gewusst" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Gewusst" }));
+    },
+    summary: "1 beantwortet, 1 richtig",
+  },
+  {
+    case: "true_false: Wahr and Falsch, then Falsch. and Antwort: Wahr after a wrong pick",
+    card: trueFalse("tf", 1, true),
+    async answer() {
+      expect(await screen.findByRole("button", { name: "Wahr" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Falsch" }));
+      expect(screen.getByText("Falsch.")).toBeTruthy();
+      expect(screen.getByText("Antwort: Wahr")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Weiter" }));
+      // The Card answered wrong comes back.
+      fireEvent.click(await screen.findByRole("button", { name: "Wahr" }));
+      fireEvent.click(screen.getByRole("button", { name: "Weiter" }));
+    },
+    summary: "2 beantwortet, 1 richtig",
+  },
+  {
+    case: "numeric: the input Antwort and Prüfen, then Richtig.",
+    card: numeric("mean", 1),
+    async answer() {
+      fireEvent.change(await screen.findByLabelText("Antwort"), { target: { value: "5" } });
+      fireEvent.click(screen.getByRole("button", { name: "Prüfen" }));
+      expect(screen.getByText("Richtig.")).toBeTruthy();
+      expect(screen.getByText("Antwort: 5")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Weiter" }));
+    },
+    summary: "1 beantwortet, 1 richtig",
+  },
+])("shows the Session in German ($case)", async (c) => {
+  render(<App />);
+  await uploaded(c.card);
+  pickGerman();
+
+  startSession();
+  await c.answer();
+
+  await screen.findByText(c.summary);
+  fireEvent.click(screen.getByRole("button", { name: "Fertig" }));
+  expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
+});
+
+it("shows Statistics in German, with German dates, and Zurück goes back", async () => {
+  await addReview(review("a", 1, "2026-11-15T10:00:00.000Z"));
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  pickGerman();
+
+  fireEvent.click(screen.getByRole("button", { name: "Statistik" }));
+
+  await screen.findByRole("table", { name: "Karten" });
+  expect(rows("Karten")).toEqual([
+    ["Karte", "Wiederholungen", "Anteil richtig", "Zuletzt wiederholt"],
+    ["a", "1", "100%", "15.11.2026"],
+    ["b", "0", "–", "nie"],
+  ]);
+  expect(rows("Fachgebiet-Tags")).toEqual([
+    ["Tag", "Karten", "Wiederholungen", "Anteil richtig"],
+    ["Machine Learning", "2", "1", "100%"],
+  ]);
+  expect(rows("Themen-Tags")).toEqual([
+    ["Tag", "Karten", "Wiederholungen", "Anteil richtig"],
+    ["Decision Tree", "2", "1", "100%"],
+  ]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Zurück" }));
+
+  expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
 });
