@@ -2,6 +2,7 @@ import type { TCard } from "@flashcards/cards";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { downloadDeck, uploadDeck, type TUploadReport } from "./deck";
 import { downloadReviewLog, uploadReviewLog, type TReviewLogReport } from "./review.log";
+import { browserLanguage, LanguageContext, type TLanguage } from "./language.context";
 import { Session } from "./Session";
 import { allTags, pickCards } from "./session.helper";
 import { Statistics } from "./Statistics";
@@ -32,6 +33,7 @@ export function App() {
   const [session, setSession] = useState<TCard[]>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
+  const [language] = useState<TLanguage>(browserLanguage);
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
 
@@ -100,26 +102,26 @@ export function App() {
 
   if (reviews) {
     return (
-      <>
+      <LanguageContext.Provider value={language}>
         <h1>Flashcards</h1>
         {error && <p role="alert">{error}</p>}
         <Statistics cards={cards} reviews={reviews} onBack={() => setReviews(undefined)} />
-      </>
+      </LanguageContext.Provider>
     );
   }
 
   if (session) {
     return (
-      <>
+      <LanguageContext.Provider value={language}>
         <h1>Flashcards</h1>
         {error && <p role="alert">{error}</p>}
         <Session cards={session} onEnd={() => setSession(undefined)} onError={showError} />
-      </>
+      </LanguageContext.Provider>
     );
   }
 
   return (
-    <>
+    <LanguageContext.Provider value={language}>
       <h1>Flashcards</h1>
       {error && <p role="alert">{error}</p>}
       <label>
@@ -207,6 +209,6 @@ export function App() {
         ))}
       </ul>
       {cards.length > 0 && <button onClick={clearAll}>Clear all</button>}
-    </>
+    </LanguageContext.Provider>
   );
 }
