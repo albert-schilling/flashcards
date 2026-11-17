@@ -27,3 +27,4 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 - Nx generators leave placeholders (`@org/...` names, an MIT `license`, an empty `dependencies`, a sample source and spec) and extras nothing uses (`@nx/js:lib` adds `@swc/helpers`, coverage and `vite`): drop them before committing. The implementer's hook can't delete the sample spec; the test writer does.
 - `pnpm screenshot <flow> <folder>` builds the web app, runs a Playwright flow in headless Chromium and writes `<folder>/<flow>-<shot>.png`. The first run downloads Chromium; `validate` and CI don't run it.
 - `pnpm exec` installs missing or outdated dependencies itself (`verifyDepsBeforeRun` defaults to `install`); to make it fail instead, pass `--config.verify-deps-before-run=error`.
+- In a worktree under `.claude/worktrees/`, the guard refuses chained or compound shell commands (`&&`, `;`, a heredoc then a test run): run them one at a time and edit files with Edit/Write.

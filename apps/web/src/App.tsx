@@ -2,6 +2,7 @@ import type { TCard } from "@flashcards/cards";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { downloadDeck, uploadDeck, type TUploadReport } from "./deck";
 import { downloadReviewLog, uploadReviewLog, type TReviewLogReport } from "./review.log";
+import { browserLanguage, LanguageContext, type TLanguage } from "./language.context";
 import { Session } from "./Session";
 import { allTags, pickCards } from "./session.helper";
 import { Statistics } from "./Statistics";
@@ -9,8 +10,10 @@ import {
   clearCards,
   deleteCard,
   loadCards,
+  loadLanguage,
   loadLastDownload,
   loadReviews,
+  saveLanguage,
   type TReview,
 } from "./storage";
 
@@ -32,6 +35,7 @@ export function App() {
   const [session, setSession] = useState<TCard[]>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
+  const [language, setLanguage] = useState<TLanguage>(browserLanguage);
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
 
@@ -40,7 +44,20 @@ export function App() {
     void navigator.storage?.persist();
     loadCards().then(setCards, showError);
     loadLastDownload().then(setLastDownload, showError);
+    // The stored choice wins over the browser language.
+    loadLanguage().then((picked) => picked && setLanguage(picked), showError);
   }, []);
+
+  async function pickLanguage(picked: TLanguage) {
+    // The language changes for this visit even when saving fails.
+    setLanguage(picked);
+    try {
+      await saveLanguage(picked);
+      setError(undefined);
+    } catch (failure) {
+      showError(failure);
+    }
+  }
 
   function showError(failure: unknown) {
     setError(failure instanceof Error ? failure.message : String(failure));
@@ -100,28 +117,40 @@ export function App() {
 
   if (reviews) {
     return (
-      <>
+      <LanguageContext.Provider value={language}>
         <h1>Flashcards</h1>
         {error && <p role="alert">{error}</p>}
         <Statistics cards={cards} reviews={reviews} onBack={() => setReviews(undefined)} />
-      </>
+      </LanguageContext.Provider>
     );
   }
 
   if (session) {
     return (
-      <>
+      <LanguageContext.Provider value={language}>
         <h1>Flashcards</h1>
         {error && <p role="alert">{error}</p>}
         <Session cards={session} onEnd={() => setSession(undefined)} onError={showError} />
-      </>
+      </LanguageContext.Provider>
     );
   }
 
   return (
-    <>
+    <LanguageContext.Provider value={language}>
       <h1>Flashcards</h1>
       {error && <p role="alert">{error}</p>}
+      <p>
+        <label>
+          Language{" "}
+          <select
+            value={language}
+            onChange={(event) => pickLanguage(event.target.value as TLanguage)}
+          >
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </label>
+      </p>
       <label>
         Cards{" "}
         <input
@@ -207,6 +236,6 @@ export function App() {
         ))}
       </ul>
       {cards.length > 0 && <button onClick={clearAll}>Clear all</button>}
-    </>
+    </LanguageContext.Provider>
   );
 }
