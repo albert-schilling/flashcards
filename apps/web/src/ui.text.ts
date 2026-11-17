@@ -37,6 +37,15 @@ const en = {
   check: "Check",
   true: "True",
   false: "False",
+  back: "Back",
+  domainTags: "Domain tags",
+  topicTags: "Topic tags",
+  card: "Card",
+  reviews: "Reviews",
+  shareRight: "Share right",
+  lastReviewed: "Last reviewed",
+  never: "never",
+  date: (date: Date) => date.toLocaleDateString("en"),
 };
 
 /** The UI texts of one language; templates are functions. */
@@ -77,6 +86,15 @@ const de: TUiText = {
   check: "Prüfen",
   true: "Wahr",
   false: "Falsch",
+  back: "Zurück",
+  domainTags: "Fachgebiet-Tags",
+  topicTags: "Themen-Tags",
+  card: "Karte",
+  reviews: "Wiederholungen",
+  shareRight: "Anteil richtig",
+  lastReviewed: "Zuletzt wiederholt",
+  never: "nie",
+  date: (date) => date.toLocaleDateString("de"),
 };
 
 /** UI text by language; `de` is typed TUiText, so a missing German text fails the type check. */
