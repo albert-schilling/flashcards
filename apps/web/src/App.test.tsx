@@ -1279,3 +1279,23 @@ it("shows Statistics in German, with German dates, and Zurück goes back", async
 
   expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
 });
+
+it("with a German browser language and nothing picked, the UI text is German", () =>
+  withBrowserLanguage("de-DE", async () => {
+    render(<App />);
+
+    expect(screen.getByLabelText("Sprache")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
+  }));
+
+it("after a reload, the UI text is in the picked language, not the browser language", async () => {
+  const { unmount } = render(<App />);
+  pickGerman();
+  await waitFor(async () => expect(await loadLanguage()).toBe("de"));
+  unmount();
+
+  render(<App />);
+
+  await screen.findByLabelText("Sprache");
+  expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
+});
