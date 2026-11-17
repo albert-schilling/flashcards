@@ -10,8 +10,10 @@ import {
   clearCards,
   deleteCard,
   loadCards,
+  loadLanguage,
   loadLastDownload,
   loadReviews,
+  saveLanguage,
   type TReview,
 } from "./storage";
 
@@ -33,7 +35,7 @@ export function App() {
   const [session, setSession] = useState<TCard[]>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
-  const [language] = useState<TLanguage>(browserLanguage);
+  const [language, setLanguage] = useState<TLanguage>(browserLanguage);
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
 
@@ -42,7 +44,19 @@ export function App() {
     void navigator.storage?.persist();
     loadCards().then(setCards, showError);
     loadLastDownload().then(setLastDownload, showError);
+    // The stored choice wins over the browser language.
+    loadLanguage().then((picked) => picked && setLanguage(picked), showError);
   }, []);
+
+  async function pickLanguage(picked: TLanguage) {
+    // The language changes for this visit even when saving fails.
+    setLanguage(picked);
+    try {
+      await saveLanguage(picked);
+    } catch (failure) {
+      showError(failure);
+    }
+  }
 
   function showError(failure: unknown) {
     setError(failure instanceof Error ? failure.message : String(failure));
@@ -124,6 +138,18 @@ export function App() {
     <LanguageContext.Provider value={language}>
       <h1>Flashcards</h1>
       {error && <p role="alert">{error}</p>}
+      <p>
+        <label>
+          Language{" "}
+          <select
+            value={language}
+            onChange={(event) => pickLanguage(event.target.value as TLanguage)}
+          >
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </label>
+      </p>
       <label>
         Cards{" "}
         <input

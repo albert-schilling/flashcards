@@ -1,5 +1,6 @@
 import type { TCard } from "@flashcards/cards";
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
+import type { TLanguage } from "./language.context";
 
 /** One answer to one version of one Card. With `cardId`, `answeredAt` (an ISO time) identifies the Review. */
 export type TReview = {
@@ -89,6 +90,19 @@ export function loadLastDownload(): Promise<string | undefined> {
 export function saveLastDownload(at: string): Promise<void> {
   return withDatabase(async (db) => {
     await db.put("settings", at, "lastDownload");
+  });
+}
+
+/** The language the Learner picked; undefined if never picked or not a known language. */
+export async function loadLanguage(): Promise<TLanguage | undefined> {
+  const stored = await withDatabase((db) => db.get("settings", "language"));
+  return stored === "en" || stored === "de" ? stored : undefined;
+}
+
+/** Saves the language the Learner picked. */
+export function saveLanguage(language: TLanguage): Promise<void> {
+  return withDatabase(async (db) => {
+    await db.put("settings", language, "language");
   });
 }
 
