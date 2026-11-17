@@ -53,6 +53,7 @@ export function App() {
     setLanguage(picked);
     try {
       await saveLanguage(picked);
+      setError(undefined);
     } catch (failure) {
       showError(failure);
     }

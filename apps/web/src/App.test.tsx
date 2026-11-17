@@ -1103,3 +1103,16 @@ it("shows an error when the picked language can't be saved, and the language sti
   startSession();
   await screen.findByText("Was ist q?");
 });
+
+it("clears the error once the picked language is saved", async () => {
+  render(<App />);
+  await uploaded(qa("q", 1));
+  blockStorage();
+  fireEvent.change(languageSelect(), { target: { value: "de" } });
+  await screen.findByRole("alert");
+  globalThis.indexedDB = new IDBFactory();
+
+  fireEvent.change(languageSelect(), { target: { value: "en" } });
+
+  await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});
