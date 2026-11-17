@@ -16,14 +16,15 @@ import {
   saveLanguage,
   type TReview,
 } from "./storage";
+import { uiText, type TUiText } from "./ui.text";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function summary(report: TUploadReport | TReviewLogReport): string {
-  if (!report.ok) return "File rejected";
+function summary(report: TUploadReport | TReviewLogReport, text: TUiText): string {
+  if (!report.ok) return text.fileRejected;
   return "skipped" in report
-    ? `${report.added} added, ${report.skipped} skipped`
-    : `${report.added} added, ${report.updated} updated, ${report.unchanged} unchanged`;
+    ? text.reviewLogSummary(report.added, report.skipped)
+    : text.deckSummary(report.added, report.updated, report.unchanged);
 }
 
 export function App() {
@@ -38,6 +39,8 @@ export function App() {
   const [language, setLanguage] = useState<TLanguage>(browserLanguage);
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
+  // App provides the language context, so it can't read it.
+  const text = uiText[language];
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.
@@ -107,7 +110,7 @@ export function App() {
   }
 
   async function clearAll() {
-    if (!window.confirm("Delete all Cards?")) return;
+    if (!window.confirm(text.confirmClearAll)) return;
     await remove(clearCards);
   }
 
@@ -141,7 +144,7 @@ export function App() {
       {error && <p role="alert">{error}</p>}
       <p>
         <label>
-          Language{" "}
+          {text.language}{" "}
           <select
             value={language}
             onChange={(event) => pickLanguage(event.target.value as TLanguage)}
@@ -152,7 +155,7 @@ export function App() {
         </label>
       </p>
       <label>
-        Cards{" "}
+        {text.cards}{" "}
         <input
           type="number"
           value={size}
@@ -160,9 +163,9 @@ export function App() {
         />
       </label>{" "}
       <label>
-        Tag{" "}
+        {text.tag}{" "}
         <select value={pickedTag} onChange={(event) => setTag(event.target.value)}>
-          <option value="">Any tag</option>
+          <option value="">{text.anyTag}</option>
           {tags.map((name) => (
             <option key={name}>{name}</option>
           ))}
@@ -178,12 +181,12 @@ export function App() {
           )
         }
       >
-        Start Session
+        {text.startSession}
       </button>{" "}
-      <button onClick={() => loadReviews().then(setReviews, showError)}>Statistics</button>
+      <button onClick={() => loadReviews().then(setReviews, showError)}>{text.statistics}</button>
       <p>
         <label>
-          Upload Deck{" "}
+          {text.uploadDeck}{" "}
           <input
             type="file"
             accept=".json,application/json"
@@ -191,7 +194,7 @@ export function App() {
           />
         </label>{" "}
         <label>
-          Upload Review log{" "}
+          {text.uploadReviewLog}{" "}
           <input
             type="file"
             accept=".json,application/json"
@@ -200,19 +203,19 @@ export function App() {
         </label>
       </p>
       <p>
-        <button onClick={() => download(downloadDeck)}>Download Cards</button>{" "}
+        <button onClick={() => download(downloadDeck)}>{text.downloadCards}</button>{" "}
         <button onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}>
-          Download Review log
+          {text.downloadReviewLog}
         </button>
       </p>
       <p>
         {lastDownload
-          ? `Days since the last download: ${Math.floor((Date.now() - Date.parse(lastDownload)) / DAY_MS)}`
-          : "No download yet"}
+          ? text.daysSinceDownload(Math.floor((Date.now() - Date.parse(lastDownload)) / DAY_MS))
+          : text.noDownloadYet}
       </p>
       {report && (
         <section>
-          <p>{summary(report)}</p>
+          <p>{summary(report, text)}</p>
           <ul>
             {("errors" in report ? report.errors : []).map((fileError, i) => (
               <li key={i}>
@@ -225,17 +228,17 @@ export function App() {
       <ul>
         {cards.map((card) => (
           <li key={card.id}>
-            {card.id} ({card.type}, version {card.version}){" "}
+            {text.cardListItem(card.id, card.type, card.version)}{" "}
             <button
-              aria-label={`Delete ${card.id}`}
+              aria-label={text.deleteCard(card.id)}
               onClick={() => remove(() => deleteCard(card.id))}
             >
-              Delete
+              {text.delete}
             </button>
           </li>
         ))}
       </ul>
-      {cards.length > 0 && <button onClick={clearAll}>Clear all</button>}
+      {cards.length > 0 && <button onClick={clearAll}>{text.clearAll}</button>}
     </LanguageContext.Provider>
   );
 }
