@@ -3,10 +3,11 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { IDBFactory } from "fake-indexeddb";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
-import { addReview, loadReviews } from "./storage";
+import { addReview, loadLanguage, loadReviews } from "./storage";
 import {
   cloze,
   formula,
+  german,
   multipleChoice,
   numeric,
   qa,
@@ -971,4 +972,100 @@ it("a Deck upload that finishes after a newer Review log upload keeps the Review
   await expectListed(qa("a", 1));
   expect(screen.getByText(/1 added, 0 skipped/)).toBeTruthy();
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
+});
+
+/** Runs the test with this browser language; jsdom's own is "en-US". */
+async function withBrowserLanguage(language: string, test: () => Promise<void>) {
+  Object.defineProperty(navigator, "language", { value: language, configurable: true });
+  try {
+    await test();
+  } finally {
+    Reflect.deleteProperty(navigator, "language");
+  }
+}
+
+function languageSelect() {
+  return screen.getByLabelText<HTMLSelectElement>("Language");
+}
+
+it.each([
+  ["de-DE", "de"],
+  ["de", "de"],
+  ["en-US", "en"],
+  ["fr-FR", "en"],
+])("with browser language %s, the language is %s until the Learner picks one", (browser, shown) =>
+  withBrowserLanguage(browser, async () => {
+    render(<App />);
+
+    expect(Array.from(languageSelect().options, (option) => option.text)).toEqual([
+      "English",
+      "Deutsch",
+    ]);
+    expect(languageSelect().value).toBe(shown);
+  }),
+);
+
+it("the picked language survives a reload and wins over the browser language", () =>
+  withBrowserLanguage("de-DE", async () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.change(languageSelect(), { target: { value: "en" } });
+
+    await waitFor(async () => expect(await loadLanguage()).toBe("en"));
+    unmount();
+    render(<App />);
+    await waitFor(() => expect(languageSelect().value).toBe("en"));
+  }));
+
+it.each([
+  {
+    case: "qa with only a German question",
+    card: german(qa("q", 1, "An answer."), { question: "Was ist q?" }),
+    language: "de",
+    prompt: ["Was ist q?"],
+    hidden: ["What is q?"],
+    click: "Reveal",
+    after: ["An answer."],
+  },
+  {
+    case: "multiple_choice with German question and options, no German explanation",
+    card: german(multipleChoice("mc", 1), {
+      question: "Welches ist mc?",
+      options: ["Dies", "Das"],
+    }),
+    language: "de",
+    prompt: ["Welches ist mc?", "Dies", "Das"],
+    hidden: ["Which is mc?", "This", "That"],
+    click: "Dies",
+    after: ["Answer: Dies", "This one."],
+  },
+  {
+    case: "cloze with German text",
+    card: german(cloze("depth", 1, "A {{deep}} tree."), { text: "Ein {{tiefer}} Baum." }),
+    language: "de",
+    prompt: ["Ein ____ Baum."],
+    hidden: ["A ____ tree."],
+    click: "Reveal",
+    after: ["Ein tiefer Baum."],
+  },
+  {
+    case: "German Card, English picked",
+    card: german(qa("q", 1, "An answer."), { question: "Was ist q?", answer: "Eine Antwort." }),
+    language: "en",
+    prompt: ["What is q?"],
+    hidden: ["Was ist q?"],
+    click: "Reveal",
+    after: ["An answer."],
+  },
+])("shows the Card text in the picked language, field by field ($case)", async (c) => {
+  render(<App />);
+  await uploaded(c.card);
+  fireEvent.change(languageSelect(), { target: { value: c.language } });
+
+  startSession();
+
+  for (const text of c.prompt) await screen.findByText(text);
+  for (const text of c.hidden) expect(screen.queryByText(text)).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: c.click }));
+  for (const text of c.after) expect(screen.getByText(text)).toBeTruthy();
 });

@@ -89,6 +89,11 @@ export function review(
   return { cardId, cardVersion, answeredAt, right, durationMs: 3000 };
 }
 
+/** The Card with this German translation. */
+export function german<T extends TCard>(card: T, de: NonNullable<T["translations"]>["de"]): T {
+  return { ...card, translations: { de } };
+}
+
 /** The Card with these domain and topic tags. */
 export function tagged<T extends TCard>(card: T, domain: string[], topic: string[]): T {
   return { ...card, tags: { domain, topic } };

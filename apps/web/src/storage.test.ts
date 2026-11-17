@@ -4,8 +4,10 @@ import {
   addNewReviews,
   addReview,
   loadCards,
+  loadLanguage,
   loadLastDownload,
   loadReviews,
+  saveLanguage,
   saveLastDownload,
   type TReview,
 } from "./storage";
@@ -81,5 +83,24 @@ describe("the Review log", () => {
     expect(await loadLastDownload()).toBe("2026-11-16T10:00:00.000Z");
     expect(await loadCards()).toEqual([qa("a", 1)]);
     expect(await loadReviews()).toEqual([review("a", "2026-11-15T10:00:00.000Z")]);
+  });
+});
+
+describe("the language setting", () => {
+  it("is undefined until the Learner picks one, then the picked one", async () => {
+    expect(await loadLanguage()).toBeUndefined();
+
+    await saveLanguage("de");
+
+    expect(await loadLanguage()).toBe("de");
+  });
+
+  it("ignores a stored value that is no known language", async () => {
+    await saveLanguage("de");
+    const db = await openDB("flashcards", 3);
+    await db.put("settings", "fr", "language");
+    db.close();
+
+    expect(await loadLanguage()).toBeUndefined();
   });
 });
