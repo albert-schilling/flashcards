@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { CardChoice } from "./CardChoice";
 import { CardNumeric } from "./CardNumeric";
 import { CardReveal } from "./CardReveal";
-import { LanguageContext, type TLanguage } from "./language.context";
+import { LanguageContext, useText, type TLanguage } from "./language.context";
 
 // A cloze gap, `{{word}}`; the group is the word that fills it.
 const gap = /\{\{(.+?)\}\}/g;
@@ -21,6 +21,7 @@ export function CardView(props: {
   onAnswer: (right: boolean) => void;
   onNext: () => void;
 }) {
+  const text = useText();
   const card = inLanguage(props.card, useContext(LanguageContext));
   const grade = (right: boolean) => {
     props.onAnswer(right);
@@ -60,7 +61,7 @@ export function CardView(props: {
       return (
         <CardChoice
           prompt={card.en.statement}
-          options={["True", "False"]}
+          options={[text.true, text.false]}
           answerIndex={card.answer ? 0 : 1}
           onAnswer={props.onAnswer}
           onNext={props.onNext}

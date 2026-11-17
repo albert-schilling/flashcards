@@ -6,7 +6,9 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "lib": ["es2022", "dom"],
-    "outDir": "out-tsc"
+    "outDir": "out-tsc",
+    // The screenshot script imports ./src/ui.text.ts with its extension, which Node needs.
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "vite.config.mts", "screenshot.script.ts"],
   "references": [

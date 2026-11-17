@@ -28,6 +28,8 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #34 | Research missed seven existing tests the repeat changed, so the first plan for #8 was far too small. | albert-schilling/skills#32: research lists tests the issue changes.        |
 | #37 | A test from #5 was flaky in CI; reviews of #18 hadn't caught that overlapping uploads race.          | Deterministic race test and fix; #36 for the upload/delete race.           |
 | #40 | Agents re-ran checks to read failures, because `validate.sh` printed only Nx's summary.              | `validate.sh` uses `--output-style=static`.                                |
+| #43 | An inherited `NX_WORKSPACE_ROOT_PATH` made `validate` in a worktree check the main checkout's code.  | `validate.sh` sets it to its own checkout; gotcha in `tooling.md`.         |
+| #43 | The approved plan said ~405 lines; the PR came out at 512, with extra tests and screenshots.         | #19 (size warning).                                                        |
 
 ## Factory runs
 
@@ -57,3 +59,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #37 | #35   | medium    | 2 / 2             | 1             | 0              | none                |
 | #40 | #9    | medium    | 2 / 6             | 2             | 0              | none                |
 | #42 | #10   | medium    | 2 / 2             | 2             | 0              | none                |
+| #43 | #41   | medium    | 2 / 3             | 2             | 0              | none                |

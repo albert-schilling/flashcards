@@ -1,4 +1,5 @@
 import type { TCard } from "@flashcards/cards";
+import { useText } from "./language.context";
 import { statistics, type TTagStatistics } from "./review.statistics";
 import type { TReview } from "./storage";
 
@@ -7,15 +8,16 @@ function share(reviews: number, right: number): string {
 }
 
 function TagTable({ name, rows }: { name: string; rows: TTagStatistics[] }) {
+  const text = useText();
   return (
     <table>
       <caption>{name}</caption>
       <thead>
         <tr>
-          <th>Tag</th>
-          <th>Cards</th>
-          <th>Reviews</th>
-          <th>Share right</th>
+          <th>{text.tag}</th>
+          <th>{text.cards}</th>
+          <th>{text.reviews}</th>
+          <th>{text.shareRight}</th>
         </tr>
       </thead>
       <tbody>
@@ -34,18 +36,19 @@ function TagTable({ name, rows }: { name: string; rows: TTagStatistics[] }) {
 
 /** Shows the Statistics of the stored Cards; `onBack` leaves it. */
 export function Statistics(props: { cards: TCard[]; reviews: TReview[]; onBack: () => void }) {
+  const text = useText();
   const { cards, domain, topic } = statistics(props.cards, props.reviews);
   return (
     <>
-      <button onClick={props.onBack}>Back</button>
+      <button onClick={props.onBack}>{text.back}</button>
       <table>
-        <caption>Cards</caption>
+        <caption>{text.cards}</caption>
         <thead>
           <tr>
-            <th>Card</th>
-            <th>Reviews</th>
-            <th>Share right</th>
-            <th>Last reviewed</th>
+            <th>{text.card}</th>
+            <th>{text.reviews}</th>
+            <th>{text.shareRight}</th>
+            <th>{text.lastReviewed}</th>
           </tr>
         </thead>
         <tbody>
@@ -54,15 +57,13 @@ export function Statistics(props: { cards: TCard[]; reviews: TReview[]; onBack: 
               <td>{row.card.id}</td>
               <td>{row.reviews}</td>
               <td>{share(row.reviews, row.right)}</td>
-              <td>
-                {row.lastReviewedAt ? new Date(row.lastReviewedAt).toLocaleDateString() : "never"}
-              </td>
+              <td>{row.lastReviewedAt ? text.date(new Date(row.lastReviewedAt)) : text.never}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <TagTable name="Domain tags" rows={domain} />
-      <TagTable name="Topic tags" rows={topic} />
+      <TagTable name={text.domainTags} rows={domain} />
+      <TagTable name={text.topicTags} rows={topic} />
     </>
   );
 }

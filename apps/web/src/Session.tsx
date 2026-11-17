@@ -1,6 +1,7 @@
 import type { TCard } from "@flashcards/cards";
 import { useState } from "react";
 import { CardView } from "./CardView";
+import { useText } from "./language.context";
 import { addReview } from "./storage";
 
 /** Shows the Cards in order, then each one answered wrong once more; appends a Review for each answer, then a summary; `onEnd` leaves it. */
@@ -9,6 +10,7 @@ export function Session(props: {
   onEnd: () => void;
   onError: (failure: unknown) => void;
 }) {
+  const text = useText();
   const [queue, setQueue] = useState(props.cards);
   const [index, setIndex] = useState(0);
   const [rightCount, setRightCount] = useState(0);
@@ -19,10 +21,8 @@ export function Session(props: {
   if (!card) {
     return (
       <section>
-        <p>
-          {index} answered, {rightCount} right
-        </p>
-        <button onClick={props.onEnd}>Done</button>
+        <p>{text.sessionResult(index, rightCount)}</p>
+        <button onClick={props.onEnd}>{text.done}</button>
       </section>
     );
   }
