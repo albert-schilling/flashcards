@@ -1,5 +1,6 @@
 ---
 # Rendered from .claude/skills/factory/agents/factory-reviewer-spec.md; /factory-setup copies it here. Change the source, not this file.
+# Installed by factory-setup from Factory version a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0
 name: factory-reviewer-spec
 description: "The Factory's spec reviewer, run in a fresh context after implementation. Checks that the change does what the issue and the Alignment Document say, and nothing more, and fixes what falls short within the pull request's scope."
 model: opus

@@ -1,5 +1,6 @@
 ---
 # Rendered from .claude/skills/factory/agents/factory-researcher.md; /factory-setup copies it here. Change the source, not this file.
+# Installed by factory-setup from Factory version a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0
 name: factory-researcher
 description: "The Factory's research phase. Answers numbered questions about the code as it is today, with facts and file references. Give it only the questions derived from an issue, never the issue, its title, its acceptance criteria or a plan, so it reports facts rather than opinions."
 model: sonnet
