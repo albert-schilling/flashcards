@@ -1,5 +1,6 @@
 ---
 # Rendered from .claude/skills/factory/agents/factory-test-writer.md; /factory-setup copies it here. Change the source, not this file.
+# Installed by factory-setup from Factory version a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0
 name: factory-test-writer
 description: "The Factory's test phases. First pass, before implementation, writes the tests from the acceptance criteria at the seams the Alignment Document agrees. Second pass, after implementation, adds tests for whatever the implementation does beyond the tests."
 model: opus

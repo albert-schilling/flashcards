@@ -15,6 +15,20 @@
     "friction": "friction",
     "preExisting": "pre-existing"
   },
+  "installed": {
+    "version": "a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0",
+    "setupVersion": "c0359a8c5c293b8395d051422ab3e58edc909c73142667fbf01d5a0b30c20469",
+    "files": [
+      ".claude/agents/factory-implementer.md",
+      ".claude/agents/factory-planner.md",
+      ".claude/agents/factory-researcher.md",
+      ".claude/agents/factory-reviewer-security.md",
+      ".claude/agents/factory-reviewer-spec.md",
+      ".claude/agents/factory-reviewer-standards.md",
+      ".claude/agents/factory-test-writer.md",
+      ".claude/settings.json"
+    ]
+  },
   "testFiles": [
     "**/*.test.ts",
     "**/*.test.tsx",
