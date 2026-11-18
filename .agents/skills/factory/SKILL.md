@@ -1,7 +1,6 @@
 ---
 name: factory
 description: Run one issue through the Factory, from intake to a pull request and a retro, stopping whenever it needs a person.
-disable-model-invocation: true
 argument-hint: "<issue number>"
 ---
 
@@ -12,6 +11,8 @@ You run issue `$ARGUMENTS` through the Factory's phases in the main session. The
 ## Configuration
 
 Read `.agents/factory.json` first. Everything about this repository comes from it; this skill writes its keys as `config.<key>`. Read `config.conventions` and the topic files it links to that touch a phase before you act on that phase. If the file is missing, the Factory isn't set up here: tell the person to run the `factory-setup` skill, and stop.
+
+**Version check**: then compare `config.installed.version` and `config.installed.setupVersion` with the current `computedHash` of the `factory` and `factory-setup` skills in `skills-lock.json`. When `config.installed` is missing or either differs, the installed agents and hooks may be older than the skills: tell the person to run `factory-setup`, which brings them up to date and reports what changed, and stop without starting a phase. When `skills-lock.json` has no entry for `factory` or `factory-setup`, skip the check.
 
 ## Your coding agent
 
