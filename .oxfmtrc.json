@@ -8,6 +8,9 @@
     "pnpm-lock.yaml",
     // Written by a test from the Zod schema.
     "libs/cards/deck.schema.json",
-    "skills-lock.json"
+    "skills-lock.json",
+    // The person's own notes, kept as written.
+    "AI_NOTES.md",
+    "NOTES.md"
   ]
 }
