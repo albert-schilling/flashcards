@@ -366,3 +366,172 @@
     text-align: center;
   }
 }
+
+/* Pages */
+.page-shell {
+  width: min(100%, var(--content-width));
+  margin: var(--space-0) auto;
+  padding: var(--space-10) var(--space-4) var(--space-20);
+}
+
+.page-heading {
+  max-width: var(--reading-width);
+  margin-bottom: var(--space-8);
+}
+
+.page-heading h1 {
+  margin: var(--space-1) var(--space-0) var(--space-3);
+  color: var(--color-ink-950);
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.page-intro {
+  color: var(--color-ink-600);
+  font-size: var(--font-size-lg);
+}
+
+.eyebrow {
+  color: var(--color-accent-700);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-body);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-eyebrow);
+  text-transform: uppercase;
+}
+
+/* Home */
+.home-focus {
+  display: grid;
+  gap: var(--space-4);
+  max-width: var(--reading-width);
+}
+
+.home-library-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--control-height-lg);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width) solid var(--color-line-200);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-ink-900);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+
+.home-library-link:hover {
+  border-color: var(--color-accent-500);
+  box-shadow: var(--shadow-md);
+}
+
+.home-library-link span {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.home-library-link small {
+  color: var(--color-ink-600);
+  font-size: var(--font-size-sm);
+}
+
+.home-empty {
+  max-width: var(--reading-width);
+}
+
+.empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+}
+
+/* Sections */
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.section-heading h2 {
+  color: var(--color-ink-950);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-heading);
+  font-weight: var(--font-weight-bold);
+}
+
+.section-icon,
+.empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.section-icon {
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-50);
+  color: var(--color-accent-700);
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+/* Empty states */
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-5);
+  text-align: center;
+}
+
+.empty-state.compact {
+  padding: var(--space-8) var(--space-3);
+}
+
+.empty-icon {
+  width: var(--space-12);
+  height: var(--space-12);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-50);
+  color: var(--color-accent-700);
+}
+
+.empty-state h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+/* The prototype's `max-width: 25rem` is left out: a raw value with no token, and no visible difference at this text length. */
+.empty-state p {
+  color: var(--color-ink-600);
+  font-size: var(--font-size-sm);
+}
+
+/* A media query can't use a variable: --breakpoint-desktop */
+@media (min-width: 48rem) {
+  .page-shell {
+    padding: var(--space-16) var(--space-6) var(--space-20);
+  }
+
+  .page-heading h1 {
+    font-size: var(--font-size-3xl);
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -6,6 +6,7 @@ import { browserLanguage, LanguageContext, type TLanguage } from "./language.con
 import { Alert } from "./Alert";
 import { FileButton } from "./FileButton";
 import { Header, type TPage } from "./Header";
+import { Home } from "./Home";
 import { Select } from "./Select";
 import { Session } from "./Session";
 import { allTags, pickCards } from "./session.helper";
@@ -155,8 +156,8 @@ export function App() {
   return (
     <LanguageContext.Provider value={language}>
       <Header page={page} onNavigate={navigate} sessionDisabled={!session && !canStart} />
-      <main>
-        <h1>Flashcards</h1>
+      <main className="page-shell">
+        {page !== "home" && <h1>Flashcards</h1>}
         {error && (
           <Alert tone="danger" role="alert">
             {error}
@@ -191,6 +192,18 @@ export function App() {
         )}
         {page === "home" && (
           <>
+            <Home
+              cardCount={cards.length}
+              size={size}
+              onSize={setSize}
+              tags={tags}
+              tag={pickedTag}
+              onTag={setTag}
+              canStart={canStart}
+              onStart={() => void startSession()}
+              onStatistics={() => void openStatistics()}
+              onCards={() => navigate("cards")}
+            />
             <label className="field">
               {text.language}
               <Select
@@ -201,35 +214,6 @@ export function App() {
                 <option value="de">Deutsch</option>
               </Select>
             </label>
-            <label className="field">
-              {text.cards}
-              <input
-                className="control"
-                type="number"
-                value={size}
-                onChange={(event) => setSize(event.target.valueAsNumber)}
-              />
-            </label>
-            <label className="field">
-              {text.tag}
-              <Select value={pickedTag} onChange={(event) => setTag(event.target.value)}>
-                <option value="">{text.anyTag}</option>
-                {tags.map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
-              </Select>
-            </label>
-            {/* An empty input gives NaN, so `size < 1` would let it through. */}
-            <button
-              className="button primary"
-              disabled={!canStart}
-              onClick={() => void startSession()}
-            >
-              {text.startSession}
-            </button>{" "}
-            <button className="button secondary" onClick={() => void openStatistics()}>
-              {text.statistics}
-            </button>
             <p>
               <FileButton
                 label={text.uploadDeck}
