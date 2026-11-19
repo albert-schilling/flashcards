@@ -538,6 +538,7 @@
   }
 }
 
+/* Text buttons */
 .danger-text {
   color: var(--color-danger-600);
 }
@@ -567,6 +568,7 @@
   text-decoration: none;
 }
 
+/* Modal */
 .modal-backdrop {
   position: fixed;
   z-index: 50;
