@@ -2,7 +2,7 @@
 // pnpm runs the script from the repo root, so a relative <folder> is taken from there.
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { chromium, type Page } from "playwright";
+import { chromium, type Locator, type Page } from "playwright";
 import { build, preview } from "vite";
 import { uiText, type TUiText } from "./src/ui.text.ts";
 
@@ -106,14 +106,18 @@ async function showControls(page: Page, shot: (name: string) => Promise<void>): 
   await shot("button-hover");
 }
 
+// The link to a page in the navigation; on phones it is hidden until the menu opens.
+function navLink(page: Page, name: string): Locator {
+  return page
+    .getByRole("navigation", { name: uiText.en.pages, exact: true })
+    .getByRole("button", { name, exact: true });
+}
+
 // Goes to a page through the navigation; on phones the menu opens first, as the Learner would.
 async function goTo(page: Page, name: string): Promise<void> {
   const menu = page.getByRole("button", { name: uiText.en.openNavigation, exact: true });
   if (await menu.isVisible()) await menu.click();
-  await page
-    .getByRole("navigation", { name: uiText.en.pages, exact: true })
-    .getByRole("button", { name, exact: true })
-    .click();
+  await navLink(page, name).click();
 }
 
 // Shows the menu, then each page the navigation reaches, Back on Statistics and the brand.
@@ -137,10 +141,7 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await shot("cards");
   // The current link keeps its colours on hover.
   if (await menu.isVisible()) await menu.click();
-  await page
-    .getByRole("navigation", { name: text.pages, exact: true })
-    .getByRole("button", { name: text.cards, exact: true })
-    .hover();
+  await navLink(page, text.cards).hover();
   await shot("current-link-hover");
   if (await menu.isVisible()) await menu.click();
   await goTo(page, text.session);
