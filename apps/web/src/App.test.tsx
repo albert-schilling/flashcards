@@ -803,6 +803,11 @@ it("forgets a picked tag once no Card has it", async () => {
   await screen.findByText(/1 answered, 1 right/);
 });
 
+// The navigation has a Statistics button too, so a click on Home's looks inside main only.
+function home() {
+  return within(screen.getByRole("main"));
+}
+
 /** The text of each cell of the table with this name, row by row, header row first. */
 function rows(name: string) {
   return within(screen.getByRole("table", { name }))
@@ -825,7 +830,7 @@ it("Statistics shows the figures from the Review log, and Back goes back", async
   render(<App />);
   await uploaded(tagged(qa("a", 2), ["Statistics"], ["Regression"]), qa("b", 1));
 
-  fireEvent.click(screen.getByRole("button", { name: "Statistics" }));
+  fireEvent.click(home().getByRole("button", { name: "Statistics" }));
 
   await screen.findByRole("table", { name: "Cards" });
   expect(screen.queryByLabelText("Upload Deck")).toBeNull();
@@ -856,7 +861,7 @@ it("shows an error when the Review log can't be loaded", async () => {
   await uploaded(qa("a", 1));
   blockStorage();
 
-  fireEvent.click(screen.getByRole("button", { name: "Statistics" }));
+  fireEvent.click(home().getByRole("button", { name: "Statistics" }));
 
   expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
   expect(startButton()).toBeTruthy();
@@ -1183,7 +1188,7 @@ it("shows the start page in German once Deutsch is picked", () => {
     "Karten herunterladen",
     "Lernprotokoll herunterladen",
   ]) {
-    expect(screen.getByRole("button", { name })).toBeTruthy();
+    expect(home().getByRole("button", { name })).toBeTruthy();
   }
   expect(screen.getByLabelText("Deck hochladen")).toBeTruthy();
   expect(screen.getByLabelText("Lernprotokoll hochladen")).toBeTruthy();
@@ -1304,7 +1309,7 @@ it("shows Statistics in German, with German dates, and Zurück goes back", async
   await uploaded(qa("a", 1), qa("b", 1));
   pickGerman();
 
-  fireEvent.click(screen.getByRole("button", { name: "Statistik" }));
+  fireEvent.click(home().getByRole("button", { name: "Statistik" }));
 
   await screen.findByRole("table", { name: "Karten" });
   expect(rows("Karten")).toEqual([
@@ -1344,4 +1349,243 @@ it("after a reload, the UI text is in the picked language, not the browser langu
 
   await screen.findByLabelText("Sprache");
   expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
+});
+
+function navLink(name: string) {
+  return within(
+    screen.getByRole("navigation", { name: /^(Pages|Seiten)$/ }),
+  ).getByRole<HTMLButtonElement>("button", { name });
+}
+
+function goTo(name: string) {
+  fireEvent.click(navLink(name));
+}
+
+function isCurrent(name: string) {
+  return navLink(name).getAttribute("aria-current") === "page";
+}
+
+it("the header shows the brand, and the brand goes Home from Statistics", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  goTo("Statistics");
+  await screen.findByRole("table", { name: "Cards" });
+  expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
+
+  const brand = screen.getByRole("button", { name: "Flashcards home" });
+  expect(brand.textContent).toBe("Flashcards");
+  fireEvent.click(brand);
+
+  expect(startButton()).toBeTruthy();
+  expect(isCurrent("Home")).toBe(true);
+  await expectListed(qa("a", 1));
+});
+
+it("the navigation marks Home at the start, and Statistics once it shows", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  expect(isCurrent("Home")).toBe(true);
+
+  goTo("Statistics");
+
+  await screen.findByRole("table", { name: "Cards" });
+  expect(isCurrent("Statistics")).toBe(true);
+  expect(isCurrent("Home")).toBe(false);
+});
+
+it.each(["Cards", "Settings"])("%s shows a placeholder until its page is built", (name) => {
+  render(<App />);
+
+  goTo(name);
+
+  expect(screen.getByText("This page is not built yet.")).toBeTruthy();
+  expect(isCurrent(name)).toBe(true);
+  expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "Flashcards" })).toBeTruthy();
+});
+
+it("shows the navigation and a placeholder in German", () => {
+  render(<App />);
+  pickGerman();
+
+  const names = within(screen.getByRole("navigation", { name: "Seiten" }))
+    .getAllByRole("button")
+    .map((button) => button.textContent);
+  expect(names).toEqual(["Start", "Karten", "Sitzung", "Statistik", "Einstellungen"]);
+  expect(screen.getByRole("button", { name: "Flashcards-Startseite" })).toBeTruthy();
+  goTo("Einstellungen");
+
+  expect(screen.getByText("Diese Seite gibt es noch nicht.")).toBeTruthy();
+});
+
+it("Statistics from the navigation shows the figures, and Back goes Home", async () => {
+  await addReview(review("a", 1, "2026-11-15T10:00:00.000Z"));
+  render(<App />);
+  await uploaded(qa("a", 1));
+
+  goTo("Statistics");
+
+  await screen.findByRole("table", { name: "Cards" });
+  expect(rows("Cards")).toEqual([
+    ["Card", "Reviews", "Share right", "Last reviewed"],
+    ["a", "1", "100%", "11/15/2026"],
+  ]);
+  fireEvent.click(screen.getByRole("button", { name: "Back" }));
+  expect(startButton()).toBeTruthy();
+  expect(isCurrent("Home")).toBe(true);
+});
+
+it("Statistics from the navigation shows an error and stays Home when the Review log can't be loaded", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  blockStorage();
+
+  goTo("Statistics");
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(startButton()).toBeTruthy();
+  expect(isCurrent("Home")).toBe(true);
+  expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+});
+
+it("disables the Session link with no Cards or with fewer than 1 Card, like Start Session", async () => {
+  render(<App />);
+  expect(navLink("Session").disabled).toBe(true);
+
+  await uploaded(qa("a", 1));
+  expect(navLink("Session").disabled).toBe(false);
+
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "0" } });
+  expect(navLink("Session").disabled).toBe(true);
+
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "" } });
+  expect(navLink("Session").disabled).toBe(true);
+});
+
+it("the Session link starts a Session with Home's Cards and Tag", async () => {
+  render(<App />);
+  await uploaded(
+    tagged(qa("reg-1", 1), ["Statistics"], ["Regression"]),
+    tagged(qa("reg-2", 1), ["Statistics"], ["Regression"]),
+    tagged(qa("other", 1), ["Statistics"], ["Bias"]),
+  );
+  fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "Regression" } });
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "1" } });
+
+  goTo("Session");
+  await answer();
+
+  await screen.findByRole("button", { name: "Done" });
+  expect(screen.getByText("1 answered, 1 right")).toBeTruthy();
+  expect(isCurrent("Session")).toBe(true);
+  await waitFor(async () =>
+    expect((await loadReviews()).map((each) => each.cardId)).toEqual([
+      expect.stringMatching(/^reg-/),
+    ]),
+  );
+});
+
+it("the Session link shows an error and starts no Session when the Review log can't be loaded", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  blockStorage();
+
+  goTo("Session");
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(startButton()).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
+});
+
+it("a running Session keeps its place while other pages show", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  startSession();
+  await answer();
+  fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
+
+  goTo("Home");
+  expect(startButton()).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Knew it" })).toBeNull();
+  goTo("Statistics");
+  await screen.findByRole("table", { name: "Cards" });
+  goTo("Session");
+
+  // The second Card is still revealed, so this is the same Session.
+  expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Knew it" }));
+  await screen.findByRole("button", { name: "Done" });
+  expect(screen.getByText("2 answered, 2 right")).toBeTruthy();
+});
+
+it("the Session link stays enabled while a Session runs, even with 0 Cards set on Home", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  startSession();
+  await screen.findByRole("button", { name: "Reveal" });
+  goTo("Home");
+
+  fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "0" } });
+
+  expect(navLink("Session").disabled).toBe(false);
+  goTo("Session");
+  expect(screen.getByRole("button", { name: "Reveal" })).toBeTruthy();
+});
+
+it("doesn't count the time spent on another page into the Card's time", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    render(<App />);
+    await uploaded(qa("a", 1));
+    vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
+
+    startSession();
+    fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
+    vi.setSystemTime(new Date("2026-11-15T10:00:03.000Z"));
+    goTo("Home");
+    vi.setSystemTime(new Date("2026-11-15T10:00:10.000Z"));
+    goTo("Session");
+    vi.setSystemTime(new Date("2026-11-15T10:00:14.000Z"));
+    fireEvent.click(screen.getByRole("button", { name: "Knew it" }));
+
+    await waitFor(async () =>
+      expect((await loadReviews()).map((each) => each.durationMs)).toEqual([4000]),
+    );
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("Start Session on Home replaces a running Session with a new one", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  startSession();
+  await answer();
+  goTo("Home");
+
+  startSession();
+  await answer();
+
+  // The old Session would end here, after its second answer; the new one has a Card left.
+  await screen.findByRole("button", { name: "Reveal" });
+  expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
+  await answer();
+  await screen.findByRole("button", { name: "Done" });
+  expect(screen.getByText("2 answered, 2 right")).toBeTruthy();
+});
+
+it("Done goes Home, and the Session link then starts a new Session", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  startSession();
+  await answer();
+  fireEvent.click(await screen.findByRole("button", { name: "Done" }));
+  expect(startButton()).toBeTruthy();
+  expect(isCurrent("Home")).toBe(true);
+
+  goTo("Session");
+
+  await answer();
+  await screen.findByRole("button", { name: "Done" });
+  await waitFor(async () => expect(await loadReviews()).toHaveLength(2));
 });
