@@ -29,3 +29,5 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 - `pnpm exec` installs missing or outdated dependencies itself (`verifyDepsBeforeRun` defaults to `install`); to make it fail instead, pass `--config.verify-deps-before-run=error`.
 - In a worktree under `.claude/worktrees/`, the guard refuses chained or compound shell commands (`&&`, `;`, a heredoc then a test run): run them one at a time and edit files with Edit/Write.
 - An inherited `NX_WORKSPACE_ROOT_PATH` points Nx at another checkout: `validate.sh` resets it, but a direct `pnpm exec nx …` in a worktree needs `NX_WORKSPACE_ROOT_PATH=$PWD` in front.
+- One test file: `NX_WORKSPACE_ROOT_PATH=$PWD pnpm --filter @flashcards/web exec vitest run src/<file>` (paths relative to the project; `@flashcards/cards` for `libs/cards`).
+- `pnpm screenshot` takes an optional width (`pnpm screenshot <flow> <folder> [width]`, default 1280). Give each phase its own folder.
