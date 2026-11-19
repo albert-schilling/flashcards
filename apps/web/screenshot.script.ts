@@ -27,6 +27,14 @@ async function requireInter(page: Page): Promise<void> {
   }
 }
 
+// A Session loads the Review log before its first Card. Home's panel is a section too, so Start Session must go first.
+async function waitForFirstCard(page: Page, text: TUiText): Promise<void> {
+  await page
+    .getByRole("button", { name: text.startSession, exact: true })
+    .waitFor({ state: "detached" });
+  await page.locator("section button").first().waitFor();
+}
+
 // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01), Reveal Cards as known.
 async function answerEveryCard(
   page: Page,
@@ -36,11 +44,7 @@ async function answerEveryCard(
   await uploadExampleDeck(page, text);
   await page.getByLabel(text.cards, { exact: true }).fill("6");
   await page.getByRole("button", { name: text.startSession, exact: true }).click();
-  // Start loads the Review log first. Home's panel is a section too, so wait for Start Session to go before the first Card.
-  await page
-    .getByRole("button", { name: text.startSession, exact: true })
-    .waitFor({ state: "detached" });
-  await page.locator("section button").first().waitFor();
+  await waitForFirstCard(page, text);
   const done = page.getByRole("button", { name: text.done, exact: true });
   const reveal = page.getByRole("button", { name: text.reveal, exact: true });
   const check = page.getByRole("button", { name: text.check, exact: true });
@@ -148,11 +152,7 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await shot("current-link-hover");
   if (await menu.isVisible()) await menu.click();
   await goTo(page, text.session);
-  // The link loads the Review log first. Home's panel is a section too, so wait for Start Session to go before the first Card.
-  await page
-    .getByRole("button", { name: text.startSession, exact: true })
-    .waitFor({ state: "detached" });
-  await page.locator("section button").first().waitFor();
+  await waitForFirstCard(page, text);
   await shot("session");
   await goTo(page, text.statistics);
   await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
