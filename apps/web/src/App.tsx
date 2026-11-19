@@ -1,10 +1,12 @@
 import type { TCard } from "@flashcards/cards";
+import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { downloadDeck, uploadDeck, type TUploadReport } from "./deck";
 import { downloadReviewLog, uploadReviewLog, type TReviewLogReport } from "./review.log";
 import { browserLanguage, LanguageContext, type TLanguage } from "./language.context";
 import { Alert } from "./Alert";
 import { FileButton } from "./FileButton";
+import { Modal } from "./Modal";
 import { Header, type TPage } from "./Header";
 import { Home } from "./Home";
 import { Select } from "./Select";
@@ -42,6 +44,7 @@ export function App() {
   const [session, setSession] = useState<{ id: number; cards: TCard[] }>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [language, setLanguage] = useState<TLanguage>(browserLanguage);
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
@@ -115,8 +118,9 @@ export function App() {
     }
   }
 
-  async function clearAll() {
-    if (!window.confirm(text.confirmClearAll)) return;
+  async function deleteAll() {
+    // Close first, so a failure shows in the page's error and not behind the modal.
+    setConfirmingDelete(false);
     await remove(clearCards);
   }
 
@@ -273,10 +277,31 @@ export function App() {
                 </li>
               ))}
             </ul>
-            {cards.length > 0 && (
-              <button className="button danger" onClick={clearAll}>
-                {text.clearAll}
-              </button>
+            <button
+              className="text-button danger-text delete-all-button"
+              disabled={cards.length === 0}
+              onClick={() => setConfirmingDelete(true)}
+            >
+              <Trash2 size={18} aria-hidden="true" />
+              {text.deleteAllCards}
+            </button>
+            {confirmingDelete && (
+              <Modal title={text.deleteAllCardsTitle} onClose={() => setConfirmingDelete(false)}>
+                <div className="modal-body">
+                  <Alert tone="danger">
+                    <strong>{text.cannotBeUndone}</strong>
+                    <p>{text.deleteAllWarning(cards.length)}</p>
+                  </Alert>
+                </div>
+                <div className="modal-actions">
+                  <button className="button ghost" onClick={() => setConfirmingDelete(false)}>
+                    {text.cancel}
+                  </button>
+                  <button className="button danger" onClick={() => void deleteAll()}>
+                    {text.deleteAllCards}
+                  </button>
+                </div>
+              </Modal>
             )}
           </>
         )}

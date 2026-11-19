@@ -174,6 +174,16 @@ const flows: Record<string, TFlow> = {
   upload: async (page, shot) => {
     await uploadExampleDeck(page);
     await shot("card-list");
+    const deleteAll = page.getByRole("button", { name: uiText.en.deleteAllCards });
+    await deleteAll.click();
+    await shot("delete-all-modal");
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: uiText.en.cancel }).click();
+    await dialog.waitFor({ state: "detached" });
+    await deleteAll.click();
+    await dialog.getByRole("button", { name: uiText.en.deleteAllCards }).click();
+    await page.getByText(uiText.en.noCardsYet).waitFor();
+    await shot("deleted-all");
   },
   answer: answerEveryCard,
   // Picks Deutsch, answers every Card, then shows the start page and Statistics; Cards without a German field show it in English.
