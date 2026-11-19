@@ -48,8 +48,18 @@ function blockStorage() {
   } as unknown as IDBFactory;
 }
 
+function openCards() {
+  goTo(/^(Cards|Karten)$/);
+}
+
+function goHome() {
+  goTo(/^(Home|Start)$/);
+}
+
+/** Opens the Cards page and waits for the Card's row; the row shows its ID. */
 async function expectListed(card: TCard) {
-  await screen.findByText(`${card.id} (${card.type}, version ${card.version})`);
+  openCards();
+  await screen.findByText(card.id);
 }
 
 it("renders the start page with the app name", () => {
@@ -210,14 +220,14 @@ it("keeps the error of a failed upload when an earlier upload finishes later", a
   finishReading();
 
   await expectListed(qa("ml.trees.leaf-mean", 1));
+  goHome();
   expect(screen.getByRole("alert").textContent).toContain("The file is gone.");
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
 
 async function expectNotListed(card: TCard) {
-  await waitFor(() =>
-    expect(screen.queryByText(`${card.id} (${card.type}, version ${card.version})`)).toBeNull(),
-  );
+  openCards();
+  await waitFor(() => expect(screen.queryByText(card.id)).toBeNull());
 }
 
 it("deletes one Card, and it stays gone after a reload", async () => {
@@ -240,8 +250,9 @@ function deleteAllButton() {
   });
 }
 
-/** Opens the Delete all Cards modal and returns queries inside it. */
+/** Opens the Cards page, then the Delete all Cards modal, and returns queries inside the modal. */
 function openDeleteAll() {
+  openCards();
   fireEvent.click(deleteAllButton());
   return within(screen.getByRole("dialog"));
 }
@@ -323,6 +334,8 @@ it("deletes all Cards from the modal, and they stay gone after a reload", async 
   await expectNotListed(qa("ml.trees.leaf-mean", 1));
   await expectNotListed(qa("ml.trees.depth", 1));
   expect(screen.getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
+  goHome();
+  expect(home().getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Start a Session" })).toBeNull();
   unmount();
   render(<App />);
@@ -346,11 +359,16 @@ it("closes the modal before deleting, so a failure shows in the page's error and
   await expectListed(qa("ml.trees.leaf-mean", 1));
 });
 
-it("disables Delete all Cards while no Cards are stored", async () => {
+it("with no Cards, the Cards page shows the empty state and disables Delete all Cards", async () => {
   render(<App />);
+  openCards();
+  expect(home().getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
   expect(deleteAllButton().disabled).toBe(true);
 
+  goHome();
   await uploaded(qa("ml.trees.leaf-mean", 1));
+  openCards();
+  expect(screen.queryByRole("heading", { name: "No Cards yet" })).toBeNull();
   expect(deleteAllButton().disabled).toBe(false);
 
   fireEvent.click(openDeleteAll().getByRole("button", { name: "Delete all Cards" }));
@@ -366,6 +384,7 @@ it("keeps the report of the last upload after deleting a Card", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
 
   await expectNotListed(qa("ml.trees.leaf-mean", 1));
+  goHome();
   expect(screen.getByText(/2 added, 0 updated, 0 unchanged/)).toBeTruthy();
 });
 
@@ -381,9 +400,11 @@ it("shows an error and keeps the Card when deleting fails", async () => {
   await expectListed(qa("ml.trees.leaf-mean", 1));
 });
 
+/** Uploads the Cards on Home, waits until the Cards page lists the last one, then goes back Home. */
 async function uploaded(...cards: TCard[]) {
   upload(...cards);
   await expectListed(cards[cards.length - 1]);
+  goHome();
 }
 
 function startButton() {
@@ -512,7 +533,7 @@ it("the Card count on Home reads 2 Cards and opens the Cards page", async () => 
   fireEvent.click(library);
 
   expect(isCurrent("Cards")).toBe(true);
-  expect(screen.getByText("This page is not built yet.")).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 1, name: "Cards" })).toBeTruthy();
 });
 
 it("the Card count on Home reads 1 Card for one Card", async () => {
@@ -526,12 +547,16 @@ it("the Card count follows a deleted Card, and deleting the last one shows the e
   render(<App />);
   await uploaded(qa("a", 1), qa("b", 1));
 
+  openCards();
   fireEvent.click(screen.getByRole("button", { name: "Delete a" }));
   await expectNotListed(qa("a", 1));
+  goHome();
   expect(home().getByRole("button", { name: /^1 Card(?!s)/ })).toBeTruthy();
 
+  openCards();
   fireEvent.click(screen.getByRole("button", { name: "Delete b" }));
   await expectNotListed(qa("b", 1));
+  goHome();
   expect(home().getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "Start a Session" })).toBeNull();
 });
@@ -554,7 +579,7 @@ it.each(["Upload Deck", "Create Card"])("with no Cards, %s opens the Cards page"
   fireEvent.click(home().getByRole("button", { name }));
 
   expect(isCurrent("Cards")).toBe(true);
-  expect(screen.getByText("This page is not built yet.")).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 1, name: "Cards" })).toBeTruthy();
 });
 
 it("hides the upload and the Card list during a Session", async () => {
@@ -566,7 +591,7 @@ it("hides the upload and the Card list during a Session", async () => {
   await screen.findByRole("button", { name: "Reveal" });
   expect(screen.getByRole("heading", { name: "Flashcards" })).toBeTruthy();
   expect(screen.queryByLabelText("Upload Deck")).toBeNull();
-  expect(screen.queryByText(/ml\.trees\.depth \(qa/)).toBeNull();
+  expect(screen.queryByText("ml.trees.depth")).toBeNull();
 });
 
 it("reveals the answer, and Knew it appends a right Review", async () => {
@@ -936,8 +961,10 @@ it("forgets a picked tag once no Card has it", async () => {
   await uploaded(regression, qa("ml.trees.depth", 1));
   fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "Regression" } });
 
+  openCards();
   fireEvent.click(screen.getByRole("button", { name: "Delete reg" }));
   await expectNotListed(regression);
+  goHome();
 
   expect(screen.getByLabelText<HTMLSelectElement>("Tag").value).toBe("");
   startSession();
@@ -1156,6 +1183,7 @@ it("a Deck upload that finishes after a newer Review log upload keeps the Review
   finishReading();
 
   await expectListed(qa("a", 1));
+  goHome();
   expect(screen.getByText(/1 added, 0 skipped/)).toBeTruthy();
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
@@ -1390,17 +1418,32 @@ it("shows the days since the last download in German", async () => {
   await screen.findByText("Tage seit dem letzten Herunterladen: 0");
 });
 
-it("shows a Deck upload in German: the counts, the Card list and its buttons", async () => {
+it("shows a Deck upload in German: the counts, then on Karten the Card list and its buttons", async () => {
   render(<App />);
   pickGerman();
 
-  const deck = JSON.stringify({ cards: [qa("q", 1)] });
+  const deck = JSON.stringify({ cards: [german(qa("q", 1), { question: "Was ist q?" })] });
   pick(new File([deck], "deck.json", { type: "application/json" }), "Deck hochladen");
 
   await screen.findByText("1 hinzugefügt, 0 aktualisiert, 0 unverändert");
-  expect(screen.getByText("q (qa, Version 1)")).toBeTruthy();
+  goTo("Karten");
+  expect(screen.getByText("1 Karte")).toBeTruthy();
+  expect(screen.getByText("Was ist q?")).toBeTruthy();
   expect(screen.getByRole("button", { name: "q löschen" }).textContent).toBe("Löschen");
   expect(screen.getByRole("button", { name: "Alle Karten löschen" })).toBeTruthy();
+});
+
+it("shows the Cards page heading in German", () => {
+  render(<App />);
+  pickGerman();
+
+  goTo("Karten");
+
+  expect(levelOneHeadings()).toEqual(["Karten"]);
+  expect(screen.getByText("Bibliothek")).toBeTruthy();
+  expect(
+    screen.getByText("Karten suchen, ordnen, ansehen und sichern, alles an einem Ort."),
+  ).toBeTruthy();
 });
 
 it("shows a Review log upload in German, and a rejected file keeps its details in English", async () => {
@@ -1427,6 +1470,7 @@ it("asks in German before deleting all Cards", async () => {
   render(<App />);
   await uploaded(qa("q", 1));
   pickGerman();
+  goTo("Karten");
 
   fireEvent.click(screen.getByRole("button", { name: "Alle Karten löschen" }));
 
@@ -1534,7 +1578,7 @@ it("with a German browser language and nothing picked, the UI text is German", (
     render(<App />);
     const deck = JSON.stringify({ cards: [qa("a", 1)] });
     pick(new File([deck], "deck.json", { type: "application/json" }), "Deck hochladen");
-    await screen.findByText("a (qa, Version 1)");
+    await screen.findByText("1 hinzugefügt, 0 aktualisiert, 0 unverändert");
 
     expect(screen.getByLabelText("Sprache")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
@@ -1552,13 +1596,13 @@ it("after a reload, the UI text is in the picked language, not the browser langu
   expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
 });
 
-function navLink(name: string) {
+function navLink(name: string | RegExp) {
   return within(
     screen.getByRole("navigation", { name: /^(Pages|Seiten)$/ }),
   ).getByRole<HTMLButtonElement>("button", { name });
 }
 
-function goTo(name: string) {
+function goTo(name: string | RegExp) {
   fireEvent.click(navLink(name));
 }
 
@@ -1594,15 +1638,44 @@ it("the navigation marks Home at the start, and Statistics once it shows", async
   expect(isCurrent("Home")).toBe(false);
 });
 
-it.each(["Cards", "Settings"])("%s shows a placeholder until its page is built", (name) => {
+it("Settings shows a placeholder until its page is built", () => {
   render(<App />);
 
-  goTo(name);
+  goTo("Settings");
 
   expect(screen.getByText("This page is not built yet.")).toBeTruthy();
-  expect(isCurrent(name)).toBe(true);
+  expect(isCurrent("Settings")).toBe(true);
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
   expect(screen.getByRole("heading", { name: "Flashcards" })).toBeTruthy();
+});
+
+it("the Cards page shows the Library heading and the Card count, and no placeholder", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+
+  goTo("Cards");
+
+  expect(isCurrent("Cards")).toBe(true);
+  expect(levelOneHeadings()).toEqual(["Cards"]);
+  expect(screen.getByText("Library")).toBeTruthy();
+  expect(
+    screen.getByText("Search, organize, preview, and back up every Card in one place."),
+  ).toBeTruthy();
+  expect(screen.getByText("2 Cards")).toBeTruthy();
+  expect(screen.getByText("What is a?")).toBeTruthy();
+  expect(screen.queryByText("This page is not built yet.")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
+});
+
+it("Home shows neither the Card list nor Delete all Cards", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+
+  expect(isCurrent("Home")).toBe(true);
+  expect(screen.queryByRole("button", { name: "Delete a" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Delete all Cards" })).toBeNull();
+  expect(screen.queryByText("a")).toBeNull();
+  expect(screen.queryByText("What is a?")).toBeNull();
 });
 
 it("shows the navigation and a placeholder in German", () => {
