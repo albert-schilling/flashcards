@@ -35,6 +35,8 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #64 | The Stop hook blocked the orchestrator's turns while the implementer worked in the background (tests first, so validate failed). | albert-schilling/skills#35.                                                                    |
 | #64 | Copying the header CSS rule for rule also copied a prototype bug: open menu, then widen, stacked the nav.                        | `docs/design/README.md`: check states the prototype doesn't show.                              |
 | #64 | Planned ~440 lines, came out at 1,020: the first tests took ~410 (planned ~150), the implementation ~560 (planned ~290).         | #19 (size warning).                                                                            |
+| #66 | The plan adapted two tests that expected Start Session with no Cards but missed a third, so the implementer stopped.             | albert-schilling/skills#36 (the planner lists every test that queries a removed element).      |
+| #66 | The tokens-only style test rejected the prototype's `repeat(2, 1fr)`, another Stop.                                              | `docs/conventions/code.md` lists the raw values styles may use.                                |
 
 ## Factory runs
 
@@ -67,3 +69,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #43 | #41   | medium    | 2 / 3             | 2             | 0              | none                |
 | #61 | #47   | medium    | 2 / 5             | 2             | 5              | none                |
 | #64 | #48   | medium    | 3 / 5             | 3             | 2              | none                |
+| #66 | #49   | medium    | 3 / 4             | 2             | 2              | none                |
