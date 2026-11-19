@@ -32,9 +32,9 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #43 | The approved plan said ~405 lines; the PR came out at 512, with extra tests and screenshots.                                     | #19 (size warning).                                                                            |
 | #61 | The implementer had no prototype CSS (no Figma MCP), guessed styles from screenshots: 8 spec findings.                           | `docs/design/prototype/` holds the prototype's CSS and code; the v2 issues point at it.        |
 | #61 | Planned ~645 lines, came out at 980: CSS written rule for rule from the prototype was underestimated.                            | #19 (size warning); plan CSS by counting the prototype's rules.                                |
-| #64 | The Stop hook blocked the orchestrator's turns while the implementer worked in the background (tests first, so validate failed). | Factory issue in albert-schilling/skills.                                                      |
+| #64 | The Stop hook blocked the orchestrator's turns while the implementer worked in the background (tests first, so validate failed). | albert-schilling/skills#35.                                                                    |
 | #64 | Copying the header CSS rule for rule also copied a prototype bug: open menu, then widen, stacked the nav.                        | `docs/design/README.md`: check states the prototype doesn't show.                              |
-| #64 | Planned ~440 lines, came out at 1,020: second-pass tests, review fixes and a screenshot flow.                                    | #19 (size warning).                                                                            |
+| #64 | Planned ~440 lines, came out at 1,020: the first tests took ~410 (planned ~150), the implementation ~560 (planned ~290).         | #19 (size warning).                                                                            |
 
 ## Factory runs
 
