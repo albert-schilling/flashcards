@@ -5,6 +5,7 @@ The app's design for version 2 comes from a Figma Make prototype, made from [`fi
 - Prototype: https://www.figma.com/make/M937bfJqJzKR5OLBFnWyuC/Flashcards
 - [`tokens.css`](tokens.css): its design tokens (colors, type, spacing, radii, shadows, sizes), copied as they are.
 - [`screens/`](screens/): screenshots of each page at 375 px and 1280 px wide.
+- [`prototype/`](prototype/): a copy of its code from 2026-11-19, for agents without the Figma MCP server: `index.css` (tokens and every component style) and `App.tsx.txt` (all screens; `.txt` so the repository's tools skip it). When the prototype changes, the Figma MCP server has the current version.
 
 ## Reading the prototype
 

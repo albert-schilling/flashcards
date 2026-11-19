@@ -17,6 +17,7 @@ export function CardChoice(props: {
       {/* Keyed by position: options may repeat, and never reorder. */}
       {props.options.map((option, i) => (
         <button
+          className="button secondary"
           key={i}
           disabled={picked !== undefined}
           onClick={() => {

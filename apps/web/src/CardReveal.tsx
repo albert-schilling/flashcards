@@ -19,11 +19,17 @@ export function CardReveal(props: {
           {props.answer.map((line, i) => (
             <p key={i}>{line}</p>
           ))}
-          <button onClick={() => props.onGrade(true)}>{text.knewIt}</button>
-          <button onClick={() => props.onGrade(false)}>{text.didntKnow}</button>
+          <button className="button primary" onClick={() => props.onGrade(true)}>
+            {text.knewIt}
+          </button>
+          <button className="button secondary" onClick={() => props.onGrade(false)}>
+            {text.didntKnow}
+          </button>
         </>
       ) : (
-        <button onClick={() => setRevealed(true)}>{text.reveal}</button>
+        <button className="button primary" onClick={() => setRevealed(true)}>
+          {text.reveal}
+        </button>
       )}
     </>
   );

@@ -13,7 +13,9 @@ export function CardVerdict(props: {
       <p>{props.right ? text.right : text.wrong}</p>
       <p>{text.correctAnswer(props.answer)}</p>
       {props.explanation && <p>{props.explanation}</p>}
-      <button onClick={props.onNext}>{text.next}</button>
+      <button className="button primary" onClick={props.onNext}>
+        {text.next}
+      </button>
     </>
   );
 }

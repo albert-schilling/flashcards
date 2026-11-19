@@ -1,0 +1,121 @@
+/* Layer order as in the prototype; component styles are unlayered, so they win over both. */
+@layer reset, base;
+
+/* A compact preflight: browser defaults removed, so every element is styled on purpose. */
+@layer reset {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+    border: 0 solid;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    line-height: var(--line-height-body);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  ul,
+  ol {
+    list-style: none;
+  }
+
+  table {
+    border-collapse: collapse;
+    border-color: inherit;
+    text-indent: 0;
+  }
+
+  img,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background: var(--color-transparent);
+    border-radius: 0;
+  }
+}
+
+/* The prototype's base layer. Its body min-width (20rem) has no token, so it is left out. */
+@layer base {
+  html {
+    background: var(--color-canvas);
+    color: var(--color-ink-900);
+    font-family: var(--font-family-sans);
+  }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(
+        circle at top right,
+        var(--color-accent-50),
+        var(--color-transparent) var(--gradient-size)
+      ),
+      var(--color-canvas);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-body);
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  button,
+  select,
+  input,
+  label {
+    -webkit-tap-highlight-color: var(--color-transparent);
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  :focus-visible {
+    outline: var(--border-width-strong) solid var(--color-accent-600);
+    outline-offset: var(--space-1);
+  }
+
+  /* Not in the prototype's base layer: the reset removes the cell spacing, and the Statistics table needs some until its page is laid out. */
+  caption {
+    text-align: left;
+  }
+
+  th {
+    text-align: left;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  th,
+  td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: var(--border-width) solid var(--color-line-200);
+  }
+}

@@ -1,4 +1,4 @@
-// Usage: pnpm screenshot <flow> <folder>. Writes <folder>/<flow>-<shot>.png.
+// Usage: pnpm screenshot <flow> <folder> [width]. Writes <folder>/<flow>-<shot>.png; width defaults to 1280, use 375 for mobile.
 // pnpm runs the script from the repo root, so a relative <folder> is taken from there.
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -17,6 +17,14 @@ type TFlow = (page: Page, shot: (name: string) => Promise<void>) => Promise<void
 async function uploadExampleDeck(page: Page, text: TUiText = uiText.en): Promise<void> {
   await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles(exampleDeck);
   await page.getByText(text.deckSummary(6, 0, 0), { exact: true }).waitFor();
+}
+
+// A missing font file falls back silently to system-ui, so a flow fails instead of shooting the wrong font.
+async function requireInter(page: Page): Promise<void> {
+  await page.evaluate(() => document.fonts.ready);
+  if (!(await page.evaluate(() => document.fonts.check("1em Inter")))) {
+    throw new Error("Inter did not load");
+  }
 }
 
 // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01), Reveal Cards as known.
@@ -77,7 +85,29 @@ async function openStatistics(page: Page, text: TUiText): Promise<void> {
   await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
 }
 
+// Shows the states a plain page doesn't: disabled, hovered, keyboard-focused and rejected.
+async function showControls(page: Page, shot: (name: string) => Promise<void>): Promise<void> {
+  const text = uiText.en;
+  await shot("empty-start-page");
+  // Tab from the page start reaches the first control, the Language select.
+  await page.keyboard.press("Tab");
+  await shot("field-focus");
+  // A file that isn't a Deck is rejected and shows the danger alert.
+  await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles({
+    name: "broken.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("not json"),
+  });
+  await page.getByText(text.fileRejected, { exact: true }).waitFor();
+  await shot("rejected-upload");
+  // Start Session is disabled until there are Cards, and a disabled button shows no hover.
+  await uploadExampleDeck(page);
+  await page.getByRole("button", { name: text.startSession, exact: true }).hover();
+  await shot("button-hover");
+}
+
 const flows: Record<string, TFlow> = {
+  controls: showControls,
   upload: async (page, shot) => {
     await uploadExampleDeck(page);
     await shot("card-list");
@@ -103,10 +133,11 @@ const flows: Record<string, TFlow> = {
   },
 };
 
-const [flowName, folder] = process.argv.slice(2);
+const [flowName, folder, widthArgument = "1280"] = process.argv.slice(2);
+const width = Number(widthArgument);
 const flow = flowName === undefined ? undefined : flows[flowName];
-if (flowName === undefined || flow === undefined || folder === undefined) {
-  console.error("Usage: pnpm screenshot <flow> <folder>");
+if (flowName === undefined || flow === undefined || folder === undefined || !(width > 0)) {
+  console.error("Usage: pnpm screenshot <flow> <folder> [width]");
   console.error(`Flows: ${Object.keys(flows).join(", ")}`);
   process.exit(1);
 }
@@ -119,10 +150,16 @@ try {
   const url = server.resolvedUrls?.local[0];
   if (url === undefined) throw new Error("vite preview has no local URL");
   // The flows start in English, whatever the language of the machine.
-  const page = await browser.newPage({ locale: "en-US" });
+  const page = await browser.newPage({ locale: "en-US", viewport: { width, height: 720 } });
   await page.goto(url);
+  await requireInter(page);
   await flow(page, async (name) => {
-    await page.screenshot({ path: resolve(folder, `${flowName}-${name}.png`), fullPage: true });
+    // Buttons fade between states; a shot taken mid-fade shows a colour no state has.
+    await page.screenshot({
+      path: resolve(folder, `${flowName}-${name}.png`),
+      fullPage: true,
+      animations: "disabled",
+    });
   });
 } finally {
   await browser.close();
