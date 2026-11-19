@@ -222,6 +222,7 @@
 }
 
 /* File buttons */
+/* Relative, so the hidden input stays inside the label. */
 .file-button {
   position: relative;
   cursor: pointer;
@@ -235,7 +236,8 @@
   pointer-events: none;
 }
 
+/* The focused input is hidden, so its label shows the base layer's focus outline. */
 .file-button:has(input:focus-visible) {
   outline: var(--border-width-strong) solid var(--color-accent-600);
-  outline-offset: var(--border-width-strong);
+  outline-offset: var(--space-1);
 }
