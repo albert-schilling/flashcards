@@ -135,6 +135,14 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await goTo(page, text.cards);
   await page.getByText(text.pageNotBuilt, { exact: true }).waitFor();
   await shot("cards");
+  // The current link keeps its colours on hover.
+  if (await menu.isVisible()) await menu.click();
+  await page
+    .getByRole("navigation", { name: text.pages, exact: true })
+    .getByRole("button", { name: text.cards, exact: true })
+    .hover();
+  await shot("current-link-hover");
+  if (await menu.isVisible()) await menu.click();
   await goTo(page, text.session);
   // The link loads the Review log first, so wait for the first Card.
   await page.locator("section button").first().waitFor();
