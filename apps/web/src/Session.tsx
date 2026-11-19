@@ -20,9 +20,11 @@ export function Session(props: {
 
   if (!card) {
     return (
-      <section>
+      <section className="panel">
         <p>{text.sessionResult(index, rightCount)}</p>
-        <button onClick={props.onEnd}>{text.done}</button>
+        <button className="button primary" onClick={props.onEnd}>
+          {text.done}
+        </button>
       </section>
     );
   }
@@ -48,7 +50,7 @@ export function Session(props: {
   }
 
   return (
-    <section>
+    <section className="panel">
       <CardView key={index} card={card} onAnswer={answer} onNext={next} />
     </section>
   );

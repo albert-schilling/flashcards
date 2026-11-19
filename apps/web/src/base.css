@@ -1,0 +1,106 @@
+/* Layer order as in the prototype; component styles are unlayered, so they win over both. */
+@layer reset, base;
+
+/* A compact preflight: browser defaults removed, so every element is styled on purpose. */
+@layer reset {
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+    border: 0 solid;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    line-height: var(--line-height-body);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  ul,
+  ol {
+    list-style: none;
+  }
+
+  table {
+    border-collapse: collapse;
+    border-color: inherit;
+    text-indent: 0;
+  }
+
+  img,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background: var(--color-transparent);
+    border-radius: 0;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@layer base {
+  body {
+    min-height: 100vh;
+    background: var(--color-canvas);
+    color: var(--color-ink-900);
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--color-ink-950);
+    line-height: var(--line-height-heading);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  caption {
+    text-align: left;
+  }
+
+  th {
+    text-align: left;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  th,
+  td {
+    padding: var(--space-2) var(--space-3);
+    border-bottom: var(--border-width) solid var(--color-line-200);
+  }
+
+  :focus-visible {
+    outline: var(--border-width-strong) solid var(--color-accent-600);
+    outline-offset: var(--border-width-strong);
+  }
+}

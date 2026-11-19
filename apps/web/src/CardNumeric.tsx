@@ -29,6 +29,7 @@ export function CardNumeric(props: {
         }}
       >
         <input
+          className="control"
           type="number"
           step="any"
           aria-label={text.answer}
@@ -42,7 +43,9 @@ export function CardNumeric(props: {
             <span>{props.unit}</span>
           </>
         )}{" "}
-        <button disabled={answered || typed === ""}>{text.check}</button>
+        <button className="button primary" disabled={answered || typed === ""}>
+          {text.check}
+        </button>
       </form>
       {answered && (
         <CardVerdict

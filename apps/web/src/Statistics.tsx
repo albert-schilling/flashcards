@@ -40,7 +40,9 @@ export function Statistics(props: { cards: TCard[]; reviews: TReview[]; onBack: 
   const { cards, domain, topic } = statistics(props.cards, props.reviews);
   return (
     <>
-      <button onClick={props.onBack}>{text.back}</button>
+      <button className="button ghost" onClick={props.onBack}>
+        {text.back}
+      </button>
       <table>
         <caption>{text.cards}</caption>
         <thead>

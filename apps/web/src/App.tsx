@@ -3,6 +3,9 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { downloadDeck, uploadDeck, type TUploadReport } from "./deck";
 import { downloadReviewLog, uploadReviewLog, type TReviewLogReport } from "./review.log";
 import { browserLanguage, LanguageContext, type TLanguage } from "./language.context";
+import { Alert } from "./Alert";
+import { FileButton } from "./FileButton";
+import { Select } from "./Select";
 import { Session } from "./Session";
 import { allTags, pickCards } from "./session.helper";
 import { Statistics } from "./Statistics";
@@ -122,7 +125,11 @@ export function App() {
     return (
       <LanguageContext.Provider value={language}>
         <h1>Flashcards</h1>
-        {error && <p role="alert">{error}</p>}
+        {error && (
+          <Alert tone="danger" role="alert">
+            {error}
+          </Alert>
+        )}
         <Statistics cards={cards} reviews={reviews} onBack={() => setReviews(undefined)} />
       </LanguageContext.Provider>
     );
@@ -132,7 +139,11 @@ export function App() {
     return (
       <LanguageContext.Provider value={language}>
         <h1>Flashcards</h1>
-        {error && <p role="alert">{error}</p>}
+        {error && (
+          <Alert tone="danger" role="alert">
+            {error}
+          </Alert>
+        )}
         <Session cards={session} onEnd={() => setSession(undefined)} onError={showError} />
       </LanguageContext.Provider>
     );
@@ -141,38 +152,42 @@ export function App() {
   return (
     <LanguageContext.Provider value={language}>
       <h1>Flashcards</h1>
-      {error && <p role="alert">{error}</p>}
-      <p>
-        <label>
-          {text.language}{" "}
-          <select
-            value={language}
-            onChange={(event) => pickLanguage(event.target.value as TLanguage)}
-          >
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
-          </select>
-        </label>
-      </p>
-      <label>
-        {text.cards}{" "}
+      {error && (
+        <Alert tone="danger" role="alert">
+          {error}
+        </Alert>
+      )}
+      <label className="field">
+        {text.language}
+        <Select
+          value={language}
+          onChange={(event) => pickLanguage(event.target.value as TLanguage)}
+        >
+          <option value="en">English</option>
+          <option value="de">Deutsch</option>
+        </Select>
+      </label>
+      <label className="field">
+        {text.cards}
         <input
+          className="control"
           type="number"
           value={size}
           onChange={(event) => setSize(event.target.valueAsNumber)}
         />
-      </label>{" "}
-      <label>
-        {text.tag}{" "}
-        <select value={pickedTag} onChange={(event) => setTag(event.target.value)}>
+      </label>
+      <label className="field">
+        {text.tag}
+        <Select value={pickedTag} onChange={(event) => setTag(event.target.value)}>
           <option value="">{text.anyTag}</option>
           {tags.map((name) => (
             <option key={name}>{name}</option>
           ))}
-        </select>
-      </label>{" "}
+        </Select>
+      </label>
       {/* An empty input gives NaN, so `size < 1` would let it through. */}
       <button
+        className="button primary"
         disabled={cards.length === 0 || !(size >= 1)}
         onClick={() =>
           loadReviews().then(
@@ -183,28 +198,32 @@ export function App() {
       >
         {text.startSession}
       </button>{" "}
-      <button onClick={() => loadReviews().then(setReviews, showError)}>{text.statistics}</button>
+      <button
+        className="button secondary"
+        onClick={() => loadReviews().then(setReviews, showError)}
+      >
+        {text.statistics}
+      </button>
       <p>
-        <label>
-          {text.uploadDeck}{" "}
-          <input
-            type="file"
-            accept=".json,application/json"
-            onChange={(event) => upload(event, uploadDeck)}
-          />
-        </label>{" "}
-        <label>
-          {text.uploadReviewLog}{" "}
-          <input
-            type="file"
-            accept=".json,application/json"
-            onChange={(event) => upload(event, uploadReviewLog)}
-          />
-        </label>
+        <FileButton
+          label={text.uploadDeck}
+          accept=".json,application/json"
+          onChange={(event) => upload(event, uploadDeck)}
+        />{" "}
+        <FileButton
+          label={text.uploadReviewLog}
+          accept=".json,application/json"
+          onChange={(event) => upload(event, uploadReviewLog)}
+        />
       </p>
       <p>
-        <button onClick={() => download(downloadDeck)}>{text.downloadCards}</button>{" "}
-        <button onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}>
+        <button className="button ghost" onClick={() => download(downloadDeck)}>
+          {text.downloadCards}
+        </button>{" "}
+        <button
+          className="button ghost"
+          onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}
+        >
           {text.downloadReviewLog}
         </button>
       </p>
@@ -214,7 +233,7 @@ export function App() {
           : text.noDownloadYet}
       </p>
       {report && (
-        <section>
+        <Alert tone={report.ok ? "success" : "danger"}>
           <p>{summary(report, text)}</p>
           <ul>
             {("errors" in report ? report.errors : []).map((fileError, i) => (
@@ -223,13 +242,14 @@ export function App() {
               </li>
             ))}
           </ul>
-        </section>
+        </Alert>
       )}
       <ul>
         {cards.map((card) => (
           <li key={card.id}>
             {text.cardListItem(card.id, card.type, card.version)}{" "}
             <button
+              className="button ghost small"
               aria-label={text.deleteCard(card.id)}
               onClick={() => remove(() => deleteCard(card.id))}
             >
@@ -238,7 +258,11 @@ export function App() {
           </li>
         ))}
       </ul>
-      {cards.length > 0 && <button onClick={clearAll}>{text.clearAll}</button>}
+      {cards.length > 0 && (
+        <button className="button danger" onClick={clearAll}>
+          {text.clearAll}
+        </button>
+      )}
     </LanguageContext.Provider>
   );
 }
