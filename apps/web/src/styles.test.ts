@@ -53,6 +53,9 @@ function rawValues(css: string): string[] {
     // No token exists for a stacking order or a mixing share, so these may be plain numbers.
     if (/^\d+$/.test(value) && /z-index\s*:\s*$/.test(before)) continue;
     if (value.endsWith("%") && isInsideColorMix(before)) continue;
+    // A fraction of the free grid space and a repeat count are neither colour nor size.
+    if (value.endsWith("fr")) continue;
+    if (/^\d+$/.test(value) && /repeat\(\s*$/.test(before)) continue;
     found.push(value);
   }
   return found;
@@ -99,6 +102,17 @@ describe("rawValues", () => {
   it("still finds a z-index that isn't an integer, and an integer elsewhere", () => {
     expect(rawValues(".a { z-index: 1.5; }")).toEqual(["1.5"]);
     expect(rawValues(".a { order: 20; }")).toEqual(["20"]);
+  });
+
+  it("accepts fr fractions and a repeat count, which have no token", () => {
+    expect(rawValues(".a { grid-template-columns: repeat(2, 1fr); }")).toEqual([]);
+    expect(rawValues(".a { grid-template-columns: 2fr 1fr; }")).toEqual([]);
+  });
+
+  it("still finds other raw numbers in and around a grid", () => {
+    expect(rawValues(".a { grid-template-columns: repeat(2, 10rem); }")).toEqual(["10rem"]);
+    expect(rawValues(".a { width: 2; }")).toEqual(["2"]);
+    expect(rawValues(".a { grid-template-columns: 1fr 2; }")).toEqual(["2"]);
   });
 });
 

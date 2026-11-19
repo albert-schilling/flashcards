@@ -27,6 +27,14 @@ async function requireInter(page: Page): Promise<void> {
   }
 }
 
+// A Session loads the Review log before its first Card. Home's panel is a section too, so Start Session must go first.
+async function waitForFirstCard(page: Page, text: TUiText): Promise<void> {
+  await page
+    .getByRole("button", { name: text.startSession, exact: true })
+    .waitFor({ state: "detached" });
+  await page.locator("section button").first().waitFor();
+}
+
 // Answers every Card: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01), Reveal Cards as known.
 async function answerEveryCard(
   page: Page,
@@ -36,8 +44,7 @@ async function answerEveryCard(
   await uploadExampleDeck(page, text);
   await page.getByLabel(text.cards, { exact: true }).fill("6");
   await page.getByRole("button", { name: text.startSession, exact: true }).click();
-  // Start loads the Review log first, so wait for the first Card.
-  await page.locator("section button").first().waitFor();
+  await waitForFirstCard(page, text);
   const done = page.getByRole("button", { name: text.done, exact: true });
   const reveal = page.getByRole("button", { name: text.reveal, exact: true });
   const check = page.getByRole("button", { name: text.check, exact: true });
@@ -89,8 +96,8 @@ async function openStatistics(page: Page, text: TUiText): Promise<void> {
 async function showControls(page: Page, shot: (name: string) => Promise<void>): Promise<void> {
   const text = uiText.en;
   await shot("empty-start-page");
-  // Tab from the page start reaches the first control, the Language select.
-  await page.keyboard.press("Tab");
+  // Tab from the page start reaches the header brand first, so focus the Language select directly.
+  await page.getByLabel(text.language).focus();
   await shot("field-focus");
   // A file that isn't a Deck is rejected and shows the danger alert.
   await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles({
@@ -145,8 +152,7 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await shot("current-link-hover");
   if (await menu.isVisible()) await menu.click();
   await goTo(page, text.session);
-  // The link loads the Review log first, so wait for the first Card.
-  await page.locator("section button").first().waitFor();
+  await waitForFirstCard(page, text);
   await shot("session");
   await goTo(page, text.statistics);
   await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
@@ -174,6 +180,7 @@ const flows: Record<string, TFlow> = {
   german: async (page, shot) => {
     // Not exact: the label's name includes the option names.
     await page.getByLabel(uiText.en.language).selectOption("de");
+    await shot("empty-start-page");
     await answerEveryCard(page, shot, uiText.de);
     await page.getByRole("button", { name: uiText.de.done, exact: true }).click();
     await page
