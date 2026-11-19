@@ -458,6 +458,20 @@ it("the Card count on Home reads 1 Card for one Card", async () => {
   expect(home().getByRole("button", { name: /^1 Card(?!s)/ })).toBeTruthy();
 });
 
+it("the Card count follows a deleted Card, and deleting the last one shows the empty state", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete a" }));
+  await expectNotListed(qa("a", 1));
+  expect(home().getByRole("button", { name: /^1 Card(?!s)/ })).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Delete b" }));
+  await expectNotListed(qa("b", 1));
+  expect(home().getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Start a Session" })).toBeNull();
+});
+
 it("with no Cards, Home shows the empty state and no Start a Session panel", () => {
   render(<App />);
 
@@ -1281,6 +1295,15 @@ it("shows the Start a Session panel and the Card count in German", async () => {
   expect(home().getByText("Heute lernen")).toBeTruthy();
   const library = home().getByRole("button", { name: /^2 Karten/ });
   expect(library.textContent).toContain("Bibliothek und Sicherungen verwalten");
+});
+
+it("the Card count reads 1 Karte for one Card in German", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+
+  pickGerman();
+
+  expect(home().getByRole("button", { name: /^1 Karte(?!n)/ })).toBeTruthy();
 });
 
 it("shows the empty state in German", () => {
