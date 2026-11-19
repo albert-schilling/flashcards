@@ -1,0 +1,1604 @@
+import { useMemo, useState } from "react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  BarChart3,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  CircleAlert,
+  Download,
+  FileJson,
+  Layers3,
+  Menu,
+  Pencil,
+  Play,
+  Plus,
+  RotateCcw,
+  Search,
+  Settings as SettingsIcon,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+  X,
+  XCircle,
+} from "lucide-react";
+
+type Page = "home" | "cards" | "session" | "statistics" | "settings" | "style" | "components";
+type Language = "en" | "de";
+type CardKind = "qa" | "formula" | "cloze" | "multiple_choice" | "true_false" | "numeric";
+type AnswerState = "idle" | "revealed" | "right" | "wrong";
+type CardsIntent = "none" | "upload" | "create";
+
+type LibraryCard = {
+  id: string;
+  type: CardKind;
+  version: number;
+  question: string;
+  answer: string;
+  tags: string[];
+};
+
+const cardTemplates: LibraryCard[] = [
+  {
+    id: "ml.trees.leaf-mean",
+    type: "qa",
+    version: 1,
+    question: "What does a regression leaf predict?",
+    answer: "The mean of its samples.",
+    tags: ["Machine Learning", "Decision Tree"],
+  },
+  {
+    id: "math.linalg.vector-norm",
+    type: "formula",
+    version: 2,
+    question: "Vector norm",
+    answer: "‖a‖ = √(a · a)",
+    tags: ["Mathematics", "Linear Algebra"],
+  },
+  {
+    id: "ml.trees.depth-variance",
+    type: "cloze",
+    version: 1,
+    question: "A deeper tree has ____ variance.",
+    answer: "A deeper tree has higher variance.",
+    tags: ["Machine Learning", "Decision Tree"],
+  },
+  {
+    id: "ml.trees.split-criterion",
+    type: "multiple_choice",
+    version: 3,
+    question: "Which criterion does a regression tree split on?",
+    answer: "Mean squared error",
+    tags: ["Machine Learning", "Decision Tree"],
+  },
+  {
+    id: "stats.mean.basic",
+    type: "numeric",
+    version: 1,
+    question: "What is the mean of 2, 4 and 9?",
+    answer: "5",
+    tags: ["Statistics", "Mean"],
+  },
+  {
+    id: "ml.trees.depth-variance-tf",
+    type: "true_false",
+    version: 1,
+    question: "A deeper decision tree usually has higher variance.",
+    answer: "True",
+    tags: ["Machine Learning", "Decision Tree"],
+  },
+];
+
+const initialCards: LibraryCard[] = Array.from({ length: 126 }, (_, index) => {
+  const template = cardTemplates[index % cardTemplates.length];
+  const cycle = Math.floor(index / cardTemplates.length);
+  return cycle === 0
+    ? template
+    : {
+        ...template,
+        id: `${template.id}-${cycle + 1}`,
+        version: (cycle % 3) + 1,
+      };
+});
+
+const studyCards: Array<{
+  kind: CardKind;
+  eyebrow: string;
+  question: string;
+  secondary?: string;
+  answer: string;
+  options?: string[];
+  correct?: string;
+  explanation?: string;
+  unit?: string;
+}> = [
+  {
+    kind: "qa",
+    eyebrow: "Question & answer",
+    question: "What does a regression leaf predict?",
+    answer: "The mean of its samples.",
+  },
+  {
+    kind: "formula",
+    eyebrow: "Formula",
+    question: "Vector norm",
+    secondary: "The square root of a dot a.",
+    answer: "‖a‖ = √(a · a)",
+  },
+  {
+    kind: "cloze",
+    eyebrow: "Fill the gap",
+    question: "A deeper tree has ____ variance.",
+    answer: "A deeper tree has higher variance.",
+  },
+  {
+    kind: "multiple_choice",
+    eyebrow: "Multiple choice",
+    question: "Which criterion does a regression tree split on?",
+    options: ["Gini impurity", "Mean squared error"],
+    correct: "Mean squared error",
+    answer: "Mean squared error",
+    explanation: "Regression trees minimize error in continuous target values.",
+  },
+  {
+    kind: "true_false",
+    eyebrow: "True or false",
+    question: "A deeper decision tree usually has higher variance.",
+    options: ["True", "False"],
+    correct: "True",
+    answer: "True",
+    explanation: "Deeper trees can fit small changes in their training data.",
+  },
+  {
+    kind: "numeric",
+    eyebrow: "Numeric",
+    question: "What is the mean of 2, 4 and 9?",
+    correct: "5",
+    answer: "5",
+  },
+];
+
+const copy = {
+  en: {
+    language: "Language",
+    cards: "Cards",
+    anyTag: "Any tag",
+    start: "Start Session",
+    statistics: "Statistics",
+    uploadDeck: "Upload Deck",
+    uploadLog: "Upload Review log",
+    downloadCards: "Download Cards",
+    downloadLog: "Download Review log",
+    days: "Days since the last download: 3",
+    delete: "Delete",
+    clear: "Delete all Cards",
+    reveal: "Reveal",
+    knew: "Knew it",
+    didnt: "Didn't know",
+    right: "Right.",
+    wrong: "Wrong.",
+    answer: "Answer",
+    next: "Next",
+    check: "Check",
+    done: "Done",
+    back: "Back",
+    true: "True",
+    false: "False",
+    summary: "20 answered, 16 right",
+  },
+  de: {
+    language: "Sprache",
+    cards: "Karten",
+    anyTag: "Alle Tags",
+    start: "Sitzung starten",
+    statistics: "Statistik",
+    uploadDeck: "Deck hochladen",
+    uploadLog: "Lernprotokoll hochladen",
+    downloadCards: "Karten herunterladen",
+    downloadLog: "Lernprotokoll herunterladen",
+    days: "Tage seit dem letzten Herunterladen: 3",
+    delete: "Löschen",
+    clear: "Alle Karten löschen",
+    reveal: "Aufdecken",
+    knew: "Gewusst",
+    didnt: "Nicht gewusst",
+    right: "Richtig.",
+    wrong: "Falsch.",
+    answer: "Antwort",
+    next: "Weiter",
+    check: "Prüfen",
+    done: "Fertig",
+    back: "Zurück",
+    true: "Wahr",
+    false: "Falsch",
+    summary: "20 beantwortet, 16 richtig",
+  },
+};
+
+function IconButtonLabel({ children }: { children: React.ReactNode }) {
+  return <span>{children}</span>;
+}
+
+function Header({
+  page,
+  setPage,
+  language,
+}: {
+  page: Page;
+  setPage: (page: Page) => void;
+  language: Language;
+}) {
+  const [open, setOpen] = useState(false);
+  const nav = [
+    ["home", language === "de" ? "Start" : "Home"],
+    ["cards", language === "de" ? "Karten" : "Cards"],
+    ["session", "Session"],
+    ["statistics", language === "de" ? "Statistik" : "Statistics"],
+    ["settings", language === "de" ? "Einstellungen" : "Settings"],
+    ["style", "Style guide"],
+    ["components", "Components"],
+  ] as Array<[Page, string]>;
+
+  return (
+    <header className="app-header">
+      <div className="header-inner">
+        <button className="brand" onClick={() => setPage("home")} aria-label="Flashcards home">
+          <span className="brand-mark">
+            <Layers3 size={22} strokeWidth={2.2} />
+          </span>
+          <span>Flashcards</span>
+        </button>
+        <button
+          className="menu-button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          aria-label="Open navigation"
+        >
+          {open ? <X size={22} /> : <Menu size={22} />}
+        </button>
+        <nav className={open ? "main-nav is-open" : "main-nav"} aria-label="Prototype pages">
+          {nav.map(([id, label]) => (
+            <button
+              key={id}
+              className={page === id ? "nav-link active" : "nav-link"}
+              onClick={() => {
+                setPage(id);
+                setOpen(false);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+function PageHeading({
+  eyebrow,
+  title,
+  intro,
+}: {
+  eyebrow?: string;
+  title: string;
+  intro?: string;
+}) {
+  return (
+    <div className="page-heading">
+      {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+      <h1>{title}</h1>
+      {intro && <p className="page-intro">{intro}</p>}
+    </div>
+  );
+}
+
+function Home({
+  language,
+  setPage,
+  cardCount,
+  onManageCards,
+}: {
+  language: Language;
+  setPage: (page: Page) => void;
+  cardCount: number;
+  onManageCards: (intent: CardsIntent) => void;
+}) {
+  const t = copy[language];
+
+  return (
+    <main className="page-shell">
+      <PageHeading
+        eyebrow={language === "de" ? "Willkommen zurück" : "Welcome back"}
+        title="Flashcards"
+        intro={
+          language === "de"
+            ? "Eine ruhige Routine für nachhaltiges Lernen."
+            : "A calm routine for durable learning."
+        }
+      />
+
+      {cardCount === 0 ? (
+        <section className="panel home-empty">
+          <EmptyState compact language={language} />
+          <div className="empty-actions">
+            <button className="button primary" onClick={() => onManageCards("upload")}>
+              <Upload size={18} />
+              {t.uploadDeck}
+            </button>
+            <button className="button secondary" onClick={() => onManageCards("create")}>
+              <Plus size={18} />
+              {language === "de" ? "Karte erstellen" : "Create Card"}
+            </button>
+          </div>
+        </section>
+      ) : (
+        <div className="home-focus">
+          <section className="panel session-panel">
+            <div className="section-heading">
+              <span className="section-icon">
+                <RotateCcw size={20} />
+              </span>
+              <div>
+                <p className="eyebrow">{language === "de" ? "Heute lernen" : "Study today"}</p>
+                <h2>{language === "de" ? "Sitzung starten" : "Start a Session"}</h2>
+              </div>
+            </div>
+            <div className="form-grid">
+              <label className="field">
+                <span>{t.cards}</span>
+                <input type="number" defaultValue={20} min={1} />
+              </label>
+              <label className="field">
+                <span>Tag</span>
+                <span className="select-wrap">
+                  <select defaultValue="any">
+                    <option value="any">{t.anyTag}</option>
+                    <option>Machine Learning</option>
+                    <option>Decision Tree</option>
+                    <option>Statistics</option>
+                  </select>
+                  <ChevronDown size={18} aria-hidden="true" />
+                </span>
+              </label>
+            </div>
+            <button className="button primary large full" onClick={() => setPage("session")}>
+              <IconButtonLabel>{t.start}</IconButtonLabel>
+              <ArrowRight size={19} />
+            </button>
+            <button className="button secondary full" onClick={() => setPage("statistics")}>
+              <BarChart3 size={18} />
+              <IconButtonLabel>{t.statistics}</IconButtonLabel>
+            </button>
+          </section>
+          <button className="home-library-link" onClick={() => onManageCards("none")}>
+            <span>
+              <strong>
+                {cardCount} {language === "de" ? "Karten" : "Cards"}
+              </strong>
+              <small>
+                {language === "de"
+                  ? "Bibliothek und Sicherungen verwalten"
+                  : "Manage library and backups"}
+              </small>
+            </span>
+            <ArrowRight size={20} />
+          </button>
+        </div>
+      )}
+    </main>
+  );
+}
+
+function EmptyState({
+  compact = false,
+  language = "en",
+}: {
+  compact?: boolean;
+  language?: Language;
+}) {
+  return (
+    <div className={compact ? "empty-state compact" : "empty-state"}>
+      <span className="empty-icon">
+        <Upload size={24} />
+      </span>
+      <h3>{language === "de" ? "Noch keine Karten" : "No Cards yet"}</h3>
+      <p>
+        {language === "de"
+          ? "Lade ein Deck hoch, um deine erste Sitzung zu starten."
+          : "Upload a Deck to start your first Session."}
+      </p>
+      {!compact && (
+        <label className="button primary file-button">
+          <Upload size={18} />
+          <span>{language === "de" ? "Deck hochladen" : "Upload Deck"}</span>
+          <input type="file" />
+        </label>
+      )}
+    </div>
+  );
+}
+
+function Modal({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="modal-header">
+          <h2 id="modal-title">{title}</h2>
+          <button className="icon-button" onClick={onClose} aria-label="Close">
+            <X size={20} />
+          </button>
+        </div>
+        {children}
+      </section>
+    </div>
+  );
+}
+
+function CardEditor({
+  card,
+  onSave,
+  onClose,
+}: {
+  card?: LibraryCard;
+  onSave: (card: LibraryCard) => void;
+  onClose: () => void;
+}) {
+  const [question, setQuestion] = useState(card?.question ?? "");
+  const [answer, setAnswer] = useState(card?.answer ?? "");
+  const [type, setType] = useState<CardKind>(card?.type ?? "qa");
+  const [tags, setTags] = useState(card?.tags.join(", ") ?? "");
+
+  const save = () => {
+    if (!question.trim() || !answer.trim()) return;
+    onSave({
+      id: card?.id ?? `card.${Date.now()}`,
+      version: card ? card.version + 1 : 1,
+      question: question.trim(),
+      answer: answer.trim(),
+      type,
+      tags: tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    });
+  };
+
+  return (
+    <Modal title={card ? "Edit Card" : "Create Card"} onClose={onClose}>
+      <div className="modal-body editor-form">
+        <label className="field">
+          <span>Type</span>
+          <span className="select-wrap">
+            <select value={type} onChange={(event) => setType(event.target.value as CardKind)}>
+              <option value="qa">qa</option>
+              <option value="formula">formula</option>
+              <option value="cloze">cloze</option>
+              <option value="multiple_choice">multiple_choice</option>
+              <option value="true_false">true_false</option>
+              <option value="numeric">numeric</option>
+            </select>
+            <ChevronDown size={18} />
+          </span>
+        </label>
+        <label className="field">
+          <span>Question</span>
+          <textarea value={question} onChange={(event) => setQuestion(event.target.value)} />
+        </label>
+        <label className="field">
+          <span>Answer</span>
+          <textarea value={answer} onChange={(event) => setAnswer(event.target.value)} />
+        </label>
+        <label className="field">
+          <span>Tags</span>
+          <input
+            value={tags}
+            onChange={(event) => setTags(event.target.value)}
+            placeholder="Machine Learning, Decision Tree"
+          />
+          <small>Separate Tags with commas.</small>
+        </label>
+      </div>
+      <div className="modal-actions">
+        <button className="button ghost" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          className="button primary"
+          onClick={save}
+          disabled={!question.trim() || !answer.trim()}
+        >
+          {card ? "Save changes" : "Create Card"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function VirtualCardList({
+  items,
+  onSelect,
+}: {
+  items: LibraryCard[];
+  onSelect: (card: LibraryCard) => void;
+}) {
+  const rowHeight = 104;
+  const viewportHeight = 468;
+  const overscan = 3;
+  const [scrollTop, setScrollTop] = useState(0);
+  const start = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
+  const visibleCount = Math.ceil(viewportHeight / rowHeight) + overscan * 2;
+  const visible = items.slice(start, start + visibleCount);
+
+  return (
+    <div
+      className="virtual-list"
+      onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+      aria-label="Card library"
+    >
+      <div className="virtual-spacer" style={{ height: items.length * rowHeight }}>
+        {visible.map((card, offset) => (
+          <button
+            className="library-card-row"
+            key={card.id}
+            onClick={() => onSelect(card)}
+            style={{ transform: `translateY(${(start + offset) * rowHeight}px)` }}
+          >
+            <div className="library-card-copy">
+              <strong>{card.question}</strong>
+              <span className="card-id">{card.id}</span>
+              <div className="row-tags">
+                <span>{card.type}</span>
+                {card.tags.slice(0, 2).map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </div>
+            </div>
+            <ArrowRight size={18} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CardsScreen({
+  language,
+  cards,
+  setCards,
+  initialIntent,
+}: {
+  language: Language;
+  cards: LibraryCard[];
+  setCards: React.Dispatch<React.SetStateAction<LibraryCard[]>>;
+  initialIntent: CardsIntent;
+}) {
+  const t = copy[language];
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState("all");
+  const [tag, setTag] = useState("all");
+  const [selected, setSelected] = useState<LibraryCard | null>(null);
+  const [editorCard, setEditorCard] = useState<LibraryCard | "new" | null>(
+    initialIntent === "create" ? "new" : null,
+  );
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [uploadResult, setUploadResult] = useState<"none" | "success" | "error">("none");
+  const [notice, setNotice] = useState("");
+  const tags = useMemo(
+    () => Array.from(new Set(cards.flatMap((card) => card.tags))).sort(),
+    [cards],
+  );
+  const filteredCards = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return cards.filter((card) => {
+      const matchesSearch =
+        !query ||
+        card.question.toLowerCase().includes(query) ||
+        card.id.toLowerCase().includes(query) ||
+        card.tags.some((cardTag) => cardTag.toLowerCase().includes(query));
+      return (
+        matchesSearch &&
+        (type === "all" || card.type === type) &&
+        (tag === "all" || card.tags.includes(tag))
+      );
+    });
+  }, [cards, search, tag, type]);
+
+  const saveCard = (card: LibraryCard) => {
+    setCards((current) => {
+      const exists = current.some((item) => item.id === card.id);
+      return exists
+        ? current.map((item) => (item.id === card.id ? card : item))
+        : [card, ...current];
+    });
+    setEditorCard(null);
+    setSelected(card);
+    setNotice("Card saved.");
+  };
+
+  const deleteCard = (card: LibraryCard) => {
+    setCards((current) => current.filter((item) => item.id !== card.id));
+    setSelected(null);
+    setNotice("Card deleted.");
+  };
+
+  return (
+    <main className="page-shell">
+      <div className="cards-page-heading">
+        <PageHeading
+          eyebrow="Library"
+          title={t.cards}
+          intro="Search, organize, preview, and back up every Card in one place."
+        />
+        <button className="button primary" onClick={() => setEditorCard("new")}>
+          <Plus size={18} />
+          Create Card
+        </button>
+      </div>
+
+      {initialIntent === "upload" && (
+        <div className="alert info library-notice" role="status">
+          <Upload size={20} />
+          <div>
+            <strong>Upload your first Deck</strong>
+            <p>Choose “Upload Deck” in the Files panel to add Cards to this browser.</p>
+          </div>
+        </div>
+      )}
+
+      {notice && (
+        <div className="alert success library-notice" role="status">
+          <CheckCircle2 size={20} />
+          <div>
+            <strong>{notice}</strong>
+          </div>
+          <button className="alert-close" onClick={() => setNotice("")} aria-label="Dismiss">
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      <div className="cards-layout">
+        <section className="panel library-panel">
+          <div className="library-toolbar">
+            <label className="field search-field">
+              <span>Search Cards</span>
+              <span className="search-input">
+                <Search size={18} />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Question, ID, or Tag"
+                />
+              </span>
+            </label>
+            <label className="field">
+              <span>Type</span>
+              <span className="select-wrap">
+                <select value={type} onChange={(event) => setType(event.target.value)}>
+                  <option value="all">All types</option>
+                  {(
+                    [
+                      "qa",
+                      "formula",
+                      "cloze",
+                      "multiple_choice",
+                      "true_false",
+                      "numeric",
+                    ] as CardKind[]
+                  ).map((kind) => (
+                    <option key={kind} value={kind}>
+                      {kind}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={18} />
+              </span>
+            </label>
+            <label className="field">
+              <span>Tag</span>
+              <span className="select-wrap">
+                <select value={tag} onChange={(event) => setTag(event.target.value)}>
+                  <option value="all">Any tag</option>
+                  {tags.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+                <ChevronDown size={18} />
+              </span>
+            </label>
+          </div>
+          <div className="library-summary">
+            <span>
+              {filteredCards.length} of {cards.length} Cards
+            </span>
+            <span>
+              <SlidersHorizontal size={15} />
+              Windowed list
+            </span>
+          </div>
+          {filteredCards.length > 0 ? (
+            <VirtualCardList
+              key={`${search}-${type}-${tag}`}
+              items={filteredCards}
+              onSelect={setSelected}
+            />
+          ) : (
+            <EmptyState compact language={language} />
+          )}
+          <button
+            className="text-button danger-text delete-all-button"
+            onClick={() => setConfirmClear(true)}
+            disabled={cards.length === 0}
+          >
+            <Trash2 size={17} />
+            {t.clear}
+          </button>
+        </section>
+
+        <aside className="panel backup-panel">
+          <div className="section-heading compact">
+            <span className="section-icon neutral">
+              <FileJson size={20} />
+            </span>
+            <div>
+              <p className="eyebrow">Backup</p>
+              <h2>Files</h2>
+            </div>
+          </div>
+          <div className="file-grid single-column">
+            <label className="button secondary file-button">
+              <Upload size={18} />
+              <span>{t.uploadDeck}</span>
+              <input type="file" accept=".json" onChange={() => setUploadResult("success")} />
+            </label>
+            <label className="button secondary file-button">
+              <Upload size={18} />
+              <span>{t.uploadLog}</span>
+              <input type="file" accept=".json" onChange={() => setUploadResult("error")} />
+            </label>
+            <button className="button ghost">
+              <Download size={18} />
+              {t.downloadCards}
+            </button>
+            <button className="button ghost">
+              <Download size={18} />
+              {t.downloadLog}
+            </button>
+          </div>
+          <p className="backup-note">
+            <CheckCircle2 size={17} />
+            {t.days}
+          </p>
+          {uploadResult !== "none" && (
+            <div
+              className={uploadResult === "success" ? "alert success" : "alert danger"}
+              role="status"
+            >
+              {uploadResult === "success" ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+              <div>
+                <strong>{uploadResult === "success" ? "Upload result" : "File rejected"}</strong>
+                <p>
+                  {uploadResult === "success"
+                    ? "2 added, 1 updated, 0 unchanged"
+                    : "card 3: en.question: Required"}
+                </p>
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {selected && (
+        <Modal title="Card preview" onClose={() => setSelected(null)}>
+          <div className="modal-body card-preview">
+            <span className="type-label">{selected.type}</span>
+            <h3>{selected.question}</h3>
+            <div className="preview-answer">
+              <span>Answer</span>
+              <p>{selected.answer}</p>
+            </div>
+            <div className="row-tags">
+              {selected.tags.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+            <p className="preview-id">
+              {selected.id} · version {selected.version}
+            </p>
+          </div>
+          <div className="modal-actions modal-actions-wrap">
+            <button className="button danger" onClick={() => deleteCard(selected)}>
+              <Trash2 size={17} />
+              Delete
+            </button>
+            <button
+              className="button secondary"
+              onClick={() => {
+                setEditorCard(selected);
+                setSelected(null);
+              }}
+            >
+              <Pencil size={17} />
+              Edit
+            </button>
+            <button
+              className="button secondary"
+              onClick={() => {
+                setNotice("Added to the current Session.");
+                setSelected(null);
+              }}
+            >
+              <Play size={17} />
+              Add to current Session
+            </button>
+            <button
+              className="button primary"
+              onClick={() => {
+                setNotice("New Session created with this Card.");
+                setSelected(null);
+              }}
+            >
+              <Plus size={17} />
+              New Session
+            </button>
+          </div>
+        </Modal>
+      )}
+      {editorCard && (
+        <CardEditor
+          card={editorCard === "new" ? undefined : editorCard}
+          onSave={saveCard}
+          onClose={() => setEditorCard(null)}
+        />
+      )}
+      {confirmClear && (
+        <Modal title="Delete all Cards?" onClose={() => setConfirmClear(false)}>
+          <div className="modal-body">
+            <div className="alert danger">
+              <AlertCircle size={20} />
+              <div>
+                <strong>This cannot be undone.</strong>
+                <p>All {cards.length} Cards will be permanently removed from this browser.</p>
+              </div>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button className="button ghost" onClick={() => setConfirmClear(false)}>
+              Cancel
+            </button>
+            <button
+              className="button danger"
+              onClick={() => {
+                setCards([]);
+                setConfirmClear(false);
+              }}
+            >
+              Delete all Cards
+            </button>
+          </div>
+        </Modal>
+      )}
+    </main>
+  );
+}
+
+function Settings({
+  language,
+  setLanguage,
+}: {
+  language: Language;
+  setLanguage: (language: Language) => void;
+}) {
+  return (
+    <main className="page-shell settings-page">
+      <PageHeading
+        eyebrow="Preferences"
+        title="Settings"
+        intro="Choose how Flashcards appears in this browser."
+      />
+      <section className="panel settings-panel">
+        <div className="section-heading compact">
+          <span className="section-icon">
+            <SettingsIcon size={20} />
+          </span>
+          <div>
+            <p className="eyebrow">Interface</p>
+            <h2>Language</h2>
+          </div>
+        </div>
+        <label className="field">
+          <span>{copy[language].language}</span>
+          <span className="select-wrap">
+            <select
+              value={language}
+              onChange={(event) => setLanguage(event.target.value as Language)}
+            >
+              <option value="en">English</option>
+              <option value="de">Deutsch</option>
+            </select>
+            <ChevronDown size={18} />
+          </span>
+        </label>
+        <p className="settings-help">
+          The interface updates immediately. Card content keeps its original language.
+        </p>
+      </section>
+    </main>
+  );
+}
+
+function StudyCard({
+  card,
+  state,
+  onState,
+  onRate,
+  language,
+}: {
+  card: (typeof studyCards)[number];
+  state: AnswerState;
+  onState: (state: AnswerState) => void;
+  onRate?: (state: "right" | "wrong") => void;
+  language: Language;
+}) {
+  const t = copy[language];
+  const [numeric, setNumeric] = useState("");
+  const [picked, setPicked] = useState("");
+  const isChoice = card.kind === "multiple_choice" || card.kind === "true_false";
+  const answered = state === "right" || state === "wrong";
+
+  const choose = (option: string) => {
+    setPicked(option);
+    onState(option === card.correct ? "right" : "wrong");
+  };
+
+  const checkNumeric = () => onState(numeric.trim() === card.correct ? "right" : "wrong");
+
+  return (
+    <article className={`study-card type-${card.kind}`}>
+      <div className="study-card-top">
+        <span className="type-label">{card.eyebrow}</span>
+        <span className="card-tag">Decision Tree</span>
+      </div>
+      <div className="prompt">
+        <h2>{card.question}</h2>
+        {card.secondary && <p>{card.secondary}</p>}
+      </div>
+
+      {isChoice && (
+        <div className="options" aria-label="Answer options">
+          {card.options?.map((option) => {
+            const status =
+              answered && option === card.correct
+                ? "correct"
+                : answered && option === picked
+                  ? "incorrect"
+                  : "";
+            return (
+              <button
+                key={option}
+                className={`option-button ${status}`}
+                onClick={() => !answered && choose(option)}
+                disabled={answered}
+              >
+                <span className="option-marker">
+                  {status === "correct" ? (
+                    <Check size={17} />
+                  ) : status === "incorrect" ? (
+                    <X size={17} />
+                  ) : (
+                    String.fromCharCode(65 + (card.options?.indexOf(option) ?? 0))
+                  )}
+                </span>
+                <span>
+                  {card.kind === "true_false" ? (option === "True" ? t.true : t.false) : option}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {card.kind === "numeric" && (
+        <div className="numeric-form">
+          <label className="field">
+            <span>{t.answer}</span>
+            <span className="input-with-unit">
+              <input
+                type="number"
+                value={numeric}
+                onChange={(event) => setNumeric(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && checkNumeric()}
+                disabled={answered}
+              />
+              <span>ms</span>
+            </span>
+          </label>
+          {!answered && (
+            <button className="button primary" onClick={checkNumeric}>
+              {t.check}
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isChoice && card.kind !== "numeric" && state === "idle" && (
+        <button className="button primary large reveal-button" onClick={() => onState("revealed")}>
+          {t.reveal}
+        </button>
+      )}
+
+      {state === "revealed" && (
+        <div className="revealed-answer">
+          <span className="answer-label">{t.answer}</span>
+          <p
+            className={
+              card.kind === "formula" ? "formula" : card.kind === "cloze" ? "cloze-answer" : ""
+            }
+          >
+            {card.kind === "cloze" ? (
+              <>
+                A deeper tree has <mark>higher</mark> variance.
+              </>
+            ) : (
+              card.answer
+            )}
+          </p>
+          {card.kind === "formula" && <span className="example">Example: ‖(3, 4)‖ = 5</span>}
+        </div>
+      )}
+
+      {answered && (
+        <div className={`feedback ${state}`} role="status">
+          {state === "right" ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
+          <div>
+            <strong>{state === "right" ? t.right : t.wrong}</strong>
+            <p>
+              {t.answer}: {card.answer}
+            </p>
+            {card.explanation && <span>{card.explanation}</span>}
+          </div>
+        </div>
+      )}
+
+      {state === "revealed" && (
+        <div className="rating-actions">
+          <button
+            className="button secondary"
+            onClick={() => (onRate ? onRate("wrong") : onState("wrong"))}
+          >
+            <XCircle size={18} />
+            {t.didnt}
+          </button>
+          <button
+            className="button primary"
+            onClick={() => (onRate ? onRate("right") : onState("right"))}
+          >
+            <CheckCircle2 size={18} />
+            {t.knew}
+          </button>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function Session({ language, setPage }: { language: Language; setPage: (page: Page) => void }) {
+  const [queue, setQueue] = useState(studyCards.map((_, index) => index));
+  const [position, setPosition] = useState(0);
+  const [retried, setRetried] = useState<number[]>([]);
+  const [state, setState] = useState<AnswerState>("idle");
+  const [complete, setComplete] = useState(false);
+  const t = copy[language];
+  const cardIndex = queue[position];
+  const next = (outcome: AnswerState = state) => {
+    let nextQueue = queue;
+    if (outcome === "wrong" && !retried.includes(cardIndex)) {
+      nextQueue = [...queue, cardIndex];
+      setQueue(nextQueue);
+      setRetried([...retried, cardIndex]);
+    }
+    if (position === nextQueue.length - 1) {
+      setComplete(true);
+    } else {
+      setPosition(position + 1);
+      setState("idle");
+    }
+  };
+
+  return (
+    <main className="session-page">
+      <div className="session-toolbar">
+        <button className="button ghost" onClick={() => setPage("home")}>
+          <ArrowLeft size={18} />
+          {t.back}
+        </button>
+        <div className="progress-copy">
+          <span>
+            {complete ? queue.length : position + 1} / {queue.length}
+          </span>
+          <div className="progress-track">
+            <span
+              style={
+                {
+                  "--progress": `${complete ? 100 : ((position + 1) / queue.length) * 100}%`,
+                } as React.CSSProperties
+              }
+            />
+          </div>
+        </div>
+      </div>
+      <div className="session-stage">
+        {complete ? (
+          <section className="summary-card">
+            <span className="summary-icon">
+              <Check size={30} />
+            </span>
+            <p className="eyebrow">
+              {language === "de" ? "Sitzung abgeschlossen" : "Session complete"}
+            </p>
+            <h1>{t.summary}</h1>
+            <p>
+              {language === "de"
+                ? "Gute Arbeit. Jede Wiederholung stärkt dein Wissen."
+                : "Good work. Every Review makes the next one easier."}
+            </p>
+            <button className="button primary large" onClick={() => setPage("home")}>
+              {t.done}
+              <ArrowRight size={18} />
+            </button>
+          </section>
+        ) : (
+          <>
+            <StudyCard
+              card={studyCards[cardIndex]}
+              state={state}
+              onState={setState}
+              onRate={(outcome) => next(outcome)}
+              language={language}
+            />
+            {(state === "right" || state === "wrong") && (
+              <button className="button primary large next-button" onClick={() => next()}>
+                {t.next}
+                <ArrowRight size={18} />
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
+const cardStats = [
+  ["ml.trees.leaf-mean", "4", "75%", "11/15/2026", "75"],
+  ["math.linalg.vector-norm", "8", "88%", "11/14/2026", "88"],
+  ["ml.trees.depth-variance", "3", "67%", "11/12/2026", "67"],
+  ["stats.mean.basic", "–", "–", "never", "0"],
+];
+
+function DataTable({ kind }: { kind: "cards" | "tags" }) {
+  const rows =
+    kind === "cards"
+      ? cardStats
+      : [
+          ["Machine Learning", "18", "42", "81%", "81"],
+          ["Statistics", "12", "31", "74%", "74"],
+          ["Mathematics", "9", "24", "88%", "88"],
+        ];
+  return (
+    <div className="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>{kind === "cards" ? "Card" : "Tag"}</th>
+            {kind === "tags" && <th>Cards</th>}
+            <th>Reviews</th>
+            <th>Share right</th>
+            {kind === "cards" && <th>Last reviewed</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row[0]}>
+              <th scope="row">{row[0]}</th>
+              {kind === "tags" && <td>{row[1]}</td>}
+              <td>{kind === "cards" ? row[1] : row[2]}</td>
+              <td>
+                <div className="share-cell">
+                  <span>{kind === "cards" ? row[2] : row[3]}</span>
+                  <span className="mini-bar">
+                    <span style={{ "--share": `${row[4]}%` } as React.CSSProperties} />
+                  </span>
+                </div>
+              </td>
+              {kind === "cards" && <td>{row[3]}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Statistics({ setPage }: { setPage: (page: Page) => void }) {
+  return (
+    <main className="page-shell">
+      <button className="button ghost back-button" onClick={() => setPage("home")}>
+        <ArrowLeft size={18} />
+        Back
+      </button>
+      <PageHeading
+        eyebrow="Learning history"
+        title="Statistics"
+        intro="A clear view of every Review, from individual Cards to broader Tags."
+      />
+      <section className="stat-overview" aria-label="Statistics overview">
+        <div>
+          <strong>39</strong>
+          <span>Cards</span>
+        </div>
+        <div>
+          <strong>97</strong>
+          <span>Reviews</span>
+        </div>
+        <div>
+          <strong>81%</strong>
+          <span>Share right</span>
+        </div>
+      </section>
+      <div className="table-sections">
+        <section className="panel table-panel">
+          <h2>Cards</h2>
+          <DataTable kind="cards" />
+        </section>
+        <section className="panel table-panel">
+          <h2>Domain tags</h2>
+          <DataTable kind="tags" />
+        </section>
+        <section className="panel table-panel">
+          <h2>Topic tags</h2>
+          <DataTable kind="tags" />
+        </section>
+      </div>
+    </main>
+  );
+}
+
+const swatches = [
+  ["Accent 600", "#3267E3", "Primary actions, links"],
+  ["Accent 50", "#EEF4FF", "Selected and soft accents"],
+  ["Ink 900", "#172033", "Primary text"],
+  ["Ink 600", "#556176", "Secondary text"],
+  ["Line 200", "#DDE3EC", "Borders and dividers"],
+  ["Canvas", "#F7F9FC", "App background"],
+  ["Surface", "#FFFFFF", "Cards and controls"],
+  ["Success", "#247A52", "Right feedback"],
+  ["Danger", "#B83A3A", "Wrong and destructive"],
+  ["Warning", "#936118", "Backup reminders"],
+];
+
+function StyleGuide() {
+  return (
+    <main className="page-shell reference-page">
+      <PageHeading
+        eyebrow="Design reference"
+        title="Style guide"
+        intro="A bright, focused system designed for long study sessions and small screens."
+      />
+      <section className="guide-section">
+        <div className="guide-heading">
+          <h2>Color</h2>
+          <p>Calm neutrals establish trust; one blue accent creates a clear action hierarchy.</p>
+        </div>
+        <div className="swatch-grid">
+          {swatches.map(([name, hex, use], index) => (
+            <div className="swatch-card" key={name}>
+              <span className={`swatch swatch-${index + 1}`} />
+              <div>
+                <strong>{name}</strong>
+                <code>{hex}</code>
+                <p>{use}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="guide-section">
+        <div className="guide-heading">
+          <h2>Typography</h2>
+          <p>Inter, a free Google Font. Compact enough for data; open enough for questions.</p>
+        </div>
+        <div className="type-specimens">
+          <div>
+            <span>Display · 40 / 48 · 700</span>
+            <p className="type-display">Study with clarity.</p>
+          </div>
+          <div>
+            <span>Heading 1 · 32 / 40 · 700</span>
+            <p className="type-h1">What will you review?</p>
+          </div>
+          <div>
+            <span>Heading 2 · 22 / 30 · 700</span>
+            <p className="type-h2">Start a Session</p>
+          </div>
+          <div>
+            <span>Body · 16 / 24 · 400</span>
+            <p>Clear language keeps attention on the material, not the interface.</p>
+          </div>
+          <div>
+            <span>Small · 14 / 20 · 500</span>
+            <p className="type-small">Supporting details and metadata</p>
+          </div>
+        </div>
+      </section>
+      <section className="guide-section split-guide">
+        <div>
+          <div className="guide-heading">
+            <h2>Spacing</h2>
+            <p>A 4 px base with a generous reading rhythm.</p>
+          </div>
+          <div className="spacing-list">
+            {[
+              ["1", "4"],
+              ["2", "8"],
+              ["3", "12"],
+              ["4", "16"],
+              ["6", "24"],
+              ["8", "32"],
+              ["12", "48"],
+              ["16", "64"],
+            ].map(([token, value]) => (
+              <div key={token}>
+                <code>space-{token}</code>
+                <span className={`space-demo space-${token}`} />
+                <span>{value}px</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="guide-heading">
+            <h2>Shape & depth</h2>
+            <p>Soft geometry without feeling playful.</p>
+          </div>
+          <div className="shape-grid">
+            <div className="shape-card radius-sm">
+              8 px <span>Small</span>
+            </div>
+            <div className="shape-card radius-md">
+              12 px <span>Control</span>
+            </div>
+            <div className="shape-card radius-lg">
+              20 px <span>Panel</span>
+            </div>
+            <div className="shape-card shadow-sm">
+              Shadow 1 <span>Controls</span>
+            </div>
+            <div className="shape-card shadow-lg">
+              Shadow 2 <span>Study Card</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="guide-section specifications">
+        <div>
+          <h3>Breakpoints</h3>
+          <p>
+            <strong>Mobile:</strong> 0–767 px
+          </p>
+          <p>
+            <strong>Desktop:</strong> 768 px and above
+          </p>
+          <code>--breakpoint-desktop: 48rem</code>
+        </div>
+        <div>
+          <h3>Iconography</h3>
+          <p>
+            <strong>Lucide</strong>, 1.75–2 px strokes.
+          </p>
+          <p>Icons always support a text label or accessible name.</p>
+        </div>
+        <div>
+          <h3>Accessibility</h3>
+          <p>
+            44 px minimum targets, WCAG AA contrast, persistent labels, and a visible 3 px focus
+            ring.
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function Components() {
+  const [componentState, setComponentState] = useState<AnswerState>("revealed");
+  const componentCards = useMemo(() => studyCards, []);
+  return (
+    <main className="page-shell reference-page">
+      <PageHeading
+        eyebrow="Pattern library"
+        title="Components"
+        intro="Every control and learning state used throughout Flashcards."
+      />
+      <section className="component-section">
+        <h2>Buttons</h2>
+        <div className="component-row">
+          <button className="button primary">Primary</button>
+          <button className="button secondary">Secondary</button>
+          <button className="button danger">Danger</button>
+          <button className="button primary hover-demo">Hover</button>
+          <button className="button secondary focus-demo">Focus</button>
+          <button className="button primary" disabled>
+            Disabled
+          </button>
+        </div>
+      </section>
+      <section className="component-section">
+        <h2>Fields & file upload</h2>
+        <div className="field-showcase">
+          <label className="field">
+            <span>Cards</span>
+            <input type="number" defaultValue={20} />
+          </label>
+          <label className="field">
+            <span>Tag</span>
+            <span className="select-wrap">
+              <select>
+                <option>Any tag</option>
+              </select>
+              <ChevronDown size={18} />
+            </span>
+          </label>
+          <label className="button secondary file-button">
+            <Upload size={18} />
+            <span>Upload Deck</span>
+            <input type="file" />
+          </label>
+        </div>
+      </section>
+      <section className="component-section">
+        <h2>Alerts & empty state</h2>
+        <div className="alert-stack">
+          <div className="alert info">
+            <CircleAlert size={20} />
+            <div>
+              <strong>Storage is full</strong>
+              <p>Download a backup before clearing Cards.</p>
+            </div>
+          </div>
+          <div className="alert success">
+            <CheckCircle2 size={20} />
+            <div>
+              <strong>Upload result</strong>
+              <p>2 added, 1 updated, 0 unchanged</p>
+            </div>
+          </div>
+          <div className="alert danger">
+            <AlertCircle size={20} />
+            <div>
+              <strong>File rejected</strong>
+              <p>card 3: en.question: Required</p>
+            </div>
+          </div>
+        </div>
+        <EmptyState />
+      </section>
+      <section className="component-section">
+        <h2>Table</h2>
+        <DataTable kind="cards" />
+      </section>
+      <section className="component-section">
+        <div className="component-title-row">
+          <div>
+            <h2>Card types</h2>
+            <p>Before and after answering, including correct and incorrect feedback.</p>
+          </div>
+          <div className="segmented" aria-label="Card display state">
+            {(["idle", "revealed", "right", "wrong"] as AnswerState[]).map((state) => (
+              <button
+                key={state}
+                className={componentState === state ? "active" : ""}
+                onClick={() => setComponentState(state)}
+              >
+                {state}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="card-showcase-grid">
+          {componentCards.map((card) => (
+            <StudyCard
+              key={card.kind}
+              card={card}
+              state={componentState}
+              onState={setComponentState}
+              language="en"
+            />
+          ))}
+        </div>
+      </section>
+      <section className="component-section">
+        <h2>German localization</h2>
+        <div className="localization-demo">
+          <div>
+            <span className="type-label">Frage & Antwort</span>
+            <h3>Was sagt ein Regressionsblatt voraus?</h3>
+            <p>Die Beschriftungen bleiben auch bei längeren deutschen Texten gut lesbar.</p>
+          </div>
+          <div className="rating-actions">
+            <button className="button secondary">
+              <XCircle size={18} />
+              Nicht gewusst
+            </button>
+            <button className="button primary">
+              <CheckCircle2 size={18} />
+              Gewusst
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+export default function App() {
+  const [page, setPage] = useState<Page>("home");
+  const [language, setLanguage] = useState<Language>("en");
+  const [cards, setCards] = useState<LibraryCard[]>(initialCards);
+  const [cardsIntent, setCardsIntent] = useState<CardsIntent>("none");
+
+  const manageCards = (intent: CardsIntent) => {
+    setCardsIntent(intent);
+    setPage("cards");
+  };
+  const navigate = (nextPage: Page) => {
+    if (nextPage === "cards") setCardsIntent("none");
+    setPage(nextPage);
+  };
+
+  return (
+    <div className="app">
+      <Header page={page} setPage={navigate} language={language} />
+      {page === "home" && (
+        <Home
+          language={language}
+          setPage={setPage}
+          cardCount={cards.length}
+          onManageCards={manageCards}
+        />
+      )}
+      {page === "cards" && (
+        <CardsScreen
+          key={cardsIntent}
+          language={language}
+          cards={cards}
+          setCards={setCards}
+          initialIntent={cardsIntent}
+        />
+      )}
+      {page === "session" && <Session language={language} setPage={setPage} />}
+      {page === "statistics" && <Statistics setPage={setPage} />}
+      {page === "settings" && <Settings language={language} setLanguage={setLanguage} />}
+      {page === "style" && <StyleGuide />}
+      {page === "components" && <Components />}
+    </div>
+  );
+}
