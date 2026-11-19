@@ -56,9 +56,12 @@ it("lists Home, Cards, Session, Statistics and Settings in the navigation", () =
 it("marks only the current page", () => {
   renderHeader({ page: "statistics" });
 
+  // The style sheet highlights the active class; jsdom applies no CSS, so the class stands for it.
   expect(link("Statistics").getAttribute("aria-current")).toBe("page");
+  expect(link("Statistics").classList.contains("active")).toBe(true);
   for (const name of ["Home", "Cards", "Session", "Settings"]) {
     expect(link(name).getAttribute("aria-current")).toBeNull();
+    expect(link(name).classList.contains("active")).toBe(false);
   }
 });
 

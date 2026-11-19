@@ -1589,3 +1589,35 @@ it("Done goes Home, and the Session link then starts a new Session", async () =>
   await screen.findByRole("button", { name: "Done" });
   await waitFor(async () => expect(await loadReviews()).toHaveLength(2));
 });
+
+it("Statistics from the navigation reloads the Review log, even when left without Back", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  goTo("Statistics");
+  await screen.findByRole("table", { name: "Cards" });
+  expect(rows("Cards")[1]).toEqual(["a", "0", "–", "never"]);
+
+  goTo("Home");
+  startSession();
+  await answer();
+  await screen.findByRole("button", { name: "Done" });
+  await waitFor(async () => expect(await loadReviews()).toHaveLength(1));
+  goTo("Statistics");
+
+  await waitFor(() => expect(rows("Cards")[1].slice(0, 3)).toEqual(["a", "1", "100%"]));
+});
+
+it("a finished Session keeps its summary until Done, so the Session link shows it again", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  startSession();
+  await answer();
+  await screen.findByRole("button", { name: "Done" });
+
+  goTo("Home");
+  expect(screen.queryByRole("button", { name: "Done" })).toBeNull();
+  goTo("Session");
+
+  expect(screen.getByText("1 answered, 1 right")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
+});
