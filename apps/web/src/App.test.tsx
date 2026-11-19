@@ -2,6 +2,7 @@ import type { TCard } from "@flashcards/cards";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { expect, it, vi } from "vitest";
+import { Alert, type TAlertTone } from "./Alert";
 import { App } from "./App";
 import { addReview, loadLanguage, loadReviews } from "./storage";
 import {
@@ -76,6 +77,43 @@ it("shows the errors of an invalid file", async () => {
 
   await screen.findByText(/File rejected/);
   expect(screen.getByText(/ml\.trees\.leaf-mean: en\.answer: /)).toBeTruthy();
+});
+
+it("shows the report of a rejected file without interrupting, so only errors are alerts", async () => {
+  render(<App />);
+
+  upload(qa("ml.trees.leaf-mean", 1, ""));
+
+  await screen.findByText(/File rejected/);
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+// The markup of the icon an Alert of this tone shows.
+function alertIcon(tone: TAlertTone): string {
+  const { container, unmount } = render(<Alert tone={tone}>Message</Alert>);
+  const icon = container.querySelector("svg")!.outerHTML;
+  unmount();
+  return icon;
+}
+
+function shownIcons(): string[] {
+  return [...document.querySelectorAll("svg")].map((icon) => icon.outerHTML);
+}
+
+it("shows the success icon with an accepted upload and the danger icon with a rejected one", async () => {
+  const success = alertIcon("success");
+  const danger = alertIcon("danger");
+  render(<App />);
+
+  upload(qa("ml.trees.leaf-mean", 1));
+  await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+  expect(shownIcons()).toContain(success);
+  expect(shownIcons()).not.toContain(danger);
+
+  upload(qa("ml.trees.depth", 1, ""));
+  await screen.findByText(/File rejected/);
+  expect(shownIcons()).toContain(danger);
+  expect(shownIcons()).not.toContain(success);
 });
 
 it("lists the stored Cards after a reload", async () => {
