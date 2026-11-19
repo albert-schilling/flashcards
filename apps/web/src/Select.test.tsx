@@ -1,8 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
+import type { ChangeEvent } from "react";
 import { Select } from "./Select";
 
-function renderLanguage(onChange = vi.fn()) {
+function renderLanguage(onChange: (event: ChangeEvent<HTMLSelectElement>) => void = vi.fn()) {
   return render(
     <label>
       Language
@@ -24,13 +25,13 @@ it("is a native select named by its label", () => {
   expect(screen.getByRole("combobox", { name: "Language" })).toBe(select);
 });
 
-it("calls onChange when another option is picked", () => {
-  const onChange = vi.fn();
-  renderLanguage(onChange);
+it("calls onChange with the picked option", () => {
+  const picked: string[] = [];
+  renderLanguage((event) => picked.push(event.target.value));
 
   fireEvent.change(screen.getByLabelText("Language"), { target: { value: "de" } });
 
-  expect(onChange).toHaveBeenCalledOnce();
+  expect(picked).toEqual(["de"]);
 });
 
 it("shows a chevron hidden from assistive technology", () => {
