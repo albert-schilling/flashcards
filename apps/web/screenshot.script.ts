@@ -124,6 +124,11 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   if (await menu.isVisible()) {
     await menu.click();
     await shot("menu-open");
+    // An open menu must not stack the links once the window is wide enough for the row.
+    const phone = page.viewportSize();
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await shot("menu-open-widened");
+    if (phone !== null) await page.setViewportSize(phone);
     await menu.click();
   }
   await shot("home");

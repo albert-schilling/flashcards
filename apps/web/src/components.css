@@ -349,7 +349,9 @@
     display: none;
   }
 
-  .main-nav {
+  /* .main-nav.is-open too: the phone menu may still be open when the window widens, and its grid would outrank the desktop row. The prototype lacks this. */
+  .main-nav,
+  .main-nav.is-open {
     position: static;
     display: flex;
     align-items: center;
