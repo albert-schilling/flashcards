@@ -234,64 +234,122 @@ it("deletes one Card, and it stays gone after a reload", async () => {
   expect(screen.queryByText(/ml\.trees\.leaf-mean/)).toBeNull();
 });
 
-it("keeps the Cards when clearing all is cancelled", async () => {
-  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-  try {
-    const { unmount } = render(<App />);
-    upload(qa("ml.trees.leaf-mean", 1));
-    await expectListed(qa("ml.trees.leaf-mean", 1));
+function deleteAllButton() {
+  return screen.getByRole<HTMLButtonElement>("button", {
+    name: /^(Delete all Cards|Alle Karten löschen)$/,
+  });
+}
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+/** Opens the Delete all Cards modal and returns queries inside it. */
+function openDeleteAll() {
+  fireEvent.click(deleteAllButton());
+  return within(screen.getByRole("dialog"));
+}
 
-    expect(confirm).toHaveBeenCalledWith("Delete all Cards?");
-    unmount();
-    render(<App />);
-    await expectListed(qa("ml.trees.leaf-mean", 1));
-  } finally {
-    confirm.mockRestore();
-  }
+async function expectNoDialog() {
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+}
+
+it("asks before deleting all Cards, saying how many and that it cannot be undone", async () => {
+  render(<App />);
+  await uploaded(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
+  expect(deleteAllButton().querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+
+  const modal = openDeleteAll();
+
+  expect(screen.getByRole("dialog", { name: "Delete all Cards?" })).toBeTruthy();
+  expect(modal.getByText("This cannot be undone.")).toBeTruthy();
+  expect(
+    modal.getByText("All 2 Cards will be permanently removed from this browser."),
+  ).toBeTruthy();
+  expect(modal.getByRole("button", { name: "Cancel" })).toBeTruthy();
+  expect(modal.getByRole("button", { name: "Delete all Cards" })).toBeTruthy();
+  expect(modal.getByRole("button", { name: "Close" })).toBeTruthy();
 });
 
-it("clears all Cards after confirming, and they stay gone after a reload", async () => {
-  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-  try {
-    const { unmount } = render(<App />);
-    upload(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
-    await expectListed(qa("ml.trees.depth", 1));
-    expect(screen.queryByRole("heading", { name: "No Cards yet" })).toBeNull();
+it("says 1 Card in the singular", async () => {
+  render(<App />);
+  await uploaded(qa("ml.trees.leaf-mean", 1));
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  const modal = openDeleteAll();
 
-    expect(confirm).toHaveBeenCalledWith("Delete all Cards?");
-    await expectNotListed(qa("ml.trees.leaf-mean", 1));
-    await expectNotListed(qa("ml.trees.depth", 1));
-    expect(screen.getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Start a Session" })).toBeNull();
-    unmount();
-    render(<App />);
-    // An empty list proves nothing before the reload finishes; "1 added" shows storage was empty.
-    upload(qa("ml.trees.leaf-mean", 1));
-    await screen.findByText(/1 added, 0 updated, 0 unchanged/);
-    await expectListed(qa("ml.trees.leaf-mean", 1));
-    expect(screen.queryByText(/ml\.trees\.depth/)).toBeNull();
-  } finally {
-    confirm.mockRestore();
-  }
+  expect(modal.getByText("1 Card will be permanently removed from this browser.")).toBeTruthy();
 });
 
-it("shows Clear all only while Cards are stored", async () => {
-  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-  try {
-    render(<App />);
-    expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull();
+it.each<[string, () => void]>([
+  [
+    "Cancel",
+    () =>
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" })),
+  ],
+  [
+    "Close",
+    () =>
+      fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" })),
+  ],
+  // The backdrop is the dialog's parent; it has no role to query by.
+  [
+    "a mouse-down on the backdrop",
+    () => fireEvent.mouseDown(screen.getByRole("dialog").parentElement!),
+  ],
+])("%s closes the modal and keeps the Cards, also after a reload", async (_, dismiss) => {
+  const { unmount } = render(<App />);
+  await uploaded(qa("ml.trees.leaf-mean", 1));
+  openDeleteAll();
 
-    upload(qa("ml.trees.leaf-mean", 1));
-    fireEvent.click(await screen.findByRole("button", { name: "Clear all" }));
+  dismiss();
 
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Clear all" })).toBeNull());
-  } finally {
-    confirm.mockRestore();
-  }
+  await expectNoDialog();
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+  unmount();
+  render(<App />);
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+});
+
+it("deletes all Cards from the modal, and they stay gone after a reload", async () => {
+  const { unmount } = render(<App />);
+  await uploaded(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
+  expect(screen.queryByRole("heading", { name: "No Cards yet" })).toBeNull();
+
+  fireEvent.click(openDeleteAll().getByRole("button", { name: "Delete all Cards" }));
+
+  await expectNoDialog();
+  await expectNotListed(qa("ml.trees.leaf-mean", 1));
+  await expectNotListed(qa("ml.trees.depth", 1));
+  expect(screen.getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Start a Session" })).toBeNull();
+  unmount();
+  render(<App />);
+  // An empty list proves nothing before the reload finishes; "1 added" shows storage was empty.
+  upload(qa("ml.trees.leaf-mean", 1));
+  await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+  expect(screen.queryByText(/ml\.trees\.depth/)).toBeNull();
+});
+
+it("closes the modal before deleting, so a failure shows in the page's error and the Cards stay", async () => {
+  render(<App />);
+  await uploaded(qa("ml.trees.leaf-mean", 1));
+  const modal = openDeleteAll();
+  blockStorage();
+
+  fireEvent.click(modal.getByRole("button", { name: "Delete all Cards" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  await expectListed(qa("ml.trees.leaf-mean", 1));
+});
+
+it("disables Delete all Cards while no Cards are stored", async () => {
+  render(<App />);
+  expect(deleteAllButton().disabled).toBe(true);
+
+  await uploaded(qa("ml.trees.leaf-mean", 1));
+  expect(deleteAllButton().disabled).toBe(false);
+
+  fireEvent.click(openDeleteAll().getByRole("button", { name: "Delete all Cards" }));
+
+  await waitFor(() => expect(deleteAllButton().disabled).toBe(true));
 });
 
 it("keeps the report of the last upload after deleting a Card", async () => {
@@ -1336,7 +1394,7 @@ it("shows a Deck upload in German: the counts, the Card list and its buttons", a
   await screen.findByText("1 hinzugefügt, 0 aktualisiert, 0 unverändert");
   expect(screen.getByText("q (qa, Version 1)")).toBeTruthy();
   expect(screen.getByRole("button", { name: "q löschen" }).textContent).toBe("Löschen");
-  expect(screen.getByRole("button", { name: "Alle löschen" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Alle Karten löschen" })).toBeTruthy();
 });
 
 it("shows a Review log upload in German, and a rejected file keeps its details in English", async () => {
@@ -1359,19 +1417,31 @@ it("shows a Review log upload in German, and a rejected file keeps its details i
   expect(screen.getByText(/review 1: cardVersion: /)).toBeTruthy();
 });
 
-it("asks in German before clearing all Cards", async () => {
-  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-  try {
-    render(<App />);
-    await uploaded(qa("q", 1));
-    pickGerman();
+it("asks in German before deleting all Cards", async () => {
+  render(<App />);
+  await uploaded(qa("q", 1));
+  pickGerman();
 
-    fireEvent.click(screen.getByRole("button", { name: "Alle löschen" }));
+  fireEvent.click(screen.getByRole("button", { name: "Alle Karten löschen" }));
 
-    expect(confirm).toHaveBeenCalledWith("Alle Karten löschen?");
-  } finally {
-    confirm.mockRestore();
-  }
+  const modal = within(screen.getByRole("dialog", { name: "Alle Karten löschen?" }));
+  expect(modal.getByText("Das kann nicht rückgängig gemacht werden.")).toBeTruthy();
+  expect(modal.getByText("1 Karte wird endgültig aus diesem Browser entfernt.")).toBeTruthy();
+  expect(modal.getByRole("button", { name: "Abbrechen" })).toBeTruthy();
+  expect(modal.getByRole("button", { name: "Alle Karten löschen" })).toBeTruthy();
+  expect(modal.getByRole("button", { name: "Schließen" })).toBeTruthy();
+});
+
+it("says how many Cards in German, in the plural", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  pickGerman();
+
+  const modal = openDeleteAll();
+
+  expect(
+    modal.getByText("Alle 2 Karten werden endgültig aus diesem Browser entfernt."),
+  ).toBeTruthy();
 });
 
 it.each([
