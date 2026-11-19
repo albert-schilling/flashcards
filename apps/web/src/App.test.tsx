@@ -1433,6 +1433,9 @@ it("shows Statistics in German, with German dates, and Zurück goes back", async
 it("with a German browser language and nothing picked, the UI text is German", () =>
   withBrowserLanguage("de-DE", async () => {
     render(<App />);
+    const deck = JSON.stringify({ cards: [qa("a", 1)] });
+    pick(new File([deck], "deck.json", { type: "application/json" }), "Deck hochladen");
+    await screen.findByText("a (qa, Version 1)");
 
     expect(screen.getByLabelText("Sprache")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
