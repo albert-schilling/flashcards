@@ -251,6 +251,7 @@ async function expectNoDialog() {
 }
 
 it("asks before deleting all Cards, saying how many and that it cannot be undone", async () => {
+  const danger = alertIcon("danger");
   render(<App />);
   await uploaded(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
   expect(deleteAllButton().querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
@@ -265,6 +266,10 @@ it("asks before deleting all Cards, saying how many and that it cannot be undone
   expect(modal.getByRole("button", { name: "Cancel" })).toBeTruthy();
   expect(modal.getByRole("button", { name: "Delete all Cards" })).toBeTruthy();
   expect(modal.getByRole("button", { name: "Close" })).toBeTruthy();
+  const icons = [...screen.getByRole("dialog").querySelectorAll("svg")].map(
+    (icon) => icon.outerHTML,
+  );
+  expect(icons).toContain(danger);
 });
 
 it("says 1 Card in the singular", async () => {
@@ -287,6 +292,7 @@ it.each<[string, () => void]>([
     () =>
       fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" })),
   ],
+  ["Escape", () => fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" })],
   // The backdrop is the dialog's parent; it has no role to query by.
   [
     "a mouse-down on the backdrop",
