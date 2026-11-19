@@ -282,7 +282,7 @@ export function App() {
               disabled={cards.length === 0}
               onClick={() => setConfirmingDelete(true)}
             >
-              <Trash2 size={18} aria-hidden="true" />
+              <Trash2 size={17} aria-hidden="true" />
               {text.deleteAllCards}
             </button>
             {confirmingDelete && (
