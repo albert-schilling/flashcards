@@ -73,7 +73,6 @@ export function Home(props: {
                 </Select>
               </label>
             </div>
-            {/* An empty input gives NaN, so `size < 1` would let it through. */}
             <button
               className="button primary large full"
               disabled={!props.canStart}

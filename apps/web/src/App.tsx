@@ -124,6 +124,7 @@ export function App() {
   // A picked tag can vanish when Cards are deleted or replaced; the select then shows "Any tag".
   const pickedTag = tags.includes(tag) ? tag : "";
 
+  // An empty Cards input gives NaN, so `size < 1` would let it through.
   const canStart = cards.length > 0 && size >= 1;
 
   function openStatistics() {
