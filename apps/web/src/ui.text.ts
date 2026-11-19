@@ -2,6 +2,13 @@
 import type { TLanguage } from "./language.context";
 
 const en = {
+  home: "Home",
+  session: "Session",
+  settings: "Settings",
+  brandHome: "Flashcards home",
+  pages: "Pages",
+  openNavigation: "Open navigation",
+  pageNotBuilt: "This page is not built yet.",
   language: "Language",
   cards: "Cards",
   tag: "Tag",
@@ -52,6 +59,13 @@ const en = {
 export type TUiText = typeof en;
 
 const de: TUiText = {
+  home: "Start",
+  session: "Sitzung",
+  settings: "Einstellungen",
+  brandHome: "Flashcards-Startseite",
+  pages: "Seiten",
+  openNavigation: "Navigation öffnen",
+  pageNotBuilt: "Diese Seite gibt es noch nicht.",
   language: "Sprache",
   cards: "Karten",
   tag: "Tag",
