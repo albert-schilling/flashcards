@@ -89,8 +89,6 @@ async function openStatistics(page: Page, text: TUiText): Promise<void> {
 async function showControls(page: Page, shot: (name: string) => Promise<void>): Promise<void> {
   const text = uiText.en;
   await shot("empty-start-page");
-  await page.getByRole("button", { name: text.startSession, exact: true }).hover();
-  await shot("button-hover");
   // Tab from the page start reaches the first control, the Language select.
   await page.keyboard.press("Tab");
   await shot("field-focus");
@@ -102,6 +100,10 @@ async function showControls(page: Page, shot: (name: string) => Promise<void>): 
   });
   await page.getByText(text.fileRejected, { exact: true }).waitFor();
   await shot("rejected-upload");
+  // Start Session is disabled until there are Cards, and a disabled button shows no hover.
+  await uploadExampleDeck(page);
+  await page.getByRole("button", { name: text.startSession, exact: true }).hover();
+  await shot("button-hover");
 }
 
 const flows: Record<string, TFlow> = {
@@ -152,7 +154,12 @@ try {
   await page.goto(url);
   await requireInter(page);
   await flow(page, async (name) => {
-    await page.screenshot({ path: resolve(folder, `${flowName}-${name}.png`), fullPage: true });
+    // Buttons fade between states; a shot taken mid-fade shows a colour no state has.
+    await page.screenshot({
+      path: resolve(folder, `${flowName}-${name}.png`),
+      fullPage: true,
+      animations: "disabled",
+    });
   });
 } finally {
   await browser.close();
