@@ -50,9 +50,24 @@ function rawValues(css: string): string[] {
     if (value === "0" || value === "100%" || value === "100vh") continue;
     if (value === "-1" && /calc\(\s*$/.test(before)) continue;
     if (value === breakpoint && isCommentedBreakpoint(before, lines)) continue;
+    // No token exists for a stacking order or a mixing share, so these may be plain numbers.
+    if (/^\d+$/.test(value) && /z-index\s*:\s*$/.test(before)) continue;
+    if (value.endsWith("%") && isInsideColorMix(before)) continue;
     found.push(value);
   }
   return found;
+}
+
+// True when the text ends inside a color-mix( that isn't closed yet.
+function isInsideColorMix(before: string): boolean {
+  const start = before.lastIndexOf("color-mix(");
+  if (start === -1) return false;
+  let depth = 0;
+  for (const char of before.slice(start)) {
+    if (char === "(") depth++;
+    if (char === ")") depth--;
+  }
+  return depth > 0;
 }
 
 // A media query can't use a variable, so the breakpoint may appear there with a comment naming its token.
@@ -64,6 +79,28 @@ function isCommentedBreakpoint(before: string, lines: string[]): boolean {
     (text) => text !== undefined && /\/\*.*--breakpoint-desktop.*\*\//.test(text),
   );
 }
+
+describe("rawValues", () => {
+  it("accepts an integer z-index, which has no token", () => {
+    expect(rawValues(".a { z-index: 20; }")).toEqual([]);
+  });
+
+  it("accepts a percentage inside color-mix, which has no token", () => {
+    expect(rawValues(".a { background: color-mix(in srgb, var(--a) 94%, var(--b)); }")).toEqual([]);
+  });
+
+  it("still finds a percentage outside color-mix", () => {
+    expect(rawValues(".a { width: 94%; }")).toEqual(["94%"]);
+    expect(
+      rawValues(".a { background: color-mix(in srgb, var(--a) 94%, var(--b)); width: 50%; }"),
+    ).toEqual(["50%"]);
+  });
+
+  it("still finds a z-index that isn't an integer, and an integer elsewhere", () => {
+    expect(rawValues(".a { z-index: 1.5; }")).toEqual(["1.5"]);
+    expect(rawValues(".a { order: 20; }")).toEqual(["20"]);
+  });
+});
 
 describe("design tokens", () => {
   it("are the tokens of docs/design/tokens.css, copied unchanged", () => {

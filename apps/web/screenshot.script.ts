@@ -2,7 +2,7 @@
 // pnpm runs the script from the repo root, so a relative <folder> is taken from there.
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { chromium, type Page } from "playwright";
+import { chromium, type Locator, type Page } from "playwright";
 import { build, preview } from "vite";
 import { uiText, type TUiText } from "./src/ui.text.ts";
 
@@ -79,9 +79,9 @@ async function answerEveryCard(
   }
 }
 
-// From the start page, opens Statistics and waits for its Cards table.
+// From the start page, opens Statistics and waits for its Cards table. Looks inside main, because the navigation has a Statistics button too.
 async function openStatistics(page: Page, text: TUiText): Promise<void> {
-  await page.getByRole("button", { name: text.statistics, exact: true }).click();
+  await page.getByRole("main").getByRole("button", { name: text.statistics, exact: true }).click();
   await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
 }
 
@@ -106,7 +106,64 @@ async function showControls(page: Page, shot: (name: string) => Promise<void>): 
   await shot("button-hover");
 }
 
+// The link to a page in the navigation; on phones it is hidden until the menu opens.
+function navLink(page: Page, name: string): Locator {
+  return page
+    .getByRole("navigation", { name: uiText.en.pages, exact: true })
+    .getByRole("button", { name, exact: true });
+}
+
+// Goes to a page through the navigation; on phones the menu opens first, as the Learner would.
+async function goTo(page: Page, name: string): Promise<void> {
+  const menu = page.getByRole("button", { name: uiText.en.openNavigation, exact: true });
+  if (await menu.isVisible()) await menu.click();
+  await navLink(page, name).click();
+}
+
+// Shows the menu, then each page the navigation reaches, Back on Statistics and the brand.
+async function showNavigation(page: Page, shot: (name: string) => Promise<void>): Promise<void> {
+  const text = uiText.en;
+  await uploadExampleDeck(page);
+  const menu = page.getByRole("button", { name: text.openNavigation, exact: true });
+  if (await menu.isVisible()) {
+    await menu.click();
+    await shot("menu-open");
+    // An open menu must not stack the links once the window is wide enough for the row.
+    const phone = page.viewportSize();
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await shot("menu-open-widened");
+    if (phone !== null) await page.setViewportSize(phone);
+    await menu.click();
+  }
+  await shot("home");
+  await goTo(page, text.cards);
+  await page.getByText(text.pageNotBuilt, { exact: true }).waitFor();
+  await shot("cards");
+  // The current link keeps its colours on hover.
+  if (await menu.isVisible()) await menu.click();
+  await navLink(page, text.cards).hover();
+  await shot("current-link-hover");
+  if (await menu.isVisible()) await menu.click();
+  await goTo(page, text.session);
+  // The link loads the Review log first, so wait for the first Card.
+  await page.locator("section button").first().waitFor();
+  await shot("session");
+  await goTo(page, text.statistics);
+  await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
+  await shot("statistics");
+  await page.getByRole("button", { name: text.back, exact: true }).click();
+  await page.getByRole("button", { name: text.startSession, exact: true }).waitFor();
+  await shot("statistics-back");
+  await goTo(page, text.settings);
+  await page.getByText(text.pageNotBuilt, { exact: true }).waitFor();
+  await shot("settings");
+  await page.getByRole("button", { name: text.brandHome, exact: true }).click();
+  await page.getByRole("button", { name: text.startSession, exact: true }).waitFor();
+  await shot("brand-home");
+}
+
 const flows: Record<string, TFlow> = {
+  navigation: showNavigation,
   controls: showControls,
   upload: async (page, shot) => {
     await uploadExampleDeck(page);
@@ -119,7 +176,10 @@ const flows: Record<string, TFlow> = {
     await page.getByLabel(uiText.en.language).selectOption("de");
     await answerEveryCard(page, shot, uiText.de);
     await page.getByRole("button", { name: uiText.de.done, exact: true }).click();
-    await page.getByRole("button", { name: uiText.de.statistics, exact: true }).waitFor();
+    await page
+      .getByRole("main")
+      .getByRole("button", { name: uiText.de.statistics, exact: true })
+      .waitFor();
     await shot("start-page");
     await openStatistics(page, uiText.de);
     await shot("statistics");

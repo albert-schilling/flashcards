@@ -17,3 +17,5 @@ The prototype is the source of truth; the screenshots only show it. To read its 
 The Figma tools can't take screenshots of Make files. To see a state the screenshots miss, build the code locally and screenshot it with Playwright.
 
 The prototype is a reference, not code to copy: it keeps everything in one file and fakes its data. Build its look and behaviour into the app's own components, keep the app's tests passing, and keep semantic elements (`button`, `select`, `label`, `table`).
+
+Take styles rule for rule, then check the states the prototype never shows, where its CSS can be wrong: resizing with a menu open, hover on the current or disabled item, long German texts.

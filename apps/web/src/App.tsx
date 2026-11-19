@@ -5,6 +5,7 @@ import { downloadReviewLog, uploadReviewLog, type TReviewLogReport } from "./rev
 import { browserLanguage, LanguageContext, type TLanguage } from "./language.context";
 import { Alert } from "./Alert";
 import { FileButton } from "./FileButton";
+import { Header, type TPage } from "./Header";
 import { Select } from "./Select";
 import { Session } from "./Session";
 import { allTags, pickCards } from "./session.helper";
@@ -36,7 +37,8 @@ export function App() {
   const [error, setError] = useState<string>();
   const [size, setSize] = useState(20);
   const [tag, setTag] = useState("");
-  const [session, setSession] = useState<TCard[]>();
+  const [page, setPage] = useState<TPage>("home");
+  const [session, setSession] = useState<{ id: number; cards: TCard[] }>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
   const [language, setLanguage] = useState<TLanguage>(browserLanguage);
@@ -121,148 +123,179 @@ export function App() {
   // A picked tag can vanish when Cards are deleted or replaced; the select then shows "Any tag".
   const pickedTag = tags.includes(tag) ? tag : "";
 
-  if (reviews) {
-    return (
-      <LanguageContext.Provider value={language}>
-        <h1>Flashcards</h1>
-        {error && (
-          <Alert tone="danger" role="alert">
-            {error}
-          </Alert>
-        )}
-        <Statistics cards={cards} reviews={reviews} onBack={() => setReviews(undefined)} />
-      </LanguageContext.Provider>
-    );
+  const canStart = cards.length > 0 && size >= 1;
+
+  function openStatistics() {
+    return loadReviews().then((log) => {
+      setReviews(log);
+      setPage("statistics");
+    }, showError);
   }
 
-  if (session) {
-    return (
-      <LanguageContext.Provider value={language}>
-        <h1>Flashcards</h1>
-        {error && (
-          <Alert tone="danger" role="alert">
-            {error}
-          </Alert>
-        )}
-        <Session cards={session} onEnd={() => setSession(undefined)} onError={showError} />
-      </LanguageContext.Provider>
-    );
+  function startSession() {
+    return loadReviews().then((log) => {
+      setSession({
+        id: (session?.id ?? 0) + 1,
+        cards: pickCards(cards, log, size, pickedTag || undefined),
+      });
+      setPage("session");
+    }, showError);
   }
+
+  function navigate(target: TPage) {
+    if (target === "statistics") void openStatistics();
+    else if (target === "session") {
+      if (session) setPage("session");
+      else void startSession();
+    } else setPage(target);
+  }
+
+  const placeholder = <p>{text.pageNotBuilt}</p>;
 
   return (
     <LanguageContext.Provider value={language}>
-      <h1>Flashcards</h1>
-      {error && (
-        <Alert tone="danger" role="alert">
-          {error}
-        </Alert>
-      )}
-      <label className="field">
-        {text.language}
-        <Select
-          value={language}
-          onChange={(event) => pickLanguage(event.target.value as TLanguage)}
-        >
-          <option value="en">English</option>
-          <option value="de">Deutsch</option>
-        </Select>
-      </label>
-      <label className="field">
-        {text.cards}
-        <input
-          className="control"
-          type="number"
-          value={size}
-          onChange={(event) => setSize(event.target.valueAsNumber)}
-        />
-      </label>
-      <label className="field">
-        {text.tag}
-        <Select value={pickedTag} onChange={(event) => setTag(event.target.value)}>
-          <option value="">{text.anyTag}</option>
-          {tags.map((name) => (
-            <option key={name}>{name}</option>
-          ))}
-        </Select>
-      </label>
-      {/* An empty input gives NaN, so `size < 1` would let it through. */}
-      <button
-        className="button primary"
-        disabled={cards.length === 0 || !(size >= 1)}
-        onClick={() =>
-          loadReviews().then(
-            (log) => setSession(pickCards(cards, log, size, pickedTag || undefined)),
-            showError,
-          )
-        }
-      >
-        {text.startSession}
-      </button>{" "}
-      <button
-        className="button secondary"
-        onClick={() => loadReviews().then(setReviews, showError)}
-      >
-        {text.statistics}
-      </button>
-      <p>
-        <FileButton
-          label={text.uploadDeck}
-          accept=".json,application/json"
-          onChange={(event) => upload(event, uploadDeck)}
-        />{" "}
-        <FileButton
-          label={text.uploadReviewLog}
-          accept=".json,application/json"
-          onChange={(event) => upload(event, uploadReviewLog)}
-        />
-      </p>
-      <p>
-        <button className="button ghost" onClick={() => download(downloadDeck)}>
-          {text.downloadCards}
-        </button>{" "}
-        <button
-          className="button ghost"
-          onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}
-        >
-          {text.downloadReviewLog}
-        </button>
-      </p>
-      <p>
-        {lastDownload
-          ? text.daysSinceDownload(Math.floor((Date.now() - Date.parse(lastDownload)) / DAY_MS))
-          : text.noDownloadYet}
-      </p>
-      {report && (
-        <Alert tone={report.ok ? "success" : "danger"}>
-          <p>{summary(report, text)}</p>
-          <ul>
-            {("errors" in report ? report.errors : []).map((fileError, i) => (
-              <li key={i}>
-                {[fileError.where, fileError.field, fileError.message].filter(Boolean).join(": ")}
-              </li>
-            ))}
-          </ul>
-        </Alert>
-      )}
-      <ul>
-        {cards.map((card) => (
-          <li key={card.id}>
-            {text.cardListItem(card.id, card.type, card.version)}{" "}
+      <Header page={page} onNavigate={navigate} sessionDisabled={!session && !canStart} />
+      <main>
+        <h1>Flashcards</h1>
+        {error && (
+          <Alert tone="danger" role="alert">
+            {error}
+          </Alert>
+        )}
+        {session && (
+          // Hidden, not unmounted, so a Session keeps its place while another page shows.
+          <div hidden={page !== "session"}>
+            <Session
+              key={session.id}
+              cards={session.cards}
+              shown={page === "session"}
+              onEnd={() => {
+                setSession(undefined);
+                setPage("home");
+              }}
+              onError={showError}
+            />
+          </div>
+        )}
+        {page === "cards" && placeholder}
+        {page === "settings" && placeholder}
+        {page === "statistics" && reviews && (
+          <Statistics
+            cards={cards}
+            reviews={reviews}
+            onBack={() => {
+              setReviews(undefined);
+              setPage("home");
+            }}
+          />
+        )}
+        {page === "home" && (
+          <>
+            <label className="field">
+              {text.language}
+              <Select
+                value={language}
+                onChange={(event) => pickLanguage(event.target.value as TLanguage)}
+              >
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+              </Select>
+            </label>
+            <label className="field">
+              {text.cards}
+              <input
+                className="control"
+                type="number"
+                value={size}
+                onChange={(event) => setSize(event.target.valueAsNumber)}
+              />
+            </label>
+            <label className="field">
+              {text.tag}
+              <Select value={pickedTag} onChange={(event) => setTag(event.target.value)}>
+                <option value="">{text.anyTag}</option>
+                {tags.map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </Select>
+            </label>
+            {/* An empty input gives NaN, so `size < 1` would let it through. */}
             <button
-              className="button ghost small"
-              aria-label={text.deleteCard(card.id)}
-              onClick={() => remove(() => deleteCard(card.id))}
+              className="button primary"
+              disabled={!canStart}
+              onClick={() => void startSession()}
             >
-              {text.delete}
+              {text.startSession}
+            </button>{" "}
+            <button className="button secondary" onClick={() => void openStatistics()}>
+              {text.statistics}
             </button>
-          </li>
-        ))}
-      </ul>
-      {cards.length > 0 && (
-        <button className="button danger" onClick={clearAll}>
-          {text.clearAll}
-        </button>
-      )}
+            <p>
+              <FileButton
+                label={text.uploadDeck}
+                accept=".json,application/json"
+                onChange={(event) => upload(event, uploadDeck)}
+              />{" "}
+              <FileButton
+                label={text.uploadReviewLog}
+                accept=".json,application/json"
+                onChange={(event) => upload(event, uploadReviewLog)}
+              />
+            </p>
+            <p>
+              <button className="button ghost" onClick={() => download(downloadDeck)}>
+                {text.downloadCards}
+              </button>{" "}
+              <button
+                className="button ghost"
+                onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}
+              >
+                {text.downloadReviewLog}
+              </button>
+            </p>
+            <p>
+              {lastDownload
+                ? text.daysSinceDownload(
+                    Math.floor((Date.now() - Date.parse(lastDownload)) / DAY_MS),
+                  )
+                : text.noDownloadYet}
+            </p>
+            {report && (
+              <Alert tone={report.ok ? "success" : "danger"}>
+                <p>{summary(report, text)}</p>
+                <ul>
+                  {("errors" in report ? report.errors : []).map((fileError, i) => (
+                    <li key={i}>
+                      {[fileError.where, fileError.field, fileError.message]
+                        .filter(Boolean)
+                        .join(": ")}
+                    </li>
+                  ))}
+                </ul>
+              </Alert>
+            )}
+            <ul>
+              {cards.map((card) => (
+                <li key={card.id}>
+                  {text.cardListItem(card.id, card.type, card.version)}{" "}
+                  <button
+                    className="button ghost small"
+                    aria-label={text.deleteCard(card.id)}
+                    onClick={() => remove(() => deleteCard(card.id))}
+                  >
+                    {text.delete}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {cards.length > 0 && (
+              <button className="button danger" onClick={clearAll}>
+                {text.clearAll}
+              </button>
+            )}
+          </>
+        )}
+      </main>
     </LanguageContext.Provider>
   );
 }
