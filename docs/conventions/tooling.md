@@ -25,9 +25,8 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 - `nx run-many` exits 0 when no project has a target, so a lost target passes `validate` silently. The root is a project (with `format:check` and `lint`) only because of `"nx": {}` in `package.json`; keep it.
 - A new project under `libs/` or `apps/` needs `pnpm exec nx sync` (adds its reference to `tsconfig.json`), or `validate` fails as "out of sync".
 - Nx generators leave placeholders (`@org/...` names, an MIT `license`, an empty `dependencies`, a sample source and spec) and extras nothing uses (`@nx/js:lib` adds `@swc/helpers`, coverage and `vite`): drop them before committing. The implementer's hook can't delete the sample spec; the test writer does.
-- `pnpm screenshot <flow> <folder>` builds the web app, runs a Playwright flow in headless Chromium and writes `<folder>/<flow>-<shot>.png`. The first run downloads Chromium; `validate` and CI don't run it.
+- `pnpm screenshot <flow> <folder> [width]` builds the web app, runs a Playwright flow in headless Chromium at `width` pixels (default 1280) and writes `<folder>/<flow>-<shot>.png`. The first run downloads Chromium; `validate` and CI don't run it. Give each phase its own folder.
 - `pnpm exec` installs missing or outdated dependencies itself (`verifyDepsBeforeRun` defaults to `install`); to make it fail instead, pass `--config.verify-deps-before-run=error`.
 - In a worktree under `.claude/worktrees/`, the guard refuses chained or compound shell commands (`&&`, `;`, a heredoc then a test run): run them one at a time and edit files with Edit/Write.
 - An inherited `NX_WORKSPACE_ROOT_PATH` points Nx at another checkout: `validate.sh` resets it, but a direct `pnpm exec nx …` in a worktree needs `NX_WORKSPACE_ROOT_PATH=$PWD` in front.
 - One test file: `NX_WORKSPACE_ROOT_PATH=$PWD pnpm --filter @flashcards/web exec vitest run src/<file>` (paths relative to the project; `@flashcards/cards` for `libs/cards`).
-- `pnpm screenshot` takes an optional width (`pnpm screenshot <flow> <folder> [width]`, default 1280). Give each phase its own folder.
