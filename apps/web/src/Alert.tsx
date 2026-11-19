@@ -10,7 +10,7 @@ export function Alert(props: { tone: TAlertTone; role?: "alert"; children: React
   const Icon = icons[props.tone];
   return (
     <div className={`alert ${props.tone}`} role={props.role}>
-      <Icon aria-hidden="true" />
+      <Icon size={20} aria-hidden="true" />
       <div>{props.children}</div>
     </div>
   );

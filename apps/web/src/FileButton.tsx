@@ -9,7 +9,7 @@ export function FileButton(props: {
 }) {
   return (
     <label className="button secondary file-button">
-      <Upload aria-hidden="true" />
+      <Upload size={18} aria-hidden="true" />
       {props.label}
       <input type="file" accept={props.accept} onChange={props.onChange} />
     </label>

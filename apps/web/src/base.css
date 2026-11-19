@@ -54,6 +54,41 @@
     background: var(--color-transparent);
     border-radius: 0;
   }
+}
+
+/* The prototype's base layer. Its body min-width (20rem) has no token, so it is left out. */
+@layer base {
+  html {
+    background: var(--color-canvas);
+    color: var(--color-ink-900);
+    font-family: var(--font-family-sans);
+  }
+
+  body {
+    min-height: 100vh;
+    background:
+      radial-gradient(
+        circle at top right,
+        var(--color-accent-50),
+        var(--color-transparent) var(--gradient-size)
+      ),
+      var(--color-canvas);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-body);
+  }
+
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+
+  button,
+  select,
+  input,
+  label {
+    -webkit-tap-highlight-color: var(--color-transparent);
+  }
 
   button {
     cursor: pointer;
@@ -62,28 +97,13 @@
   button:disabled {
     cursor: not-allowed;
   }
-}
 
-@layer base {
-  body {
-    min-height: 100vh;
-    background: var(--color-canvas);
-    color: var(--color-ink-900);
-    font-family: var(--font-family-sans);
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-regular);
-    line-height: var(--line-height-body);
-    -webkit-font-smoothing: antialiased;
+  :focus-visible {
+    outline: var(--border-width-strong) solid var(--color-accent-600);
+    outline-offset: var(--space-1);
   }
 
-  h1,
-  h2,
-  h3 {
-    color: var(--color-ink-950);
-    line-height: var(--line-height-heading);
-    letter-spacing: var(--letter-spacing-tight);
-  }
-
+  /* Not in the prototype's base layer: the reset removes the cell spacing, and the Statistics table needs some until its page is laid out. */
   caption {
     text-align: left;
   }
@@ -97,10 +117,5 @@
   td {
     padding: var(--space-2) var(--space-3);
     border-bottom: var(--border-width) solid var(--color-line-200);
-  }
-
-  :focus-visible {
-    outline: var(--border-width-strong) solid var(--color-accent-600);
-    outline-offset: var(--border-width-strong);
   }
 }

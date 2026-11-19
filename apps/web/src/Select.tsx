@@ -6,7 +6,7 @@ export function Select(props: ComponentProps<"select">) {
   return (
     <span className="select">
       <select {...props} className="control" />
-      <ChevronDown className="select-icon" aria-hidden="true" />
+      <ChevronDown className="select-icon" size={18} aria-hidden="true" />
     </span>
   );
 }
