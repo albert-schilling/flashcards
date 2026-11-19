@@ -60,6 +60,18 @@ it("renders the start page with the app name", () => {
   expect(heading.textContent).toBe("Flashcards");
 });
 
+function levelOneHeadings() {
+  return screen.getAllByRole("heading", { level: 1 }).map((heading) => heading.textContent);
+}
+
+it("Home's heading welcomes back, with Flashcards as its only level-1 heading", () => {
+  render(<App />);
+
+  expect(levelOneHeadings()).toEqual(["Flashcards"]);
+  expect(screen.getByText("Welcome back")).toBeTruthy();
+  expect(screen.getByText("A calm routine for durable learning.")).toBeTruthy();
+});
+
 it("shows the counts and lists the Cards after an upload", async () => {
   render(<App />);
 
@@ -246,12 +258,15 @@ it("clears all Cards after confirming, and they stay gone after a reload", async
     const { unmount } = render(<App />);
     upload(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
     await expectListed(qa("ml.trees.depth", 1));
+    expect(screen.queryByRole("heading", { name: "No Cards yet" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
 
     expect(confirm).toHaveBeenCalledWith("Delete all Cards?");
     await expectNotListed(qa("ml.trees.leaf-mean", 1));
     await expectNotListed(qa("ml.trees.depth", 1));
+    expect(screen.getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Start a Session" })).toBeNull();
     unmount();
     render(<App />);
     // An empty list proves nothing before the reload finishes; "1 added" shows storage was empty.
@@ -401,9 +416,9 @@ it("shows an error and starts no Session when the Review log can't be loaded", a
   expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
 });
 
-it("disables Start Session with no Cards or with fewer than 1 Card", async () => {
+it("shows no Start Session with no Cards, and disables it with fewer than 1 Card", async () => {
   render(<App />);
-  expect(startButton().disabled).toBe(true);
+  expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
 
   await uploaded(qa("ml.trees.depth", 1));
   expect(startButton().disabled).toBe(false);
@@ -413,6 +428,55 @@ it("disables Start Session with no Cards or with fewer than 1 Card", async () =>
 
   fireEvent.change(screen.getByLabelText("Cards"), { target: { value: "" } });
   expect(startButton().disabled).toBe(true);
+});
+
+it("with Cards, Home shows the Start a Session panel and no empty state", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+
+  expect(home().getByRole("heading", { level: 2, name: "Start a Session" })).toBeTruthy();
+  expect(home().getByText("Study today")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "No Cards yet" })).toBeNull();
+});
+
+it("the Card count on Home reads 2 Cards and opens the Cards page", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+
+  const library = home().getByRole("button", { name: /^2 Cards/ });
+  expect(library.textContent).toContain("Manage library and backups");
+  fireEvent.click(library);
+
+  expect(isCurrent("Cards")).toBe(true);
+  expect(screen.getByText("This page is not built yet.")).toBeTruthy();
+});
+
+it("the Card count on Home reads 1 Card for one Card", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+
+  expect(home().getByRole("button", { name: /^1 Card(?!s)/ })).toBeTruthy();
+});
+
+it("with no Cards, Home shows the empty state and no Start a Session panel", () => {
+  render(<App />);
+
+  expect(home().getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
+  expect(home().getByText("Upload a Deck to start your first Session.")).toBeTruthy();
+  expect(home().getByRole("button", { name: "Upload Deck" })).toBeTruthy();
+  expect(home().getByRole("button", { name: "Create Card" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Start a Session" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
+});
+
+// Until the Cards page has uploads and the Card editor exists, both buttons open the Cards page.
+it.each(["Upload Deck", "Create Card"])("with no Cards, %s opens the Cards page", (name) => {
+  render(<App />);
+
+  fireEvent.click(home().getByRole("button", { name }));
+
+  expect(isCurrent("Cards")).toBe(true);
+  expect(screen.getByText("This page is not built yet.")).toBeTruthy();
 });
 
 it("hides the upload and the Card list during a Session", async () => {
@@ -1166,22 +1230,24 @@ function pickGerman() {
 }
 
 // languageSelect() and startButton() match both languages, so this pins the English names.
-it("labels the language select Language and the start button Start Session in English", () => {
+it("labels the language select Language and the start button Start Session in English", async () => {
   render(<App />);
+  await uploaded(qa("a", 1));
 
   expect(screen.getByLabelText("Language")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Start Session" })).toBeTruthy();
 });
 
-it("shows the start page in German once Deutsch is picked", () => {
+it("shows the start page in German once Deutsch is picked", async () => {
   render(<App />);
+  await uploaded(qa("a", 1));
 
   pickGerman();
 
   expect(screen.getByLabelText("Sprache")).toBeTruthy();
   expect(screen.getByLabelText("Karten")).toBeTruthy();
   const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
-  expect(Array.from(tag.options, (option) => option.text)).toEqual(["Alle Tags"]);
+  expect(tag.options[0].text).toBe("Alle Tags");
   for (const name of [
     "Sitzung starten",
     "Statistik",
@@ -1193,6 +1259,39 @@ it("shows the start page in German once Deutsch is picked", () => {
   expect(screen.getByLabelText("Deck hochladen")).toBeTruthy();
   expect(screen.getByLabelText("Lernprotokoll hochladen")).toBeTruthy();
   expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
+});
+
+it("shows Home's heading in German", () => {
+  render(<App />);
+
+  pickGerman();
+
+  expect(levelOneHeadings()).toEqual(["Flashcards"]);
+  expect(screen.getByText("Willkommen zurück")).toBeTruthy();
+  expect(screen.getByText("Eine ruhige Routine für nachhaltiges Lernen.")).toBeTruthy();
+});
+
+it("shows the Start a Session panel and the Card count in German", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+
+  pickGerman();
+
+  expect(home().getByRole("heading", { level: 2, name: "Sitzung starten" })).toBeTruthy();
+  expect(home().getByText("Heute lernen")).toBeTruthy();
+  const library = home().getByRole("button", { name: /^2 Karten/ });
+  expect(library.textContent).toContain("Bibliothek und Sicherungen verwalten");
+});
+
+it("shows the empty state in German", () => {
+  render(<App />);
+
+  pickGerman();
+
+  expect(home().getByRole("heading", { level: 3, name: "Noch keine Karten" })).toBeTruthy();
+  expect(home().getByText("Lade ein Deck hoch, um deine erste Sitzung zu starten.")).toBeTruthy();
+  expect(home().getByRole("button", { name: "Deck hochladen" })).toBeTruthy();
+  expect(home().getByRole("button", { name: "Karte erstellen" })).toBeTruthy();
 });
 
 it("shows the days since the last download in German", async () => {
