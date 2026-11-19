@@ -328,8 +328,8 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* A disabled link shows no hover. */
-.nav-link:hover:not(:disabled) {
+/* A disabled link shows no hover. :where keeps it as weak as .nav-link.active, so the current link keeps its colours on hover. */
+.nav-link:hover:where(:not(:disabled)) {
   color: var(--color-ink-900);
   background: var(--color-surface-muted);
 }
