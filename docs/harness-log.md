@@ -37,6 +37,8 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #64 | Planned ~440 lines, came out at 1,020: the first tests took ~410 (planned ~150), the implementation ~560 (planned ~290).         | #19 (size warning).                                                                            |
 | #66 | The plan adapted two tests that expected Start Session with no Cards but missed a third, so the implementer stopped.             | albert-schilling/skills#36 (the planner lists every test that queries a removed element).      |
 | #66 | The tokens-only style test rejected the prototype's `repeat(2, 1fr)`, another Stop.                                              | `docs/conventions/code.md` lists the raw values styles may use.                                |
+| #73 | Tests came out at ~280 lines against ~110 planned: every close path checked through the app, with a reload and in German.        | #19 (size warning).                                                                            |
+| #73 | A hand edit failed `validate` on formatting, costing a round.                                                                    | `tooling.md`: run `pnpm format` before `validate`.                                             |
 
 ## Factory runs
 
@@ -70,3 +72,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #61 | #47   | medium    | 2 / 5             | 2             | 5              | none                |
 | #64 | #48   | medium    | 3 / 5             | 3             | 2              | none                |
 | #66 | #49   | medium    | 3 / 4             | 2             | 2              | none                |
+| #73 | #69   | medium    | 2 / 5             | 2             | 2              | none                |

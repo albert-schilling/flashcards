@@ -38,8 +38,15 @@ const en = {
     `${id} (${type}, version ${version})`,
   deleteCard: (id: string) => `Delete ${id}`,
   delete: "Delete",
-  clearAll: "Clear all",
-  confirmClearAll: "Delete all Cards?",
+  deleteAllCards: "Delete all Cards",
+  deleteAllCardsTitle: "Delete all Cards?",
+  cannotBeUndone: "This cannot be undone.",
+  deleteAllWarning: (count: number) =>
+    count === 1
+      ? "1 Card will be permanently removed from this browser."
+      : `All ${count} Cards will be permanently removed from this browser.`,
+  cancel: "Cancel",
+  close: "Close",
   sessionResult: (answered: number, right: number) => `${answered} answered, ${right} right`,
   done: "Done",
   reveal: "Reveal",
@@ -103,8 +110,15 @@ const de: TUiText = {
   cardListItem: (id, type, version) => `${id} (${type}, Version ${version})`,
   deleteCard: (id) => `${id} löschen`,
   delete: "Löschen",
-  clearAll: "Alle löschen",
-  confirmClearAll: "Alle Karten löschen?",
+  deleteAllCards: "Alle Karten löschen",
+  deleteAllCardsTitle: "Alle Karten löschen?",
+  cannotBeUndone: "Das kann nicht rückgängig gemacht werden.",
+  deleteAllWarning: (count) =>
+    count === 1
+      ? "1 Karte wird endgültig aus diesem Browser entfernt."
+      : `Alle ${count} Karten werden endgültig aus diesem Browser entfernt.`,
+  cancel: "Abbrechen",
+  close: "Schließen",
   sessionResult: (answered, right) => `${answered} beantwortet, ${right} richtig`,
   done: "Fertig",
   reveal: "Aufdecken",
