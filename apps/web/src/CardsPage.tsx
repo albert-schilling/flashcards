@@ -1,14 +1,35 @@
-import type { TCard } from "@flashcards/cards";
-import { Trash2 } from "lucide-react";
+import { ZCard, type TCard } from "@flashcards/cards";
+import { Search, Trash2 } from "lucide-react";
 import { useContext, useState, type ReactNode } from "react";
 import { Alert } from "./Alert";
 import { cardTitle } from "./CardView";
 import { EmptyState } from "./EmptyState";
-import { LanguageContext, useText } from "./language.context";
+import { LanguageContext, useText, type TLanguage } from "./language.context";
 import { Modal } from "./Modal";
 import { PageHeading } from "./PageHeading";
+import { Select } from "./Select";
+import { allTags } from "./session.helper";
 
-/** The Cards page: the Library heading, then a panel with the Card count, one row per Card (question or name in the current language, ID, type, all tags, Delete) and Delete all, which asks in a modal first and closes it before deleting. With no Cards the panel shows the empty state. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting. */
+const cardTypes = ZCard.options.map((option) => option.shape.type.value);
+
+/** Whether the Card matches the search and filters: `query` (trimmed, any case) is in its title as shown in `language`, its ID or one of its tags; `type` and `tag` must match exactly, and "" means any. */
+function matches(
+  card: TCard,
+  query: string,
+  type: string,
+  tag: string,
+  language: TLanguage,
+): boolean {
+  const tags = [...card.tags.domain, ...card.tags.topic];
+  if (type !== "" && card.type !== type) return false;
+  if (tag !== "" && !tags.includes(tag)) return false;
+  const needle = query.trim().toLowerCase();
+  return [cardTitle(card, language), card.id, ...tags].some((value) =>
+    value.toLowerCase().includes(needle),
+  );
+}
+
+/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, one row per Card (question or name in the current language, ID, type, all tags, Delete) and Delete all, which asks in a modal first and closes it before deleting. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting. */
 export function CardsPage(props: {
   cards: TCard[];
   onDelete: (id: string) => void;
@@ -18,6 +39,13 @@ export function CardsPage(props: {
   const text = useText();
   const language = useContext(LanguageContext);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [query, setQuery] = useState("");
+  const [type, setType] = useState("");
+  const [pickedTag, setPickedTag] = useState("");
+  const tags = allTags(props.cards);
+  // A tag that no Card has any more is dropped, so the list is not left empty by a filter the Learner can't see.
+  const tag = tags.includes(pickedTag) ? pickedTag : "";
+  const shown = props.cards.filter((card) => matches(card, query, type, tag, language));
 
   function deleteAll() {
     // Close first, so a failure shows in the page's error and not behind the modal.
@@ -32,14 +60,49 @@ export function CardsPage(props: {
       </div>
       <div className="cards-layout">
         <section className="panel library-panel">
+          <div className="library-toolbar">
+            <label className="field search-field">
+              {text.searchCards}
+              <span className="search-input">
+                <Search size={18} aria-hidden="true" />
+                <input
+                  className="control"
+                  type="search"
+                  value={query}
+                  placeholder={text.searchPlaceholder}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </span>
+            </label>
+            <label className="field">
+              {text.type}
+              <Select value={type} onChange={(event) => setType(event.target.value)}>
+                <option value="">{text.allTypes}</option>
+                {cardTypes.map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </Select>
+            </label>
+            <label className="field">
+              {text.tag}
+              <Select value={tag} onChange={(event) => setPickedTag(event.target.value)}>
+                <option value="">{text.anyTag}</option>
+                {tags.map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </Select>
+            </label>
+          </div>
           <div className="library-summary">
-            <span>{text.cardCount(props.cards.length)}</span>
+            <span>{text.cardCountOf(shown.length, props.cards.length)}</span>
           </div>
           {props.cards.length === 0 ? (
             <EmptyState />
+          ) : shown.length === 0 ? (
+            <EmptyState title={text.noMatchingCards} hint={text.tryAnotherFilter} />
           ) : (
             <ul className="library-list">
-              {props.cards.map((card) => (
+              {shown.map((card) => (
                 <li className="library-card-row" key={card.id}>
                   <div className="library-card-copy">
                     <strong>{cardTitle(card, language)}</strong>
