@@ -1124,6 +1124,21 @@ it("shows No download yet, which only a Review log download resets", async () =>
   expect(screen.queryByText("No download yet")).toBeNull();
 });
 
+it("the Files panel keeps the report and the days since the last download after going Home and back", async () => {
+  render(<App />);
+  upload(qa("a", 1));
+  await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+  await download("Download Review log");
+  await screen.findByText("Days since the last download: 0");
+
+  goHome();
+  expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
+  openCards();
+
+  expect(screen.getByText(/1 added, 0 updated, 0 unchanged/)).toBeTruthy();
+  expect(screen.getByText("Days since the last download: 0")).toBeTruthy();
+});
+
 it("shows the days since the last download after a reload", async () => {
   // Fake only the clock: Testing Library waits with real timers.
   vi.useFakeTimers({ toFake: ["Date"] });

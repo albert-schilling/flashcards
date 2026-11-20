@@ -214,3 +214,20 @@ it("with no Cards, shows the empty state and no rows, and disables Delete all Ca
   expect(screen.queryAllByRole("listitem")).toEqual([]);
   expect(deleteAllButton().disabled).toBe(true);
 });
+
+it.each([
+  { case: "with Cards", cards: [qa("a", 1)] },
+  { case: "with no Cards", cards: [] },
+])("$case, shows its children right after the Card list panel", ({ cards }) => {
+  render(
+    <LanguageContext.Provider value="en">
+      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()}>
+        <aside>Second column</aside>
+      </CardsPage>
+    </LanguageContext.Provider>,
+  );
+
+  const list = deleteAllButton().closest("section")!;
+
+  expect(list.nextElementSibling).toBe(screen.getByText("Second column"));
+});
