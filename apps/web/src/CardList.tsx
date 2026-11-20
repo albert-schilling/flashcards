@@ -1,7 +1,6 @@
 import type { TCard } from "@flashcards/cards";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { useContext, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
 
@@ -42,8 +41,7 @@ export function CardList(props: { cards: TCard[]; onDelete: (id: string) => void
           const id = (event.target as HTMLElement).closest("li")?.dataset.cardId;
           if (id !== undefined) setFocusedId(id);
         }}
-        // Flushed at once, so the row far from the view goes as soon as focus leaves it.
-        onBlur={() => flushSync(() => setFocusedId(null))}
+        onBlur={() => setFocusedId(null)}
       >
         {virtualizer.getVirtualItems().map((item) => {
           const card = props.cards[item.index];

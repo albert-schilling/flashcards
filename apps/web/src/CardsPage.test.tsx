@@ -1,5 +1,5 @@
 import type { TCard } from "@flashcards/cards";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { CardsPage } from "./CardsPage";
 import { LanguageContext, type TLanguage } from "./language.context";
@@ -626,7 +626,8 @@ it("once focus leaves it, a row far from the view goes from the list", () => {
   deleteButton("card-3").focus();
   scrollToRow(500);
 
-  deleteButton("card-3").blur();
+  // act, as React does for a browser event: blur() alone leaves React's update pending.
+  act(() => deleteButton("card-3").blur());
 
   expect(listedIds()).toEqual(ids(498, 508));
 });
