@@ -547,13 +547,6 @@
   .file-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-
-  /* The prototype's `minmax(18rem, 0.7fr)` is left out: a raw value with no token. The Files column is about 343px wide at 1280px, so only widths up to about 1000px get a narrower column. */
-  .cards-layout {
-    grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.7fr);
-    align-items: start;
-    gap: var(--space-6);
-  }
 }
 
 /* Cards page */
@@ -572,6 +565,16 @@
 .cards-layout {
   display: grid;
   gap: var(--space-5);
+}
+
+/* A media query can't use a variable: --breakpoint-desktop. It follows the base rule, so its gap wins. */
+@media (min-width: 48rem) {
+  /* The prototype's `minmax(18rem, 0.7fr)` is left out: a raw value with no token. The Files column is about 343px wide at 1280px, so only widths up to about 1000px get a narrower column. */
+  .cards-layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.7fr);
+    align-items: start;
+    gap: var(--space-6);
+  }
 }
 
 .backup-panel .file-grid {
