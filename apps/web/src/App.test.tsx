@@ -401,10 +401,10 @@ it("shows an error and keeps the Card when deleting fails", async () => {
   await expectListed(qa("ml.trees.leaf-mean", 1));
 });
 
-/** Uploads the Cards on the Cards page, waits until it lists the last one, then goes back Home. */
+/** Uploads the Cards on the Cards page, waits for the upload report, then goes back Home. Not the last row: the windowed list shows only the rows in view. */
 async function uploaded(...cards: TCard[]) {
   upload(...cards);
-  await expectListed(cards[cards.length - 1]);
+  await screen.findByText(new RegExp(`^${cards.length} added, `));
   goHome();
 }
 
