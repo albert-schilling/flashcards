@@ -9,6 +9,8 @@ const en = {
   pages: "Pages",
   openNavigation: "Open navigation",
   pageNotBuilt: "This page is not built yet.",
+  library: "Library",
+  cardsIntro: "Search, organize, preview, and back up every Card in one place.",
   language: "Language",
   cards: "Cards",
   tag: "Tag",
@@ -34,8 +36,6 @@ const en = {
   deckSummary: (added: number, updated: number, unchanged: number) =>
     `${added} added, ${updated} updated, ${unchanged} unchanged`,
   reviewLogSummary: (added: number, skipped: number) => `${added} added, ${skipped} skipped`,
-  cardListItem: (id: string, type: string, version: number) =>
-    `${id} (${type}, version ${version})`,
   deleteCard: (id: string) => `Delete ${id}`,
   delete: "Delete",
   deleteAllCards: "Delete all Cards",
@@ -82,6 +82,8 @@ const de: TUiText = {
   pages: "Seiten",
   openNavigation: "Navigation öffnen",
   pageNotBuilt: "Diese Seite gibt es noch nicht.",
+  library: "Bibliothek",
+  cardsIntro: "Karten suchen, ordnen, ansehen und sichern, alles an einem Ort.",
   language: "Sprache",
   cards: "Karten",
   tag: "Tag",
@@ -107,7 +109,6 @@ const de: TUiText = {
   deckSummary: (added, updated, unchanged) =>
     `${added} hinzugefügt, ${updated} aktualisiert, ${unchanged} unverändert`,
   reviewLogSummary: (added, skipped) => `${added} hinzugefügt, ${skipped} übersprungen`,
-  cardListItem: (id, type, version) => `${id} (${type}, Version ${version})`,
   deleteCard: (id) => `${id} löschen`,
   delete: "Löschen",
   deleteAllCards: "Alle Karten löschen",

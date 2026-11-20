@@ -8,6 +8,11 @@ import { LanguageContext, useText, type TLanguage } from "./language.context";
 // A cloze gap, `{{word}}`; the group is the word that fills it.
 const gap = /\{\{(.+?)\}\}/g;
 
+// A cloze text as it is asked: every gap blank.
+function withGapsBlank(text: string): string {
+  return text.replaceAll(gap, "____");
+}
+
 // German fields replace English ones; a missing German field stays English.
 function inLanguage(card: TCard, language: TLanguage): TCard {
   if (language === "en") return card;
@@ -15,7 +20,24 @@ function inLanguage(card: TCard, language: TLanguage): TCard {
   return { ...card, en: { ...card.en, ...card.translations?.de } } as TCard;
 }
 
-// The one place Card text is chosen.
+/** What a list shows for a Card in this language: the question (qa, multiple_choice, numeric), the name (formula), the statement (true_false) or the text with its gaps blank (cloze). */
+export function cardTitle(card: TCard, language: TLanguage): string {
+  const shown = inLanguage(card, language);
+  switch (shown.type) {
+    case "qa":
+    case "multiple_choice":
+    case "numeric":
+      return shown.en.question;
+    case "formula":
+      return shown.en.name;
+    case "cloze":
+      return withGapsBlank(shown.en.text);
+    case "true_false":
+      return shown.en.statement;
+  }
+}
+
+// With cardTitle above, the one place Card text is chosen.
 export function CardView(props: {
   card: TCard;
   onAnswer: (right: boolean) => void;
@@ -41,7 +63,7 @@ export function CardView(props: {
     case "cloze":
       return (
         <CardReveal
-          prompt={[card.en.text.replaceAll(gap, "____")]}
+          prompt={[withGapsBlank(card.en.text)]}
           answer={[card.en.text.replaceAll(gap, "$1")]}
           onGrade={grade}
         />

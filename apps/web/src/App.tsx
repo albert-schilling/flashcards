@@ -1,12 +1,11 @@
 import type { TCard } from "@flashcards/cards";
-import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { downloadDeck, uploadDeck, type TUploadReport } from "./deck";
 import { downloadReviewLog, uploadReviewLog, type TReviewLogReport } from "./review.log";
 import { browserLanguage, LanguageContext, type TLanguage } from "./language.context";
 import { Alert } from "./Alert";
+import { CardsPage } from "./CardsPage";
 import { FileButton } from "./FileButton";
-import { Modal } from "./Modal";
 import { Header, type TPage } from "./Header";
 import { Home } from "./Home";
 import { Select } from "./Select";
@@ -44,7 +43,6 @@ export function App() {
   const [session, setSession] = useState<{ id: number; cards: TCard[] }>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [language, setLanguage] = useState<TLanguage>(browserLanguage);
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
@@ -118,12 +116,6 @@ export function App() {
     }
   }
 
-  async function deleteAll() {
-    // Close first, so a failure shows in the page's error and not behind the modal.
-    setConfirmingDelete(false);
-    await remove(clearCards);
-  }
-
   const tags = allTags(cards);
   // A picked tag can vanish when Cards are deleted or replaced; the select then shows "Any tag".
   const pickedTag = tags.includes(tag) ? tag : "";
@@ -162,7 +154,7 @@ export function App() {
     <LanguageContext.Provider value={language}>
       <Header page={page} onNavigate={navigate} sessionDisabled={!session && !canStart} />
       <main className="page-shell">
-        {page !== "home" && <h1>Flashcards</h1>}
+        {page !== "home" && page !== "cards" && <h1>Flashcards</h1>}
         {error && (
           <Alert tone="danger" role="alert">
             {error}
@@ -183,7 +175,13 @@ export function App() {
             />
           </div>
         )}
-        {page === "cards" && placeholder}
+        {page === "cards" && (
+          <CardsPage
+            cards={cards}
+            onDelete={(id) => void remove(() => deleteCard(id))}
+            onDeleteAll={() => void remove(clearCards)}
+          />
+        )}
         {page === "settings" && placeholder}
         {page === "statistics" && reviews && (
           <Statistics
@@ -262,46 +260,6 @@ export function App() {
                   ))}
                 </ul>
               </Alert>
-            )}
-            <ul>
-              {cards.map((card) => (
-                <li key={card.id}>
-                  {text.cardListItem(card.id, card.type, card.version)}{" "}
-                  <button
-                    className="button ghost small"
-                    aria-label={text.deleteCard(card.id)}
-                    onClick={() => remove(() => deleteCard(card.id))}
-                  >
-                    {text.delete}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <button
-              className="text-button danger-text delete-all-button"
-              disabled={cards.length === 0}
-              onClick={() => setConfirmingDelete(true)}
-            >
-              <Trash2 size={17} aria-hidden="true" />
-              {text.deleteAllCards}
-            </button>
-            {confirmingDelete && (
-              <Modal title={text.deleteAllCardsTitle} onClose={() => setConfirmingDelete(false)}>
-                <div className="modal-body">
-                  <Alert tone="danger">
-                    <strong>{text.cannotBeUndone}</strong>
-                    <p>{text.deleteAllWarning(cards.length)}</p>
-                  </Alert>
-                </div>
-                <div className="modal-actions">
-                  <button className="button ghost" onClick={() => setConfirmingDelete(false)}>
-                    {text.cancel}
-                  </button>
-                  <button className="button danger" onClick={() => void deleteAll()}>
-                    {text.deleteAllCards}
-                  </button>
-                </div>
-              </Modal>
             )}
           </>
         )}

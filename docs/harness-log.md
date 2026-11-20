@@ -39,6 +39,9 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #66 | The tokens-only style test rejected the prototype's `repeat(2, 1fr)`, another Stop.                                              | `docs/conventions/code.md` lists the raw values styles may use.                                |
 | #73 | Tests came out at ~280 lines against ~110 planned: every close path checked through the app, with a reload and in German.        | #19 (size warning).                                                                            |
 | #73 | A hand edit failed `validate` on formatting, costing a round.                                                                    | `tooling.md`: run `pnpm format` before `validate`.                                             |
+| #75 | The plan made a test helper return Home but missed a test that queried Delete all right after it, so the implementer stopped.    | albert-schilling/skills#36 (comment: trace a changed helper's callers).                        |
+| #75 | Planned ~445 lines, came out at 662: second-pass tests and the helpers' navigation.                                              | #19 (size warning).                                                                            |
+| #75 | The orchestrator pointed the researcher at an issue comment, which the researcher's rules forbid; it answered from the code.     | None: the Factory already says research gets the questions alone.                              |
 
 ## Factory runs
 
@@ -73,3 +76,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #64 | #48   | medium    | 3 / 5             | 3             | 2              | none                |
 | #66 | #49   | medium    | 3 / 4             | 2             | 2              | none                |
 | #73 | #69   | medium    | 2 / 5             | 2             | 2              | none                |
+| #75 | #70   | medium    | 3 / 5             | 2             | 2              | none                |
