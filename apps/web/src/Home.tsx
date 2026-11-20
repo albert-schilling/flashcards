@@ -1,4 +1,5 @@
 import { ArrowRight, ChartColumn, Plus, RotateCcw, Upload } from "lucide-react";
+import { EmptyState } from "./EmptyState";
 import { useText } from "./language.context";
 import { PageHeading } from "./PageHeading";
 import { Select } from "./Select";
@@ -23,13 +24,7 @@ export function Home(props: {
       <PageHeading eyebrow={text.welcomeBack} title="Flashcards" intro={text.homeIntro} />
       {props.cardCount === 0 ? (
         <section className="panel home-empty">
-          <div className="empty-state compact">
-            <span className="empty-icon">
-              <Upload size={24} aria-hidden="true" />
-            </span>
-            <h3>{text.noCardsYet}</h3>
-            <p>{text.uploadFirstDeck}</p>
-          </div>
+          <EmptyState />
           <div className="empty-actions">
             <button className="button primary" onClick={props.onCards}>
               <Upload size={18} aria-hidden="true" />
