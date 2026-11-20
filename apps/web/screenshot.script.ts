@@ -12,7 +12,7 @@ const exampleDeck = resolve(root, "../../libs/cards/example-deck.json");
 // A flow drives the app from an empty browser, as the Learner would, and calls shot() once per PNG.
 type TFlow = (page: Page, shot: (name: string) => Promise<void>) => Promise<void>;
 
-// Uploads libs/cards/example-deck.json and waits until its six Cards are listed.
+// Uploads libs/cards/example-deck.json, from the start page, and waits for the upload summary.
 // Names are matched with `exact`, because Playwright matches substrings and "Gewusst" is inside "Nicht gewusst".
 async function uploadExampleDeck(page: Page, text: TUiText = uiText.en): Promise<void> {
   await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles(exampleDeck);
@@ -144,7 +144,7 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   }
   await shot("home");
   await goTo(page, text.cards);
-  await page.getByText(text.pageNotBuilt, { exact: true }).waitFor();
+  await page.getByRole("heading", { name: text.cards, exact: true }).waitFor();
   await shot("cards");
   // The current link keeps its colours on hover.
   if (await menu.isVisible()) await menu.click();
@@ -172,17 +172,26 @@ const flows: Record<string, TFlow> = {
   navigation: showNavigation,
   controls: showControls,
   upload: async (page, shot) => {
+    const text = uiText.en;
     await uploadExampleDeck(page);
+    await goTo(page, text.cards);
+    await page.getByText(text.cardCount(6), { exact: true }).waitFor();
     await shot("card-list");
-    const deleteAll = page.getByRole("button", { name: uiText.en.deleteAllCards });
+    await page
+      .getByRole("button", { name: /^Delete (?!all)/ })
+      .first()
+      .click();
+    await page.getByText(text.cardCount(5), { exact: true }).waitFor();
+    await shot("deleted-one");
+    const deleteAll = page.getByRole("button", { name: text.deleteAllCards });
     await deleteAll.click();
     await shot("delete-all-modal");
     const dialog = page.getByRole("dialog");
-    await dialog.getByRole("button", { name: uiText.en.cancel }).click();
+    await dialog.getByRole("button", { name: text.cancel }).click();
     await dialog.waitFor({ state: "detached" });
     await deleteAll.click();
-    await dialog.getByRole("button", { name: uiText.en.deleteAllCards }).click();
-    await page.getByText(uiText.en.noCardsYet).waitFor();
+    await dialog.getByRole("button", { name: text.deleteAllCards }).click();
+    await page.getByText(text.noCardsYet).waitFor();
     await shot("deleted-all");
   },
   answer: answerEveryCard,

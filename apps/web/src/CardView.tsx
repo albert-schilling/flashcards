@@ -15,6 +15,23 @@ function inLanguage(card: TCard, language: TLanguage): TCard {
   return { ...card, en: { ...card.en, ...card.translations?.de } } as TCard;
 }
 
+/** What a list shows for a Card in this language: the question (qa, multiple_choice, numeric), the name (formula), the statement (true_false) or the text with its gaps blank (cloze). */
+export function cardTitle(card: TCard, language: TLanguage): string {
+  const shown = inLanguage(card, language);
+  switch (shown.type) {
+    case "qa":
+    case "multiple_choice":
+    case "numeric":
+      return shown.en.question;
+    case "formula":
+      return shown.en.name;
+    case "cloze":
+      return shown.en.text.replaceAll(gap, "____");
+    case "true_false":
+      return shown.en.statement;
+  }
+}
+
 // The one place Card text is chosen.
 export function CardView(props: {
   card: TCard;

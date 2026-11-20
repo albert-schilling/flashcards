@@ -538,6 +538,100 @@
   }
 }
 
+/* Cards page */
+.cards-page-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.cards-page-heading .page-heading {
+  margin-bottom: var(--space-4);
+}
+
+/* The prototype's desktop columns, `minmax(18rem, 0.7fr)`, are left out: a raw value with no token, and the list spans the full width until the second column has content (#71). */
+.cards-layout {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.library-panel {
+  min-width: var(--space-0);
+}
+
+.library-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+  color: var(--color-ink-500);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* The prototype's `height`, `overflow-y` and `scrollbar-gutter` are left out: they belong to its windowed list (#52). */
+.library-list {
+  margin: var(--space-0);
+  padding: var(--space-0);
+  border-top: var(--border-width) solid var(--color-line-100);
+  list-style: none;
+}
+
+/* The prototype's `position: absolute`, `inset` and `height` (windowed list, #52) and `:hover` (opens a preview, #53) are left out; a row is a list item, not a button, so it can hold Delete. */
+.library-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-line-100);
+  color: var(--color-ink-700);
+  text-align: left;
+}
+
+.library-card-copy {
+  min-width: var(--space-0);
+}
+
+.library-card-copy strong {
+  display: block;
+  overflow: hidden;
+  color: var(--color-ink-950);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-id {
+  display: block;
+  overflow: hidden;
+  margin-top: var(--space-1);
+  color: var(--color-ink-500);
+  font-size: var(--font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.row-tags span {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  color: var(--color-ink-600);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
 /* Text buttons */
 .danger-text {
   color: var(--color-danger-600);
