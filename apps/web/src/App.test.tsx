@@ -265,6 +265,7 @@ it("asks before deleting all Cards, saying how many and that it cannot be undone
   const danger = alertIcon("danger");
   render(<App />);
   await uploaded(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
+  openCards();
   expect(deleteAllButton().querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
 
   const modal = openDeleteAll();
