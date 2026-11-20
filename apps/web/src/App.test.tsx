@@ -24,7 +24,9 @@ function upload(...cards: TCard[]) {
   );
 }
 
+/** Opens the Cards page, where the Files panel is, and picks the file in the input with this label. */
 function pick(file: File, label: string) {
+  openCards();
   const input = screen.getByLabelText<HTMLInputElement>(label);
   // jsdom can't pick a file, so act like a browser: the value names the file until set to "".
   let files = [file];
@@ -220,7 +222,6 @@ it("keeps the error of a failed upload when an earlier upload finishes later", a
   finishReading();
 
   await expectListed(qa("ml.trees.leaf-mean", 1));
-  goHome();
   expect(screen.getByRole("alert").textContent).toContain("The file is gone.");
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
@@ -385,7 +386,6 @@ it("keeps the report of the last upload after deleting a Card", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
 
   await expectNotListed(qa("ml.trees.leaf-mean", 1));
-  goHome();
   expect(screen.getByText(/2 added, 0 updated, 0 unchanged/)).toBeTruthy();
 });
 
@@ -401,7 +401,7 @@ it("shows an error and keeps the Card when deleting fails", async () => {
   await expectListed(qa("ml.trees.leaf-mean", 1));
 });
 
-/** Uploads the Cards on Home, waits until the Cards page lists the last one, then goes back Home. */
+/** Uploads the Cards on the Cards page, waits until it lists the last one, then goes back Home. */
 async function uploaded(...cards: TCard[]) {
   upload(...cards);
   await expectListed(cards[cards.length - 1]);
@@ -573,7 +573,7 @@ it("with no Cards, Home shows the empty state and no Start a Session panel", () 
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
 });
 
-// Until the Cards page has uploads and the Card editor exists, both buttons open the Cards page.
+// Upload Deck opens the Cards page for its Files panel; Create Card opens it until the Card editor exists.
 it.each(["Upload Deck", "Create Card"])("with no Cards, %s opens the Cards page", (name) => {
   render(<App />);
 
@@ -1038,8 +1038,9 @@ it("shows an error when the Review log can't be loaded", async () => {
   expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
 });
 
-/** Clicks the button and returns the file it downloads. jsdom can't download, so this fakes the browser's part. */
+/** Opens the Cards page, where the Files panel is, clicks the button and returns the file it downloads. jsdom can't download, so this fakes the browser's part. */
 async function download(button: string): Promise<File> {
+  openCards();
   const blobs = new Map<string, Blob>();
   const create = vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
     const url = `blob:download-${blobs.size}`;
@@ -1112,6 +1113,7 @@ it("shows the errors of an invalid Review log", async () => {
 it("shows No download yet, which only a Review log download resets", async () => {
   render(<App />);
   await uploaded(qa("a", 1));
+  openCards();
   expect(screen.getByText("No download yet")).toBeTruthy();
 
   await download("Download Cards");
@@ -1135,11 +1137,13 @@ it("shows the days since the last download after a reload", async () => {
     // Only whole 24-hour periods count.
     vi.setSystemTime(new Date("2026-11-15T09:59:00.000Z"));
     const second = render(<App />);
+    openCards();
     await screen.findByText("Days since the last download: 2");
     second.unmount();
 
     vi.setSystemTime(new Date("2026-11-15T10:00:00.000Z"));
     render(<App />);
+    openCards();
     await screen.findByText("Days since the last download: 3");
   } finally {
     vi.useRealTimers();
@@ -1153,6 +1157,7 @@ it.each(["Download Cards", "Download Review log"])(
     try {
       render(<App />);
       await uploaded(qa("a", 1));
+      openCards();
       blockStorage();
 
       fireEvent.click(screen.getByRole("button", { name: button }));
@@ -1184,7 +1189,6 @@ it("a Deck upload that finishes after a newer Review log upload keeps the Review
   finishReading();
 
   await expectListed(qa("a", 1));
-  goHome();
   expect(screen.getByText(/1 added, 0 skipped/)).toBeTruthy();
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
@@ -1345,7 +1349,7 @@ it("labels the language select Language and the start button Start Session in En
   expect(screen.getByRole("button", { name: "Start Session" })).toBeTruthy();
 });
 
-it("shows the start page in German once Deutsch is picked", async () => {
+it("shows the start page and the Files panel in German once Deutsch is picked", async () => {
   render(<App />);
   await uploaded(qa("a", 1));
 
@@ -1355,12 +1359,13 @@ it("shows the start page in German once Deutsch is picked", async () => {
   expect(screen.getByLabelText("Karten")).toBeTruthy();
   const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
   expect(tag.options[0].text).toBe("Alle Tags");
-  for (const name of [
-    "Sitzung starten",
-    "Statistik",
-    "Karten herunterladen",
-    "Lernprotokoll herunterladen",
-  ]) {
+  for (const name of ["Sitzung starten", "Statistik"]) {
+    expect(home().getByRole("button", { name })).toBeTruthy();
+  }
+  goTo("Karten");
+  expect(screen.getByText("Sicherung")).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 2, name: "Dateien" })).toBeTruthy();
+  for (const name of ["Karten herunterladen", "Lernprotokoll herunterladen"]) {
     expect(home().getByRole("button", { name })).toBeTruthy();
   }
   expect(screen.getByLabelText("Deck hochladen")).toBeTruthy();
@@ -1580,6 +1585,7 @@ it("with a German browser language and nothing picked, the UI text is German", (
     const deck = JSON.stringify({ cards: [qa("a", 1)] });
     pick(new File([deck], "deck.json", { type: "application/json" }), "Deck hochladen");
     await screen.findByText("1 hinzugefügt, 0 aktualisiert, 0 unverändert");
+    goHome();
 
     expect(screen.getByLabelText("Sprache")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
@@ -1594,6 +1600,7 @@ it("after a reload, the UI text is in the picked language, not the browser langu
   render(<App />);
 
   await screen.findByLabelText("Sprache");
+  openCards();
   expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
 });
 
@@ -1668,7 +1675,7 @@ it("the Cards page shows the Library heading and the Card count, and no placehol
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
 });
 
-it("Home shows neither the Card list nor Delete all Cards", async () => {
+it("Home shows neither the Card list, Delete all Cards nor the Files panel", async () => {
   render(<App />);
   await uploaded(qa("a", 1));
 
@@ -1677,6 +1684,12 @@ it("Home shows neither the Card list nor Delete all Cards", async () => {
   expect(screen.queryByRole("button", { name: "Delete all Cards" })).toBeNull();
   expect(screen.queryByText("a")).toBeNull();
   expect(screen.queryByText("What is a?")).toBeNull();
+  expect(screen.queryByLabelText("Upload Deck")).toBeNull();
+  expect(screen.queryByLabelText("Upload Review log")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Download Cards" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Download Review log" })).toBeNull();
+  expect(screen.queryByText("No download yet")).toBeNull();
+  expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
 
 it("shows the navigation and a placeholder in German", () => {
