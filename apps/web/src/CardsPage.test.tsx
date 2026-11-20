@@ -133,6 +133,44 @@ it("in German, a row shows the German question, and English where there is no Ge
   expect(screen.getByRole("button", { name: "q löschen" }).textContent).toBe("Löschen");
 });
 
+it.each([
+  {
+    type: "multiple_choice",
+    card: german(multipleChoice("a", 1), { question: "Welches ist a?" }),
+    title: "Welches ist a?",
+  },
+  {
+    type: "numeric",
+    card: german(numeric("a", 1), { question: "Wie viel ist a?" }),
+    title: "Wie viel ist a?",
+  },
+  {
+    type: "formula",
+    card: german(formula("a", 1), { name: "Die a-Formel" }),
+    title: "Die a-Formel",
+  },
+  {
+    type: "true_false",
+    card: german(trueFalse("a", 1), { statement: "a ist wahr." }),
+    title: "a ist wahr.",
+  },
+  {
+    type: "cloze",
+    card: german(cloze("a", 1), { text: "a hat eine {{Lücke}}." }),
+    title: "a hat eine ____.",
+  },
+])("in German, a translated $type row shows its German text", ({ card, title }) => {
+  renderCardsPage([card], "de");
+
+  expect(shownTexts(rows()[0])[0]).toBe(title);
+});
+
+it("a cloze row blanks every gap", () => {
+  renderCardsPage([cloze("a", 1, "{{A}} tree splits on {{features}}.")]);
+
+  expect(shownTexts(rows()[0])[0]).toBe("____ tree splits on ____.");
+});
+
 it("Delete on a row deletes that Card", () => {
   const { onDelete, onDeleteAll } = renderCardsPage([qa("a", 1), qa("b", 1)]);
 
