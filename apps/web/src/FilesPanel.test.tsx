@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { TUploadReport } from "./deck";
 import { FilesPanel } from "./FilesPanel";
@@ -18,23 +18,22 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-/** Renders the Files panel with this report and last download in this language and returns its callback mocks and unmount. */
+/** Renders the Files panel with this report and last download in this language. App's tests cover what the buttons do. */
 function renderFilesPanel(
   props: { report?: TUploadReport | TReviewLogReport; lastDownload?: string } = {},
   language: TLanguage = "en",
 ) {
-  const callbacks = {
-    onUploadDeck: vi.fn(),
-    onUploadReviewLog: vi.fn(),
-    onDownloadCards: vi.fn(),
-    onDownloadReviewLog: vi.fn(),
-  };
-  const { unmount } = render(
+  return render(
     <LanguageContext.Provider value={language}>
-      <FilesPanel {...props} {...callbacks} />
+      <FilesPanel
+        {...props}
+        onUploadDeck={vi.fn()}
+        onUploadReviewLog={vi.fn()}
+        onDownloadCards={vi.fn()}
+        onDownloadReviewLog={vi.fn()}
+      />
     </LanguageContext.Provider>,
   );
-  return { ...callbacks, unmount };
 }
 
 /** The last download this long before now, as App stores it. */
@@ -71,34 +70,6 @@ it("shows the Files panel in German", () => {
   expect(screen.getByRole("button", { name: "Karten herunterladen" })).toBeTruthy();
   expect(screen.getByRole("button", { name: "Lernprotokoll herunterladen" })).toBeTruthy();
   expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
-});
-
-it("Upload Deck and Upload Review log each pass the picked file's change to their own callback", () => {
-  const callbacks = renderFilesPanel();
-  const deck = screen.getByLabelText("Upload Deck");
-  const reviewLog = screen.getByLabelText("Upload Review log");
-
-  fireEvent.change(deck);
-  expect(callbacks.onUploadDeck).toHaveBeenCalledOnce();
-  expect(callbacks.onUploadDeck.mock.calls[0][0].target).toBe(deck);
-  expect(callbacks.onUploadReviewLog).not.toHaveBeenCalled();
-
-  fireEvent.change(reviewLog);
-  expect(callbacks.onUploadReviewLog).toHaveBeenCalledOnce();
-  expect(callbacks.onUploadReviewLog.mock.calls[0][0].target).toBe(reviewLog);
-  expect(callbacks.onUploadDeck).toHaveBeenCalledOnce();
-});
-
-it("Download Cards and Download Review log each call their own callback", () => {
-  const callbacks = renderFilesPanel();
-
-  fireEvent.click(screen.getByRole("button", { name: "Download Cards" }));
-  expect(callbacks.onDownloadCards).toHaveBeenCalledOnce();
-  expect(callbacks.onDownloadReviewLog).not.toHaveBeenCalled();
-
-  fireEvent.click(screen.getByRole("button", { name: "Download Review log" }));
-  expect(callbacks.onDownloadReviewLog).toHaveBeenCalledOnce();
-  expect(callbacks.onDownloadCards).toHaveBeenCalledOnce();
 });
 
 it.each([
