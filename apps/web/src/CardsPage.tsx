@@ -1,6 +1,6 @@
 import type { TCard } from "@flashcards/cards";
 import { Trash2 } from "lucide-react";
-import { useContext, useState } from "react";
+import { useContext, useState, type ReactNode } from "react";
 import { Alert } from "./Alert";
 import { cardTitle } from "./CardView";
 import { EmptyState } from "./EmptyState";
@@ -8,11 +8,12 @@ import { LanguageContext, useText } from "./language.context";
 import { Modal } from "./Modal";
 import { PageHeading } from "./PageHeading";
 
-/** The Cards page: the Library heading, then a panel with the Card count, one row per Card (question or name in the current language, ID, type, all tags, Delete) and Delete all, which asks in a modal first and closes it before deleting. With no Cards the panel shows the empty state. App owns the Cards and does the deleting. */
+/** The Cards page: the Library heading, then a panel with the Card count, one row per Card (question or name in the current language, ID, type, all tags, Delete) and Delete all, which asks in a modal first and closes it before deleting. With no Cards the panel shows the empty state. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting. */
 export function CardsPage(props: {
   cards: TCard[];
   onDelete: (id: string) => void;
   onDeleteAll: () => void;
+  children?: ReactNode;
 }) {
   const text = useText();
   const language = useContext(LanguageContext);
@@ -70,6 +71,7 @@ export function CardsPage(props: {
             {text.deleteAllCards}
           </button>
         </section>
+        {props.children}
       </div>
       {confirmingDelete && (
         <Modal title={text.deleteAllCardsTitle} onClose={() => setConfirmingDelete(false)}>

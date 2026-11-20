@@ -33,6 +33,9 @@ const en = {
   daysSinceDownload: (days: number) => `Days since the last download: ${days}`,
   noDownloadYet: "No download yet",
   fileRejected: "File rejected",
+  uploadResult: "Upload result",
+  backup: "Backup",
+  files: "Files",
   deckSummary: (added: number, updated: number, unchanged: number) =>
     `${added} added, ${updated} updated, ${unchanged} unchanged`,
   reviewLogSummary: (added: number, skipped: number) => `${added} added, ${skipped} skipped`,
@@ -106,6 +109,9 @@ const de: TUiText = {
   daysSinceDownload: (days) => `Tage seit dem letzten Herunterladen: ${days}`,
   noDownloadYet: "Noch nichts heruntergeladen",
   fileRejected: "Datei abgelehnt",
+  uploadResult: "Ergebnis des Hochladens",
+  backup: "Sicherung",
+  files: "Dateien",
   deckSummary: (added, updated, unchanged) =>
     `${added} hinzugefügt, ${updated} aktualisiert, ${unchanged} unverändert`,
   reviewLogSummary: (added, skipped) => `${added} hinzugefügt, ${skipped} übersprungen`,

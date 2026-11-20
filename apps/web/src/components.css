@@ -485,7 +485,17 @@
   color: var(--color-accent-700);
 }
 
-.form-grid {
+.section-heading.compact {
+  margin-bottom: var(--space-5);
+}
+
+.section-icon.neutral {
+  background: var(--color-surface-muted);
+  color: var(--color-ink-700);
+}
+
+.form-grid,
+.file-grid {
   display: grid;
   gap: var(--space-4);
   margin-bottom: var(--space-5);
@@ -533,8 +543,16 @@
     font-size: var(--font-size-3xl);
   }
 
-  .form-grid {
+  .form-grid,
+  .file-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* The prototype's `minmax(18rem, 0.7fr)` is left out: a raw value with no token. The Files column is about 343px wide at 1280px, so only widths up to about 1000px get a narrower column. */
+  .cards-layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 0.7fr);
+    align-items: start;
+    gap: var(--space-6);
   }
 }
 
@@ -551,10 +569,33 @@
   margin-bottom: var(--space-4);
 }
 
-/* The prototype's desktop columns, `minmax(18rem, 0.7fr)`, are left out: a raw value with no token, and the list spans the full width until the second column has content (#71). */
 .cards-layout {
   display: grid;
   gap: var(--space-5);
+}
+
+.backup-panel .file-grid {
+  margin-bottom: var(--space-4);
+}
+
+.file-grid.single-column {
+  grid-template-columns: 1fr;
+}
+
+.backup-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-line-100);
+  color: var(--color-success-700);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* The prototype has no warning style; the warning tokens exist and nothing else uses them. */
+.backup-note.warning {
+  color: var(--color-warning-700);
 }
 
 .library-panel {
