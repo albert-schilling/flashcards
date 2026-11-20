@@ -427,6 +427,18 @@ it("when the last Card with the picked tag goes, the Tag goes back to Any tag an
   expect(screen.getByText("2 of 2 Cards")).toBeTruthy();
 });
 
+it("the search stays when the Cards change, so deleting the only match shows the no-match state", () => {
+  const { rerender } = renderCardsPage([qa("a", 1), qa("b", 1)]);
+  search("b");
+  expect(listedIds()).toEqual(["b"]);
+
+  rerender([qa("a", 1)]);
+
+  expect(screen.getByRole<HTMLInputElement>("searchbox", { name: "Search Cards" }).value).toBe("b");
+  expect(screen.getByText("0 of 1 Card")).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 3, name: "No matching Cards" })).toBeTruthy();
+});
+
 it.each([
   { count: "1 of 3 Cards", cards: [qa("a", 1), qa("b", 1), qa("c", 1)], query: "b" },
   { count: "1 of 2 Cards", cards: [qa("a", 1), qa("b", 1)], query: "b" },

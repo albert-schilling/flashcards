@@ -1690,6 +1690,29 @@ it("the Cards page shows the Library heading and the Card count, and no placehol
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
 });
 
+it("the Cards page search, Type and Tag reset when the Learner leaves the page and comes back", async () => {
+  render(<App />);
+  await uploaded(
+    tagged(qa("a", 1), ["Statistics"], ["Regression"]),
+    tagged(formula("b", 1), ["Machine Learning"], ["Decision Tree"]),
+  );
+  openCards();
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search Cards" }), {
+    target: { value: "b" },
+  });
+  fireEvent.change(screen.getByLabelText("Type"), { target: { value: "formula" } });
+  fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "Decision Tree" } });
+  expect(screen.getByText("1 of 2 Cards")).toBeTruthy();
+
+  goHome();
+  openCards();
+
+  expect(screen.getByRole<HTMLInputElement>("searchbox", { name: "Search Cards" }).value).toBe("");
+  expect(screen.getByLabelText<HTMLSelectElement>("Type").value).toBe("");
+  expect(screen.getByLabelText<HTMLSelectElement>("Tag").value).toBe("");
+  expect(screen.getByText("2 of 2 Cards")).toBeTruthy();
+});
+
 it("Home shows neither the Card list, Delete all Cards nor the Files panel", async () => {
   render(<App />);
   await uploaded(qa("a", 1));
