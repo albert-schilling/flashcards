@@ -611,6 +611,16 @@ it("the row holding focus stays in the list, in its place, when the list scrolls
   expect(listedIds()).toEqual(["card-3", ...ids(498, 508)]);
 });
 
+it("when focus moves to another row, that row stays in the list instead", () => {
+  renderCardsPage(thousand);
+  deleteButton("card-3").focus();
+  deleteButton("card-4").focus();
+
+  scrollToRow(500);
+
+  expect(listedIds()).toEqual(["card-4", ...ids(498, 508)]);
+});
+
 it("once focus leaves it, a row far from the view goes from the list", () => {
   renderCardsPage(thousand);
   deleteButton("card-3").focus();
