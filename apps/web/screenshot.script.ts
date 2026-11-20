@@ -265,6 +265,8 @@ const flows: Record<string, TFlow> = {
     if (place(focusedId) !== place(startId) + 8) {
       throw new Error(`windowed flow: Tab went from ${startId} to ${focusedId}, not 8 rows on`);
     }
+    // Focus also scrolled the page; a full-page shot would paint the sticky header over the list.
+    await page.evaluate(() => window.scrollTo(0, 0));
     await shot("focus");
     await box.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
