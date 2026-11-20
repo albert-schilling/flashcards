@@ -83,6 +83,71 @@ function isCommentedBreakpoint(before: string, lines: string[]): boolean {
   );
 }
 
+// Each selector of each rule, in file order, and whether the rule sits inside @media.
+function rulesInOrder(css: string): { selector: string; inMedia: boolean; at: number }[] {
+  const code = withoutComments(css);
+  const rules: { selector: string; inMedia: boolean; at: number }[] = [];
+  let depth = 0;
+  let start = 0;
+  let mediaDepth = -1;
+  for (let at = 0; at < code.length; at++) {
+    const char = code[at];
+    if (char === "{") {
+      const prelude = code.slice(start, at).trim();
+      if (prelude.startsWith("@media")) mediaDepth = depth;
+      else if (!prelude.startsWith("@")) {
+        for (const selector of prelude.split(",")) {
+          rules.push({
+            selector: selector.trim().replace(/\s+/g, " "),
+            inMedia: mediaDepth >= 0,
+            at,
+          });
+        }
+      }
+      depth++;
+      start = at + 1;
+    } else if (char === "}") {
+      depth--;
+      if (depth === mediaDepth) mediaDepth = -1;
+      start = at + 1;
+    } else if (char === ";") {
+      start = at + 1;
+    }
+  }
+  return rules;
+}
+
+// A media rule and a base rule with the same selector have the same specificity, so the later one wins:
+// a media rule above its base rule loses every property the base rule also sets.
+function mediaRulesBeforeBase(css: string): string[] {
+  const rules = rulesInOrder(css);
+  return rules
+    .filter(
+      (media) =>
+        media.inMedia &&
+        rules.some(
+          (base) => !base.inMedia && base.selector === media.selector && base.at > media.at,
+        ),
+    )
+    .map((media) => media.selector);
+}
+
+describe("mediaRulesBeforeBase", () => {
+  it("finds a media rule that comes before the base rule of its selector", () => {
+    expect(
+      mediaRulesBeforeBase("@media (min-width: 1px) { .a, .b { gap: 1px; } } .a { gap: 2px; }"),
+    ).toEqual([".a"]);
+  });
+
+  it("accepts a media rule after its base rule, and one with no base rule", () => {
+    expect(
+      mediaRulesBeforeBase(
+        ".a { gap: 2px; } @media (min-width: 1px) { .a { gap: 1px; } .c { gap: 1px; } }",
+      ),
+    ).toEqual([]);
+  });
+});
+
 describe("rawValues", () => {
   it("accepts an integer z-index, which has no token", () => {
     expect(rawValues(".a { z-index: 20; }")).toEqual([]);
@@ -125,6 +190,10 @@ describe("design tokens", () => {
 describe.each(styleSheets)("%s", (name) => {
   it("uses no colour or size except through tokens", () => {
     expect(rawValues(read(`./${name}`))).toEqual([]);
+  });
+
+  it("puts each media rule after the base rule of its selector", () => {
+    expect(mediaRulesBeforeBase(read(`./${name}`))).toEqual([]);
   });
 
   it("uses only tokens that tokens.css defines", () => {

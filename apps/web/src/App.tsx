@@ -5,7 +5,7 @@ import { downloadReviewLog, uploadReviewLog, type TReviewLogReport } from "./rev
 import { browserLanguage, LanguageContext, type TLanguage } from "./language.context";
 import { Alert } from "./Alert";
 import { CardsPage } from "./CardsPage";
-import { FileButton } from "./FileButton";
+import { FilesPanel } from "./FilesPanel";
 import { Header, type TPage } from "./Header";
 import { Home } from "./Home";
 import { Select } from "./Select";
@@ -22,16 +22,7 @@ import {
   saveLanguage,
   type TReview,
 } from "./storage";
-import { uiText, type TUiText } from "./ui.text";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function summary(report: TUploadReport | TReviewLogReport, text: TUiText): string {
-  if (!report.ok) return text.fileRejected;
-  return "skipped" in report
-    ? text.reviewLogSummary(report.added, report.skipped)
-    : text.deckSummary(report.added, report.updated, report.unchanged);
-}
+import { uiText } from "./ui.text";
 
 export function App() {
   const [cards, setCards] = useState<TCard[]>([]);
@@ -180,7 +171,18 @@ export function App() {
             cards={cards}
             onDelete={(id) => void remove(() => deleteCard(id))}
             onDeleteAll={() => void remove(clearCards)}
-          />
+          >
+            <FilesPanel
+              report={report}
+              lastDownload={lastDownload}
+              onUploadDeck={(event) => upload(event, uploadDeck)}
+              onUploadReviewLog={(event) => upload(event, uploadReviewLog)}
+              onDownloadCards={() => download(downloadDeck)}
+              onDownloadReviewLog={() =>
+                download(async () => setLastDownload(await downloadReviewLog()))
+              }
+            />
+          </CardsPage>
         )}
         {page === "settings" && placeholder}
         {page === "statistics" && reviews && (
@@ -217,50 +219,6 @@ export function App() {
                 <option value="de">Deutsch</option>
               </Select>
             </label>
-            <p>
-              <FileButton
-                label={text.uploadDeck}
-                accept=".json,application/json"
-                onChange={(event) => upload(event, uploadDeck)}
-              />{" "}
-              <FileButton
-                label={text.uploadReviewLog}
-                accept=".json,application/json"
-                onChange={(event) => upload(event, uploadReviewLog)}
-              />
-            </p>
-            <p>
-              <button className="button ghost" onClick={() => download(downloadDeck)}>
-                {text.downloadCards}
-              </button>{" "}
-              <button
-                className="button ghost"
-                onClick={() => download(async () => setLastDownload(await downloadReviewLog()))}
-              >
-                {text.downloadReviewLog}
-              </button>
-            </p>
-            <p>
-              {lastDownload
-                ? text.daysSinceDownload(
-                    Math.floor((Date.now() - Date.parse(lastDownload)) / DAY_MS),
-                  )
-                : text.noDownloadYet}
-            </p>
-            {report && (
-              <Alert tone={report.ok ? "success" : "danger"}>
-                <p>{summary(report, text)}</p>
-                <ul>
-                  {("errors" in report ? report.errors : []).map((fileError, i) => (
-                    <li key={i}>
-                      {[fileError.where, fileError.field, fileError.message]
-                        .filter(Boolean)
-                        .join(": ")}
-                    </li>
-                  ))}
-                </ul>
-              </Alert>
-            )}
           </>
         )}
       </main>

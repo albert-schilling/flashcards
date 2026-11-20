@@ -12,11 +12,13 @@ const exampleDeck = resolve(root, "../../libs/cards/example-deck.json");
 // A flow drives the app from an empty browser, as the Learner would, and calls shot() once per PNG.
 type TFlow = (page: Page, shot: (name: string) => Promise<void>) => Promise<void>;
 
-// Uploads libs/cards/example-deck.json, from the start page, and waits for the upload summary.
+// Uploads libs/cards/example-deck.json on the Cards page, waits for the upload summary and returns to the start page, where the caller started.
 // Names are matched with `exact`, because Playwright matches substrings and "Gewusst" is inside "Nicht gewusst".
 async function uploadExampleDeck(page: Page, text: TUiText = uiText.en): Promise<void> {
+  await goTo(page, text.cards, text);
   await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles(exampleDeck);
   await page.getByText(text.deckSummary(6, 0, 0), { exact: true }).waitFor();
+  await goTo(page, text.home, text);
 }
 
 // A missing font file falls back silently to system-ui, so a flow fails instead of shooting the wrong font.
@@ -99,7 +101,8 @@ async function showControls(page: Page, shot: (name: string) => Promise<void>): 
   // Tab from the page start reaches the header brand first, so focus the Language select directly.
   await page.getByLabel(text.language).focus();
   await shot("field-focus");
-  // A file that isn't a Deck is rejected and shows the danger alert.
+  // A file that isn't a Deck is rejected and shows the danger alert in the Files panel.
+  await goTo(page, text.cards);
   await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles({
     name: "broken.json",
     mimeType: "application/json",
@@ -114,17 +117,17 @@ async function showControls(page: Page, shot: (name: string) => Promise<void>): 
 }
 
 // The link to a page in the navigation; on phones it is hidden until the menu opens.
-function navLink(page: Page, name: string): Locator {
+function navLink(page: Page, name: string, text: TUiText = uiText.en): Locator {
   return page
-    .getByRole("navigation", { name: uiText.en.pages, exact: true })
+    .getByRole("navigation", { name: text.pages, exact: true })
     .getByRole("button", { name, exact: true });
 }
 
 // Goes to a page through the navigation; on phones the menu opens first, as the Learner would.
-async function goTo(page: Page, name: string): Promise<void> {
-  const menu = page.getByRole("button", { name: uiText.en.openNavigation, exact: true });
+async function goTo(page: Page, name: string, text: TUiText = uiText.en): Promise<void> {
+  const menu = page.getByRole("button", { name: text.openNavigation, exact: true });
   if (await menu.isVisible()) await menu.click();
-  await navLink(page, name).click();
+  await navLink(page, name, text).click();
 }
 
 // Shows the menu, then each page the navigation reaches, Back on Statistics and the brand.
@@ -177,6 +180,9 @@ const flows: Record<string, TFlow> = {
     await goTo(page, text.cards);
     await page.getByText(text.cardCount(6), { exact: true }).waitFor();
     await shot("card-list");
+    await page.getByRole("button", { name: text.downloadReviewLog, exact: true }).click();
+    await page.getByText(text.daysSinceDownload(0), { exact: true }).waitFor();
+    await shot("downloaded");
     await page
       .getByRole("button", { name: /^Delete (?!all)/ })
       .first()
