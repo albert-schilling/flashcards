@@ -178,7 +178,7 @@ const flows: Record<string, TFlow> = {
     const text = uiText.en;
     await uploadExampleDeck(page);
     await goTo(page, text.cards);
-    await page.getByText(text.cardCount(6), { exact: true }).waitFor();
+    await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
     await shot("card-list");
     await page.getByRole("button", { name: text.downloadReviewLog, exact: true }).click();
     await page.getByText(text.daysSinceDownload(0), { exact: true }).waitFor();
@@ -187,7 +187,7 @@ const flows: Record<string, TFlow> = {
       .getByRole("button", { name: /^Delete (?!all)/ })
       .first()
       .click();
-    await page.getByText(text.cardCount(5), { exact: true }).waitFor();
+    await page.getByText(text.cardCountOf(5, 5), { exact: true }).waitFor();
     await shot("deleted-one");
     const deleteAll = page.getByRole("button", { name: text.deleteAllCards });
     await deleteAll.click();
@@ -199,6 +199,30 @@ const flows: Record<string, TFlow> = {
     await dialog.getByRole("button", { name: text.deleteAllCards }).click();
     await page.getByText(text.noCardsYet).waitFor();
     await shot("deleted-all");
+  },
+  // Searches by ID, combines Type and Tag, finds nothing, then clears all three.
+  search: async (page, shot) => {
+    const text = uiText.en;
+    await uploadExampleDeck(page);
+    await goTo(page, text.cards);
+    const search = page.getByLabel(text.searchCards, { exact: true });
+    await search.fill("ml.trees.depth");
+    await page.getByText(text.cardCountOf(1, 6), { exact: true }).waitFor();
+    await shot("id");
+    await search.fill("");
+    // Not exact: a select's label name includes its option names.
+    await page.getByLabel(text.type).selectOption("multiple_choice");
+    await page.getByLabel(text.tag).selectOption("Decision Tree");
+    await page.getByText(text.cardCountOf(1, 6), { exact: true }).waitFor();
+    await shot("type-and-tag");
+    await search.fill("zzz");
+    await page.getByText(text.noMatchingCards, { exact: true }).waitFor();
+    await shot("no-match");
+    await search.fill("");
+    await page.getByLabel(text.type).selectOption("");
+    await page.getByLabel(text.tag).selectOption("");
+    await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
+    await shot("cleared");
   },
   answer: answerEveryCard,
   // Picks Deutsch, answers every Card, then shows the start page and Statistics; Cards without a German field show it in English.

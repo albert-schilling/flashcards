@@ -44,6 +44,8 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #75 | The orchestrator pointed the researcher at an issue comment, which the researcher's rules forbid; it answered from the code.       | None: the Factory already says research gets the questions alone.                                |
 | #80 | The implementer put a `@media` rule above the base rule with the same selector, so the base rule won and the desktop gap was lost. | `styles.test.ts` checks that a media rule comes after its base rule; `docs/conventions/code.md`. |
 | #80 | The test writer added Files panel tests that only checked mock calls, which App tests already covered through real uploads.        | `docs/conventions/pull-requests.md`: test the effect, not the mock call.                         |
+| #82 | Planned ~270 lines, came out at 483: tests 326 against 130 planned.                                                                | #19 (size warning).                                                                              |
+| #82 | The implementer took a screenshot without waiting for the filtered list; the spec review caught it.                                | None: every other shot in the script waits for its text.                                         |
 
 ## Factory runs
 
@@ -80,3 +82,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #73 | #69   | medium    | 2 / 5             | 2             | 2              | none                |
 | #75 | #70   | medium    | 3 / 5             | 2             | 2              | none                |
 | #80 | #71   | medium    | 1 / 1             | 2             | 2              | none                |
+| #82 | #51   | medium    | 1 / 2             | 2             | 2              | none                |
