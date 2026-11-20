@@ -1448,7 +1448,7 @@ it("shows a Deck upload in German: the counts, then on Karten the Card list and 
 
   await screen.findByText("1 hinzugefügt, 0 aktualisiert, 0 unverändert");
   goTo("Karten");
-  expect(screen.getByText("1 Karte")).toBeTruthy();
+  expect(screen.getByText("1 von 1 Karte")).toBeTruthy();
   expect(screen.getByText("Was ist q?")).toBeTruthy();
   expect(screen.getByRole("button", { name: "q löschen" }).textContent).toBe("Löschen");
   expect(screen.getByRole("button", { name: "Alle Karten löschen" })).toBeTruthy();
@@ -1684,7 +1684,7 @@ it("the Cards page shows the Library heading and the Card count, and no placehol
   expect(
     screen.getByText("Search, organize, preview, and back up every Card in one place."),
   ).toBeTruthy();
-  expect(screen.getByText("2 Cards")).toBeTruthy();
+  expect(screen.getByText("2 of 2 Cards")).toBeTruthy();
   expect(screen.getByText("What is a?")).toBeTruthy();
   expect(screen.queryByText("This page is not built yet.")).toBeNull();
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
