@@ -593,6 +593,11 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* Not in the prototype: when the note wraps, as in German at 768px, the icon would shrink. */
+.backup-note > svg {
+  flex: 0 0 auto;
+}
+
 /* The prototype has no warning style; the warning tokens exist and nothing else uses them. */
 .backup-note.warning {
   color: var(--color-warning-700);
