@@ -213,6 +213,7 @@ const flows: Record<string, TFlow> = {
     // Not exact: a select's label name includes its option names.
     await page.getByLabel(text.type).selectOption("multiple_choice");
     await page.getByLabel(text.tag).selectOption("Decision Tree");
+    await page.getByText(text.cardCountOf(1, 6), { exact: true }).waitFor();
     await shot("type-and-tag");
     await search.fill("zzz");
     await page.getByText(text.noMatchingCards, { exact: true }).waitFor();
