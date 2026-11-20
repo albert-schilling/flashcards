@@ -118,7 +118,7 @@ function rulesInOrder(css: string): { selector: string; inMedia: boolean; at: nu
 }
 
 // A media rule and a base rule with the same selector have the same specificity, so the later one wins:
-// a media rule above its base rule never applies.
+// a media rule above its base rule loses every property the base rule also sets.
 function mediaRulesBeforeBase(css: string): string[] {
   const rules = rulesInOrder(css);
   return rules
