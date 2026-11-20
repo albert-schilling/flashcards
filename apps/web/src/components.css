@@ -571,7 +571,13 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* The prototype's `height`, `overflow-y` and `scrollbar-gutter` are left out: they belong to its windowed list (#52). */
+.library-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* The prototype's `height`, `overflow-y` and `scrollbar-gutter` are left out: they belong to its windowed list (#52). Only the top border stays; each row draws its own bottom border. */
 .library-list {
   margin: var(--space-0);
   padding: var(--space-0);
