@@ -1,0 +1,82 @@
+import type { TCard } from "@flashcards/cards";
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
+import { useContext, useRef, useState } from "react";
+import { flushSync } from "react-dom";
+import { cardTitle } from "./CardView";
+import { LanguageContext, useText } from "./language.context";
+
+/** The pixel height of one row: the --virtual-row-height token (in rem) times the root font size. */
+function rowHeightOf(): number {
+  const root = getComputedStyle(document.documentElement);
+  return parseFloat(root.getPropertyValue("--virtual-row-height")) * parseFloat(root.fontSize);
+}
+
+/** The Cards page's list of Cards, windowed with TanStack Virtual: a fixed-height box that scrolls, with one fixed-height row per Card (question or name in the current language, ID, type, every tag on one clipped line, Delete). Only the rows in view, three on each side and the row holding focus are in the DOM; the list has the height of every row, so the scrollbar covers all Cards. Rows are keyed by Card ID and in list order, so a focused Delete stays focused while the list scrolls and Tab moves to the next row, which the browser scrolls into view. Give it a new key to scroll back to the top. */
+export function CardList(props: { cards: TCard[]; onDelete: (id: string) => void }) {
+  const text = useText();
+  const language = useContext(LanguageContext);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [rowHeight] = useState(rowHeightOf);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const focusedIndex = props.cards.findIndex((card) => card.id === focusedId);
+  const virtualizer = useVirtualizer({
+    count: props.cards.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => rowHeight,
+    overscan: 3,
+    getItemKey: (index) => props.cards[index].id,
+    // The row holding focus stays mounted, so scrolling far away doesn't drop the focused Delete.
+    rangeExtractor: (range) => {
+      const indexes = defaultRangeExtractor(range);
+      if (focusedIndex < 0 || indexes.includes(focusedIndex)) return indexes;
+      return [...indexes, focusedIndex].sort((a, b) => a - b);
+    },
+  });
+
+  return (
+    <div className="virtual-list" ref={listRef}>
+      <ul
+        className="library-list virtual-spacer"
+        style={{ height: virtualizer.getTotalSize() }}
+        onFocus={(event) => {
+          const id = (event.target as HTMLElement).closest("li")?.dataset.cardId;
+          if (id !== undefined) setFocusedId(id);
+        }}
+        // Flushed at once, so the row far from the view goes as soon as focus leaves it.
+        onBlur={() => flushSync(() => setFocusedId(null))}
+      >
+        {virtualizer.getVirtualItems().map((item) => {
+          const card = props.cards[item.index];
+          return (
+            <li
+              className="library-card-row"
+              key={item.key}
+              data-card-id={card.id}
+              aria-posinset={item.index + 1}
+              aria-setsize={props.cards.length}
+              style={{ transform: `translateY(${item.start}px)` }}
+            >
+              <div className="library-card-copy">
+                <strong>{cardTitle(card, language)}</strong>
+                <span className="card-id">{card.id}</span>
+                <div className="row-tags">
+                  <span>{card.type}</span>
+                  {[...card.tags.domain, ...card.tags.topic].map((tag, i) => (
+                    <span key={i}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+              <button
+                className="button ghost small"
+                aria-label={text.deleteCard(card.id)}
+                onClick={() => props.onDelete(card.id)}
+              >
+                {text.delete}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}

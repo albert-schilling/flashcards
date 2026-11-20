@@ -13,5 +13,7 @@ export default defineConfig({
     environment: "jsdom",
     // jsdom has no IndexedDB; each test starts with an empty fake one.
     setupFiles: ["src/test-setup.ts"],
+    // Vitest turns every CSS file into an empty string, also with ?raw; test-setup reads the tokens as text.
+    css: { include: [/tokens\.css/] },
   },
 });
