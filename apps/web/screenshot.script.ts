@@ -249,7 +249,7 @@ const flows: Record<string, TFlow> = {
     });
     await rows.nth(4).waitFor();
     await shot("middle");
-    // Tab moves focus 8 rows on, and the browser scrolls the focused Delete into view.
+    // Tab moves focus 8 rows on.
     const first = rows.nth(4).getByRole("button");
     await first.focus();
     const startId = await rows.nth(4).getAttribute("data-card-id");
