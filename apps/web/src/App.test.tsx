@@ -1381,7 +1381,7 @@ it("shows the start page and the Files panel in German once Deutsch is picked", 
   expect(screen.getByText("Sicherung")).toBeTruthy();
   expect(screen.getByRole("heading", { level: 2, name: "Dateien" })).toBeTruthy();
   for (const name of ["Karten herunterladen", "Lernprotokoll herunterladen"]) {
-    expect(home().getByRole("button", { name })).toBeTruthy();
+    expect(screen.getByRole("button", { name })).toBeTruthy();
   }
   expect(screen.getByLabelText("Deck hochladen")).toBeTruthy();
   expect(screen.getByLabelText("Lernprotokoll hochladen")).toBeTruthy();
