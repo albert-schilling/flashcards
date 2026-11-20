@@ -629,7 +629,9 @@
   margin-top: var(--space-2);
 }
 
+/* Not in the prototype: `overflow-wrap` breaks a tag longer than the row, so it can't run under Delete. */
 .row-tags span {
+  overflow-wrap: anywhere;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-pill);
   background: var(--color-surface-muted);
