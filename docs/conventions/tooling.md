@@ -17,8 +17,6 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 
 ## Gotchas
 
-- The shell is zsh: quote globs in arguments, as in `grep -rn foo --include='*.tsx'`, or zsh fails with "no matches found".
-
 <!-- Tool behaviour that surprised an agent or a person, one line each, with what to do instead. -->
 
 - No corepack here: pnpm is pinned by `packageManager` in `package.json`; install that version yourself.
@@ -33,3 +31,4 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 - In a worktree under `.claude/worktrees/`, the guard refuses a shell command it can't prove stays in the worktree: a loop, `$(…)` or heredoc whose text mentions `git` anywhere (a `github.com` URL counts), and heredoc appends or multi-line `sed` that write files. A plain command, or a short `&&` chain, still runs. Run git as plain separate commands, put scripts in files, and edit files with Edit/Write.
 - An inherited `NX_WORKSPACE_ROOT_PATH` points Nx at another checkout: `validate.sh` resets it, but a direct `pnpm exec nx …` in a worktree needs `NX_WORKSPACE_ROOT_PATH=$PWD` in front.
 - One test file: `NX_WORKSPACE_ROOT_PATH=$PWD pnpm --filter @flashcards/web exec vitest run src/<file>` (paths relative to the project; `@flashcards/cards` for `libs/cards`).
+- The shell is zsh: quote globs in arguments, as in `grep -rn foo --include='*.tsx'`, or zsh fails with "no matches found".
