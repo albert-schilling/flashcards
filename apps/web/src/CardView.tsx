@@ -4,6 +4,7 @@ import { CardChoice } from "./CardChoice";
 import { CardNumeric } from "./CardNumeric";
 import { CardReveal } from "./CardReveal";
 import { LanguageContext, useText, type TLanguage } from "./language.context";
+import { uiText } from "./ui.text";
 
 // A cloze gap, `{{word}}`; the group is the word that fills it.
 const gap = /\{\{(.+?)\}\}/g;
@@ -37,7 +38,28 @@ export function cardTitle(card: TCard, language: TLanguage): string {
   }
 }
 
-// With cardTitle above, the one place Card text is chosen.
+/** What the Card preview shows as a Card's answer in this language, one line each, as a Session reveals it: the answer (qa); the word formula, the formula and the example if any (formula); the text with its gaps filled (cloze); the right option, then the explanation (multiple_choice); True or False (true_false); the answer and its unit (numeric). */
+export function cardAnswer(card: TCard, language: TLanguage): string[] {
+  const shown = inLanguage(card, language);
+  switch (shown.type) {
+    case "qa":
+      return [shown.en.answer];
+    case "formula":
+      return shown.en.example
+        ? [shown.en.wordFormula, shown.formula, shown.en.example]
+        : [shown.en.wordFormula, shown.formula];
+    case "cloze":
+      return [shown.en.text.replaceAll(gap, "$1")];
+    case "multiple_choice":
+      return [shown.en.options[shown.answerIndex], shown.en.explanation];
+    case "true_false":
+      return [shown.answer ? uiText[language].true : uiText[language].false];
+    case "numeric":
+      return [shown.unit ? `${shown.answer} ${shown.unit}` : String(shown.answer)];
+  }
+}
+
+// With cardTitle and cardAnswer above, the one place Card text is chosen.
 export function CardView(props: {
   card: TCard;
   onAnswer: (right: boolean) => void;
