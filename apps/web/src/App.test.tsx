@@ -1261,6 +1261,17 @@ function languageSelect() {
   return screen.getByLabelText<HTMLSelectElement>(/^(Language|Sprache)$/);
 }
 
+function openSettings() {
+  goTo(/^(Settings|Einstellungen)$/);
+}
+
+/** Picks the language on Settings, then goes Home. */
+function pickLanguage(language: string) {
+  openSettings();
+  fireEvent.change(languageSelect(), { target: { value: language } });
+  goHome();
+}
+
 it.each([
   ["de-DE", "de"],
   ["de", "de"],
@@ -1270,6 +1281,7 @@ it.each([
 ])("with browser language %s, the language is %s until the Learner picks one", (browser, shown) =>
   withBrowserLanguage(browser, async () => {
     render(<App />);
+    openSettings();
 
     expect(Array.from(languageSelect().options, (option) => option.text)).toEqual([
       "English",
@@ -1283,11 +1295,12 @@ it("the picked language survives a reload and wins over the browser language", (
   withBrowserLanguage("de-DE", async () => {
     const { unmount } = render(<App />);
 
-    fireEvent.change(languageSelect(), { target: { value: "en" } });
+    pickLanguage("en");
 
     await waitFor(async () => expect(await loadLanguage()).toBe("en"));
     unmount();
     render(<App />);
+    openSettings();
     await waitFor(() => expect(languageSelect().value).toBe("en"));
   }));
 
@@ -1352,7 +1365,7 @@ it.each([
 ])("shows the Card text in the picked language, field by field ($case)", async (c) => {
   render(<App />);
   await uploaded(c.card);
-  fireEvent.change(languageSelect(), { target: { value: c.language } });
+  pickLanguage(c.language);
 
   startSession();
 
@@ -1366,6 +1379,7 @@ it("shows an error when the picked language can't be saved, and the language sti
   render(<App />);
   await uploaded(german(qa("q", 1), { question: "Was ist q?" }));
   blockStorage();
+  openSettings();
 
   fireEvent.change(languageSelect(), { target: { value: "de" } });
 
@@ -1373,6 +1387,7 @@ it("shows an error when the picked language can't be saved, and the language sti
   expect(languageSelect().value).toBe("de");
   // Storage works again, so the Session can load the Review log.
   globalThis.indexedDB = new IDBFactory();
+  goHome();
   startSession();
   await screen.findByText("Was ist q?");
 });
@@ -1381,6 +1396,7 @@ it("clears the error once the picked language is saved", async () => {
   render(<App />);
   await uploaded(qa("q", 1));
   blockStorage();
+  openSettings();
   fireEvent.change(languageSelect(), { target: { value: "de" } });
   await screen.findByRole("alert");
   globalThis.indexedDB = new IDBFactory();
@@ -1391,7 +1407,7 @@ it("clears the error once the picked language is saved", async () => {
 });
 
 function pickGerman() {
-  fireEvent.change(languageSelect(), { target: { value: "de" } });
+  pickLanguage("de");
 }
 
 // languageSelect() and startButton() match both languages, so this pins the English names.
@@ -1399,8 +1415,19 @@ it("labels the language select Language and the start button Start Session in En
   render(<App />);
   await uploaded(qa("a", 1));
 
-  expect(screen.getByLabelText("Language")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Start Session" })).toBeTruthy();
+  openSettings();
+  expect(screen.getByLabelText("Language")).toBeTruthy();
+});
+
+it("Home shows no Language select, with no Cards and after an upload", async () => {
+  render(<App />);
+  expect(screen.queryByLabelText(/^(Language|Sprache)$/)).toBeNull();
+
+  await uploaded(qa("a", 1));
+
+  expect(isCurrent("Home")).toBe(true);
+  expect(screen.queryByLabelText(/^(Language|Sprache)$/)).toBeNull();
 });
 
 it("shows the start page and the Files panel in German once Deutsch is picked", async () => {
@@ -1409,7 +1436,6 @@ it("shows the start page and the Files panel in German once Deutsch is picked", 
 
   pickGerman();
 
-  expect(screen.getByLabelText("Sprache")).toBeTruthy();
   expect(screen.getByLabelText("Karten")).toBeTruthy();
   const tag = screen.getByLabelText<HTMLSelectElement>("Tag");
   expect(tag.options[0].text).toBe("Alle Tags");
@@ -1641,8 +1667,9 @@ it("with a German browser language and nothing picked, the UI text is German", (
     await screen.findByText("1 hinzugefügt, 0 aktualisiert, 0 unverändert");
     goHome();
 
-    expect(screen.getByLabelText("Sprache")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
+    openSettings();
+    expect(screen.getByLabelText("Sprache")).toBeTruthy();
   }));
 
 it("after a reload, the UI text is in the picked language, not the browser language", async () => {
@@ -1653,7 +1680,7 @@ it("after a reload, the UI text is in the picked language, not the browser langu
 
   render(<App />);
 
-  await screen.findByLabelText("Sprache");
+  await screen.findByText("Willkommen zurück");
   openCards();
   expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
 });
@@ -1700,18 +1727,26 @@ it("the navigation marks Home at the start, and Statistics once it shows", async
   expect(isCurrent("Home")).toBe(false);
 });
 
-it("Settings shows a placeholder until its page is built", () => {
+it("Settings shows its heading and the Interface panel with the Language select", () => {
   render(<App />);
 
   goTo("Settings");
 
-  expect(screen.getByText("This page is not built yet.")).toBeTruthy();
   expect(isCurrent("Settings")).toBe(true);
+  expect(levelOneHeadings()).toEqual(["Settings"]);
+  expect(screen.getByText("Language settings")).toBeTruthy();
+  expect(screen.getByText("Choose how Flashcards appears in this browser.")).toBeTruthy();
+  expect(screen.getByText("Interface")).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 2, name: "Language" })).toBeTruthy();
+  expect(Array.from(languageSelect().options, (option) => option.text)).toEqual([
+    "English",
+    "Deutsch",
+  ]);
+  expect(screen.getByText("The interface and Card texts update immediately.")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
-  expect(screen.getByRole("heading", { name: "Flashcards" })).toBeTruthy();
 });
 
-it("the Cards page shows the Library heading and the Card count, and no placeholder", async () => {
+it("the Cards page shows the Library heading and the Card count", async () => {
   render(<App />);
   await uploaded(qa("a", 1), qa("b", 1));
 
@@ -1725,7 +1760,6 @@ it("the Cards page shows the Library heading and the Card count, and no placehol
   ).toBeTruthy();
   expect(screen.getByText("2 of 2 Cards")).toBeTruthy();
   expect(screen.getByText("What is a?")).toBeTruthy();
-  expect(screen.queryByText("This page is not built yet.")).toBeNull();
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
 });
 
@@ -1769,18 +1803,25 @@ it("Home shows neither the Card list, Delete all Cards nor the Files panel", asy
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
 
-it("shows the navigation and a placeholder in German", () => {
+it("picking Deutsch on Settings shows Settings and the navigation in German at once", () => {
   render(<App />);
-  pickGerman();
+  openSettings();
 
+  fireEvent.change(languageSelect(), { target: { value: "de" } });
+
+  expect(isCurrent("Einstellungen")).toBe(true);
+  expect(levelOneHeadings()).toEqual(["Einstellungen"]);
+  expect(screen.getByText("Spracheinstellungen")).toBeTruthy();
+  expect(screen.getByText("Wähle, wie Flashcards in diesem Browser aussieht.")).toBeTruthy();
+  expect(screen.getByText("Oberfläche")).toBeTruthy();
+  expect(screen.getByRole("heading", { level: 2, name: "Sprache" })).toBeTruthy();
+  expect(screen.getByLabelText<HTMLSelectElement>("Sprache").value).toBe("de");
+  expect(screen.getByText("Oberfläche und Kartentexte ändern sich sofort.")).toBeTruthy();
   const names = within(screen.getByRole("navigation", { name: "Seiten" }))
     .getAllByRole("button")
     .map((button) => button.textContent);
   expect(names).toEqual(["Start", "Karten", "Sitzung", "Statistik", "Einstellungen"]);
   expect(screen.getByRole("button", { name: "Flashcards-Startseite" })).toBeTruthy();
-  goTo("Einstellungen");
-
-  expect(screen.getByText("Diese Seite gibt es noch nicht.")).toBeTruthy();
 });
 
 it("Statistics from the navigation shows the figures, and Back goes Home", async () => {
