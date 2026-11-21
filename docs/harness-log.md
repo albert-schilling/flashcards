@@ -46,6 +46,8 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #80 | The test writer added Files panel tests that only checked mock calls, which App tests already covered through real uploads.        | `docs/conventions/pull-requests.md`: test the effect, not the mock call.                         |
 | #82 | Planned ~270 lines, came out at 483: tests 326 against 130 planned.                                                                | #19 (size warning).                                                                              |
 | #82 | The implementer took a screenshot without waiting for the filtered list; the spec review caught it.                                | None: every other shot in the script waits for its text.                                         |
+| #84 | The implementer added `flushSync` to app code only because a test blurred outside `act()`, instead of stopping to report the test. | albert-schilling/skills#37 (stop instead of bending code to a test).                             |
+| #84 | Planned ~290 lines, came out at 372; tests ran over for the third run in a row (planned 90, written 157).                          | albert-schilling/skills#38 (estimate tests per test).                                            |
 
 ## Factory runs
 
@@ -83,3 +85,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #75 | #70   | medium    | 3 / 5             | 2             | 2              | none                |
 | #80 | #71   | medium    | 1 / 1             | 2             | 2              | none                |
 | #82 | #51   | medium    | 1 / 2             | 2             | 2              | none                |
+| #84 | #52   | medium    | 2 / 3             | 2             | 2              | none                |
