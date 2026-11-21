@@ -1,7 +1,8 @@
 import { ZCard, type TCard } from "@flashcards/cards";
-import { Search, Trash2 } from "lucide-react";
+import { Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useContext, useState, type ReactNode } from "react";
 import { Alert } from "./Alert";
+import { CardList } from "./CardList";
 import { cardTitle } from "./CardView";
 import { EmptyState } from "./EmptyState";
 import { LanguageContext, useText, type TLanguage } from "./language.context";
@@ -29,7 +30,7 @@ function matches(
   );
 }
 
-/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, one row per Card (question or name in the current language, ID, type, all tags, Delete) and Delete all, which asks in a modal first and closes it before deleting. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting. */
+/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, the windowed Card list (see CardList), a "Windowed list" note and Delete all, which asks in a modal first and closes it before deleting. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting. */
 export function CardsPage(props: {
   cards: TCard[];
   onDelete: (id: string) => void;
@@ -95,35 +96,21 @@ export function CardsPage(props: {
           </div>
           <div className="library-summary">
             <span>{text.cardCountOf(shown.length, props.cards.length)}</span>
+            <span>
+              <SlidersHorizontal size={15} aria-hidden="true" />
+              {text.windowedList}
+            </span>
           </div>
           {props.cards.length === 0 ? (
             <EmptyState />
           ) : shown.length === 0 ? (
             <EmptyState title={text.noMatchingCards} hint={text.tryAnotherFilter} />
           ) : (
-            <ul className="library-list">
-              {shown.map((card) => (
-                <li className="library-card-row" key={card.id}>
-                  <div className="library-card-copy">
-                    <strong>{cardTitle(card, language)}</strong>
-                    <span className="card-id">{card.id}</span>
-                    <div className="row-tags">
-                      <span>{card.type}</span>
-                      {[...card.tags.domain, ...card.tags.topic].map((tag, i) => (
-                        <span key={i}>{tag}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    className="button ghost small"
-                    aria-label={text.deleteCard(card.id)}
-                    onClick={() => props.onDelete(card.id)}
-                  >
-                    {text.delete}
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <CardList
+              key={JSON.stringify([query, type, tag])}
+              cards={shown}
+              onDelete={props.onDelete}
+            />
           )}
           <button
             className="text-button danger-text delete-all-button"

@@ -1,6 +1,6 @@
 // Usage: pnpm screenshot <flow> <folder> [width]. Writes <folder>/<flow>-<shot>.png; width defaults to 1280, use 375 for mobile.
 // pnpm runs the script from the repo root, so a relative <folder> is taken from there.
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium, type Locator, type Page } from "playwright";
 import { build, preview } from "vite";
@@ -223,6 +223,56 @@ const flows: Record<string, TFlow> = {
     await page.getByLabel(text.tag).selectOption("");
     await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
     await shot("cleared");
+  },
+  // Uploads 1,000 Cards, checks that only a few rows are in the DOM, then shoots the top, the middle, Tab through rows and the end.
+  windowed: async (page, shot) => {
+    const text = uiText.en;
+    const deck = JSON.parse(await readFile(exampleDeck, "utf8"));
+    const cards = Array.from({ length: 1000 }, (_, i) => ({
+      ...deck.cards[0],
+      // Padded, because the Cards are listed in the order of their IDs as text.
+      id: `bulk.card-${String(i + 1).padStart(4, "0")}`,
+    }));
+    await goTo(page, text.cards, text);
+    await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles({
+      name: "bulk.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ cards })),
+    });
+    await page.getByText(text.cardCountOf(1000, 1000), { exact: true }).waitFor();
+    await shot("top");
+    const rows = page.getByRole("listitem");
+    if ((await rows.count()) > 12) throw new Error("windowed flow: too many rows in the DOM");
+    const box = page.locator(".virtual-list");
+    await box.evaluate((element) => {
+      element.scrollTop = (element.scrollHeight - element.clientHeight) / 2;
+    });
+    await rows.nth(4).waitFor();
+    await shot("middle");
+    // Tab moves focus 8 rows on.
+    const first = rows.nth(4).getByRole("button");
+    await first.focus();
+    const startId = await rows.nth(4).getAttribute("data-card-id");
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press("Tab");
+      // The browser scrolls the focused Delete into view and the list renders the next rows a frame later.
+      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => done(null))));
+    }
+    const focusedId = await page.evaluate(
+      () => document.activeElement?.closest("li")?.getAttribute("data-card-id") ?? null,
+    );
+    const place = (id: string | null) => Number(id?.replace("bulk.card-", ""));
+    if (place(focusedId) !== place(startId) + 8) {
+      throw new Error(`windowed flow: Tab went from ${startId} to ${focusedId}, not 8 rows on`);
+    }
+    // Focus also scrolled the page; a full-page shot would paint the sticky header over the list.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await shot("focus");
+    await box.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await page.getByText("bulk.card-1000", { exact: true }).waitFor();
+    await shot("end");
   },
   answer: answerEveryCard,
   // Picks Deutsch, answers every Card, then shows the start page and Statistics; Cards without a German field show it in English.
