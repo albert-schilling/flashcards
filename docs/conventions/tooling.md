@@ -17,6 +17,8 @@ At the end of every agent turn, the Stop hook runs `validate` from `.agents/fact
 
 ## Gotchas
 
+- The shell is zsh: quote globs in arguments, as in `grep -rn foo --include='*.tsx'`, or zsh fails with "no matches found".
+
 <!-- Tool behaviour that surprised an agent or a person, one line each, with what to do instead. -->
 
 - No corepack here: pnpm is pinned by `packageManager` in `package.json`; install that version yourself.
