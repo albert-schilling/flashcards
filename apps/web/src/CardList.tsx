@@ -10,8 +10,12 @@ function rowHeightOf(): number {
   return parseFloat(root.getPropertyValue("--virtual-row-height")) * parseFloat(root.fontSize);
 }
 
-/** The Cards page's list of Cards, windowed with TanStack Virtual: a fixed-height box that scrolls, with one fixed-height row per Card (question or name in the current language, ID, type, every tag on one clipped line, Delete). Only the rows in view, three on each side and the row holding focus are in the DOM; the list has the height of every row, so the scrollbar covers all Cards. Rows are keyed by Card ID and in list order, so a focused Delete stays focused while the list scrolls and Tab moves to the next row, which the browser scrolls into view. Give it a new key to scroll back to the top. */
-export function CardList(props: { cards: TCard[]; onDelete: (id: string) => void }) {
+/** The Cards page's list of Cards, windowed with TanStack Virtual: a fixed-height box that scrolls, with one fixed-height row per Card (a button with the question or name in the current language, ID, type and every tag on one clipped line, which opens the preview, then Delete). Only the rows in view, three on each side and the row holding focus are in the DOM; the list has the height of every row, so the scrollbar covers all Cards. Rows are keyed by Card ID and in list order, so a focused row button or Delete stays focused while the list scrolls and Tab moves to the next row, which the browser scrolls into view. Give it a new key to scroll back to the top. */
+export function CardList(props: {
+  cards: TCard[];
+  onOpen: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
   const text = useText();
   const language = useContext(LanguageContext);
   const listRef = useRef<HTMLDivElement>(null);
@@ -24,7 +28,7 @@ export function CardList(props: { cards: TCard[]; onDelete: (id: string) => void
     estimateSize: () => rowHeight,
     overscan: 3,
     getItemKey: (index) => props.cards[index].id,
-    // The row holding focus stays mounted, so scrolling far away doesn't drop the focused Delete.
+    // The row holding focus stays mounted, so scrolling far away doesn't drop the focused button.
     rangeExtractor: (range) => {
       const indexes = defaultRangeExtractor(range);
       if (focusedIndex < 0 || indexes.includes(focusedIndex)) return indexes;
@@ -54,16 +58,19 @@ export function CardList(props: { cards: TCard[]; onDelete: (id: string) => void
               aria-setsize={props.cards.length}
               style={{ transform: `translateY(${item.start}px)` }}
             >
-              <div className="library-card-copy">
-                <strong>{cardTitle(card, language)}</strong>
-                <span className="card-id">{card.id}</span>
-                <div className="row-tags">
-                  <span>{card.type}</span>
-                  {[...card.tags.domain, ...card.tags.topic].map((tag, i) => (
-                    <span key={i}>{tag}</span>
-                  ))}
-                </div>
-              </div>
+              {/* Not in the prototype: its ArrowRight icon is left out, because it would crowd the row next to Delete at 375 px. */}
+              <button className="library-card-open" onClick={() => props.onOpen(card.id)}>
+                <span className="library-card-copy">
+                  <strong>{cardTitle(card, language)}</strong>
+                  <span className="card-id">{card.id}</span>
+                  <span className="row-tags">
+                    <span>{card.type}</span>
+                    {[...card.tags.domain, ...card.tags.topic].map((tag, i) => (
+                      <span key={i}>{tag}</span>
+                    ))}
+                  </span>
+                </span>
+              </button>
               <button
                 className="button ghost small"
                 aria-label={text.deleteCard(card.id)}

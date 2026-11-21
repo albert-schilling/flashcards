@@ -231,18 +231,55 @@ async function expectNotListed(card: TCard) {
   await waitFor(() => expect(screen.queryByText(card.id)).toBeNull());
 }
 
-it("deletes one Card, and it stays gone after a reload", async () => {
+/** On the Cards page, presses this Card's row Delete, then Delete in the modal that asks first. */
+function deleteFromRow(id: string) {
+  fireEvent.click(screen.getByRole("button", { name: `Delete ${id}` }));
+  const modal = within(screen.getByRole("dialog", { name: "Delete this Card?" }));
+  fireEvent.click(modal.getByRole("button", { name: "Delete" }));
+}
+
+/** On the Cards page, opens this Card's preview from its row and presses Delete there. */
+function deleteFromPreview(id: string) {
+  const remove = screen.getByRole("button", { name: `Delete ${id}` });
+  // The row button is the row's other button, beside Delete.
+  const others = within(remove.closest("li")!)
+    .getAllByRole("button")
+    .filter((button) => button !== remove);
+  expect(others).toHaveLength(1);
+  fireEvent.click(others[0]);
+  const preview = within(screen.getByRole("dialog", { name: "Card preview" }));
+  fireEvent.click(preview.getByRole("button", { name: "Delete" }));
+}
+
+it.each([
+  { from: "its row, after asking", remove: deleteFromRow },
+  { from: "its preview", remove: deleteFromPreview },
+])("deletes one Card from $from, and it stays gone after a reload", async ({ remove }) => {
   const { unmount } = render(<App />);
   upload(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
   await expectListed(qa("ml.trees.leaf-mean", 1));
 
-  fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
+  remove("ml.trees.leaf-mean");
 
   await expectNotListed(qa("ml.trees.leaf-mean", 1));
+  expect((await screen.findByRole("status")).textContent).toBe("Card deleted.");
   unmount();
   render(<App />);
   await expectListed(qa("ml.trees.depth", 1));
   expect(screen.queryByText(/ml\.trees\.leaf-mean/)).toBeNull();
+});
+
+it("Card deleted. goes away when the Learner leaves the Cards page", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  openCards();
+  deleteFromRow("a");
+  await screen.findByText("Card deleted.");
+
+  goHome();
+  openCards();
+
+  expect(screen.queryByText("Card deleted.")).toBeNull();
 });
 
 function deleteAllButton() {
@@ -383,22 +420,24 @@ it("keeps the report of the last upload after deleting a Card", async () => {
   upload(qa("ml.trees.leaf-mean", 1), qa("ml.trees.depth", 1));
   await expectListed(qa("ml.trees.leaf-mean", 1));
 
-  fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
+  deleteFromRow("ml.trees.leaf-mean");
 
   await expectNotListed(qa("ml.trees.leaf-mean", 1));
   expect(screen.getByText(/2 added, 0 updated, 0 unchanged/)).toBeTruthy();
+  expect((await screen.findByRole("status")).textContent).toBe("Card deleted.");
 });
 
-it("shows an error and keeps the Card when deleting fails", async () => {
+it("shows only an error, no Card deleted., and keeps the Card when deleting fails", async () => {
   render(<App />);
   upload(qa("ml.trees.leaf-mean", 1));
   await expectListed(qa("ml.trees.leaf-mean", 1));
   blockStorage();
 
-  fireEvent.click(screen.getByRole("button", { name: "Delete ml.trees.leaf-mean" }));
+  deleteFromRow("ml.trees.leaf-mean");
 
   expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
   await expectListed(qa("ml.trees.leaf-mean", 1));
+  expect(screen.queryByText("Card deleted.")).toBeNull();
 });
 
 /** Uploads the Cards on the Cards page, waits for the upload report, then goes back Home. Not the last row: the windowed list shows only the rows in view. */
@@ -549,13 +588,13 @@ it("the Card count follows a deleted Card, and deleting the last one shows the e
   await uploaded(qa("a", 1), qa("b", 1));
 
   openCards();
-  fireEvent.click(screen.getByRole("button", { name: "Delete a" }));
+  deleteFromRow("a");
   await expectNotListed(qa("a", 1));
   goHome();
   expect(home().getByRole("button", { name: /^1 Card(?!s)/ })).toBeTruthy();
 
   openCards();
-  fireEvent.click(screen.getByRole("button", { name: "Delete b" }));
+  deleteFromRow("b");
   await expectNotListed(qa("b", 1));
   goHome();
   expect(home().getByRole("heading", { level: 3, name: "No Cards yet" })).toBeTruthy();
@@ -963,7 +1002,7 @@ it("forgets a picked tag once no Card has it", async () => {
   fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "Regression" } });
 
   openCards();
-  fireEvent.click(screen.getByRole("button", { name: "Delete reg" }));
+  deleteFromRow("reg");
   await expectNotListed(regression);
   goHome();
 

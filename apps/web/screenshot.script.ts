@@ -187,7 +187,10 @@ const flows: Record<string, TFlow> = {
       .getByRole("button", { name: /^Delete (?!all)/ })
       .first()
       .click();
+    await shot("delete-card-modal");
+    await page.getByRole("dialog").getByRole("button", { name: text.delete, exact: true }).click();
     await page.getByText(text.cardCountOf(5, 5), { exact: true }).waitFor();
+    await page.getByText(text.cardDeleted, { exact: true }).waitFor();
     await shot("deleted-one");
     const deleteAll = page.getByRole("button", { name: text.deleteAllCards });
     await deleteAll.click();
@@ -224,6 +227,27 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
     await shot("cleared");
   },
+  // Opens each Card of the example Deck in its preview, then deletes the last one from its preview.
+  preview: async (page, shot) => {
+    const text = uiText.en;
+    await uploadExampleDeck(page);
+    await goTo(page, text.cards);
+    await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
+    const rows = page.getByRole("listitem");
+    const dialog = page.getByRole("dialog", { name: text.cardPreview, exact: true });
+    for (let i = 0; i < 6; i++) {
+      await rows.nth(i).locator(".library-card-open").click();
+      const type = (await dialog.locator(".type-label").textContent()) ?? `card-${i + 1}`;
+      await shot(type.replaceAll("_", "-"));
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "detached" });
+    }
+    await rows.nth(5).locator(".library-card-open").click();
+    await dialog.getByRole("button", { name: text.delete, exact: true }).click();
+    await page.getByText(text.cardCountOf(5, 5), { exact: true }).waitFor();
+    await page.getByText(text.cardDeleted, { exact: true }).waitFor();
+    await shot("deleted");
+  },
   // Uploads 1,000 Cards, checks that only a few rows are in the DOM, then shoots the top, the middle, Tab through rows and the end.
   windowed: async (page, shot) => {
     const text = uiText.en;
@@ -249,13 +273,13 @@ const flows: Record<string, TFlow> = {
     });
     await rows.nth(4).waitFor();
     await shot("middle");
-    // Tab moves focus 8 rows on.
-    const first = rows.nth(4).getByRole("button");
+    // Each row has two buttons, so 16 Tab presses move focus 8 rows on.
+    const first = rows.nth(4).locator(".library-card-open");
     await first.focus();
     const startId = await rows.nth(4).getAttribute("data-card-id");
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 16; i++) {
       await page.keyboard.press("Tab");
-      // The browser scrolls the focused Delete into view and the list renders the next rows a frame later.
+      // The browser scrolls the focused button into view and the list renders the next rows a frame later.
       await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => done(null))));
     }
     const focusedId = await page.evaluate(

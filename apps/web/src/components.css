@@ -221,6 +221,16 @@
   color: var(--color-accent-700);
 }
 
+.alert-close {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+}
+
+.library-notice {
+  margin: var(--space-0) var(--space-0) var(--space-5);
+}
+
 /* File buttons */
 /* Relative, so the hidden input stays inside the label. */
 .file-button {
@@ -287,7 +297,8 @@
 }
 
 .menu-button,
-.icon-button {
+.icon-button,
+.alert-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -298,7 +309,8 @@
 }
 
 .menu-button:hover,
-.icon-button:hover {
+.icon-button:hover,
+.alert-close:hover {
   background: var(--color-surface-muted);
 }
 
@@ -673,7 +685,7 @@
   list-style: none;
 }
 
-/* The prototype's `:hover` (opens a preview, #53) is left out; a row is a list item, not a button, so it can hold Delete. */
+/* The prototype's row is one button; here the row is a list item holding two sibling buttons, the copy that opens the preview and Delete, because a button can't hold a button. */
 .library-card-row {
   position: absolute;
   inset: var(--space-0) var(--space-0) auto;
@@ -689,7 +701,22 @@
   text-align: left;
 }
 
+.library-card-row:hover {
+  background: var(--color-accent-50);
+}
+
+.library-card-open {
+  /* `auto` grows to the free width; a bare 1 is a raw value styles.test.ts rejects. */
+  flex: auto;
+  min-width: var(--space-0);
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+
 .library-card-copy {
+  display: block;
   min-width: var(--space-0);
 }
 
@@ -806,6 +833,58 @@
 
 .modal-body {
   padding: var(--space-5);
+}
+
+.modal-actions-wrap {
+  flex-wrap: wrap;
+}
+
+.card-preview h3 {
+  margin-top: var(--space-4);
+  color: var(--color-ink-950);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-heading);
+  font-weight: var(--font-weight-bold);
+}
+
+.preview-answer {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-50);
+}
+
+.preview-answer span {
+  color: var(--color-accent-700);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-eyebrow);
+  text-transform: uppercase;
+}
+
+.preview-answer p {
+  margin-top: var(--space-2);
+  color: var(--color-ink-950);
+  font-weight: var(--font-weight-semibold);
+}
+
+.card-preview .row-tags {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.preview-id {
+  margin-top: var(--space-4);
+  color: var(--color-ink-500);
+  font-size: var(--font-size-xs);
+}
+
+.type-label {
+  color: var(--color-accent-700);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-eyebrow);
+  text-transform: uppercase;
 }
 
 .modal-actions {
