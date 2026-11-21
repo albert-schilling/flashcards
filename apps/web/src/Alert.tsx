@@ -25,7 +25,7 @@ export function Alert(props: {
       <div>{props.children}</div>
       {props.onDismiss && (
         <button className="alert-close" onClick={props.onDismiss} aria-label={text.dismiss}>
-          <X size={20} aria-hidden="true" />
+          <X size={18} aria-hidden="true" />
         </button>
       )}
     </div>
