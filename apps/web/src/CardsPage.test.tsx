@@ -351,6 +351,40 @@ it("in German, a translated qa preview shows its German question and answer", ()
   expect(preview.getByRole("button", { name: "Löschen" })).toBeTruthy();
 });
 
+it.each([
+  {
+    type: "formula",
+    card: german(formula("a", 1, "For example, 6 = 2 · 3."), {
+      wordFormula: "a ist a mal b.",
+      example: "Zum Beispiel 6 = 2 · 3.",
+    }),
+    answer: ["a ist a mal b.", "a = a · b", "Zum Beispiel 6 = 2 · 3."],
+  },
+  {
+    type: "cloze",
+    card: german(cloze("a", 1), { text: "a hat eine {{Lücke}}." }),
+    answer: ["a hat eine Lücke."],
+  },
+  {
+    type: "multiple_choice",
+    card: german(multipleChoice("a", 1), {
+      options: ["Dieses", "Jenes"],
+      explanation: "Dieses hier.",
+    }),
+    answer: ["Dieses", "Dieses hier."],
+  },
+  { type: "numeric", card: numeric("a", 1, "m"), answer: ["5 m"] },
+])("in German, a $type preview shows the answer $answer", ({ card, answer }) => {
+  renderCardsPage([card], "de");
+
+  fireEvent.click(rowButton("a"));
+  const texts = shownTexts(screen.getByRole("dialog", { name: "Kartenvorschau" }));
+
+  expect(texts.slice(texts.indexOf("Antwort") + 1, texts.indexOf("Machine Learning"))).toEqual(
+    answer,
+  );
+});
+
 it("in German, a true_false preview shows Wahr", () => {
   renderCardsPage([german(trueFalse("t", 1), { statement: "t ist wahr." })], "de");
 
@@ -364,6 +398,15 @@ it("in German, a true_false preview shows Wahr", () => {
 it("the preview closes by itself once its Card is gone", () => {
   const { rerender } = renderCardsPage([qa("a", 1), qa("b", 1)]);
   openPreview("b");
+
+  rerender([qa("a", 1)]);
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("the Delete modal closes by itself once its Card is gone", () => {
+  const { rerender } = renderCardsPage([qa("a", 1), qa("b", 1)]);
+  fireEvent.click(deleteButton("b"));
 
   rerender([qa("a", 1)]);
 
@@ -435,17 +478,24 @@ it("Card deleted. stays after a second delete, and Dismiss removes it", async ()
   expect(screen.queryByText("Card deleted.")).toBeNull();
 });
 
-it("a failed delete shows no Card deleted.", async () => {
-  const { onDelete } = renderCardsPage([qa("a", 1)], "en", false);
+it.each<[string, (id: string) => void]>([
+  ["its row", confirmDelete],
+  ["its preview", (id) => fireEvent.click(openPreview(id).getByRole("button", { name: "Delete" }))],
+])(
+  "a failed delete from %s closes the modal first and shows no Card deleted.",
+  async (_, remove) => {
+    const { onDelete } = renderCardsPage([qa("a", 1)], "en", false);
 
-  confirmDelete("a");
-  // Let the page handle onDelete's result before looking.
-  await act(async () => {});
+    remove("a");
+    // Let the page handle onDelete's result before looking.
+    await act(async () => {});
 
-  expect(onDelete).toHaveBeenCalledWith("a");
-  expect(screen.queryByText("Card deleted.")).toBeNull();
-  expect(screen.queryByRole("status")).toBeNull();
-});
+    expect(onDelete).toHaveBeenCalledWith("a");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByText("Card deleted.")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+  },
+);
 
 it("in German, the Delete modal asks Diese Karte löschen?, and the notice reads Karte gelöscht.", async () => {
   renderCardsPage([qa("q", 1)], "de");
