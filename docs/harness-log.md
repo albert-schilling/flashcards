@@ -48,6 +48,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #82 | The implementer took a screenshot without waiting for the filtered list; the spec review caught it.                                | None: every other shot in the script waits for its text.                                         |
 | #84 | The implementer added `flushSync` to app code only because a test blurred outside `act()`, instead of stopping to report the test. | albert-schilling/skills#37 (stop instead of bending code to a test).                             |
 | #84 | Planned ~290 lines, came out at 372; tests ran over for the third run in a row (planned 90, written 157).                          | albert-schilling/skills#38 (estimate tests per test).                                            |
+| #87 | Planned ~410 lines, came out at 784: tests 453 against 165 planned, the fourth overrun in a row.                                   | albert-schilling/skills#38 (estimate tests per test).                                            |
 
 ## Factory runs
 
@@ -86,3 +87,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #80 | #71   | medium    | 1 / 1             | 2             | 2              | none                |
 | #82 | #51   | medium    | 1 / 2             | 2             | 2              | none                |
 | #84 | #52   | medium    | 2 / 3             | 2             | 2              | none                |
+| #87 | #53   | medium    | 2 / 6             | 2             | 5              | none                |
