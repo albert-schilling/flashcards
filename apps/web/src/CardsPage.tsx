@@ -31,7 +31,7 @@ function matches(
   );
 }
 
-/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, the windowed Card list (see CardList) and Delete all, which asks in a modal first and closes it before deleting. A row opens the Card preview (see CardPreview); a row's Delete asks in a modal first. A deleted Card shows a dismissible "Card deleted." notice above the panel until the Learner leaves the page; a failed delete shows none. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting. */
+/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, the windowed Card list (see CardList) and Delete all, which asks in a modal first and closes it before deleting. A row opens the Card preview (see CardPreview); a row's Delete asks in a modal first. A deleted Card shows a dismissible "Card deleted." notice above the panel until the Learner leaves the page; a failed delete hides it. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting. */
 export function CardsPage(props: {
   cards: TCard[];
   onDelete: (id: string) => Promise<boolean>;
@@ -60,7 +60,8 @@ export function CardsPage(props: {
     // Close first, so a failure shows in the page's error and not behind the modal.
     setOpenId(null);
     setConfirmingId(null);
-    if (await props.onDelete(id)) setDeleted(true);
+    // A failure hides an earlier notice, so only the error shows.
+    setDeleted(await props.onDelete(id));
   }
 
   function deleteAll() {

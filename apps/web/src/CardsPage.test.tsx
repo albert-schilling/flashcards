@@ -497,6 +497,20 @@ it.each<[string, (id: string) => void]>([
   },
 );
 
+it("a failed delete after a deleted Card removes Card deleted., so only the error shows", async () => {
+  const { onDelete } = renderCardsPage([qa("a", 1), qa("b", 1)]);
+  onDelete.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+  confirmDelete("a");
+  await screen.findByRole("status");
+
+  confirmDelete("b");
+  // Let the page handle the second onDelete's result before looking.
+  await act(async () => {});
+
+  expect(onDelete).toHaveBeenCalledTimes(2);
+  expect(screen.queryByText("Card deleted.")).toBeNull();
+});
+
 it("in German, the Delete modal asks Diese Karte löschen?, and the notice reads Karte gelöscht.", async () => {
   renderCardsPage([qa("q", 1)], "de");
 
