@@ -14,9 +14,9 @@ import {
   trueFalse,
 } from "./test/cards.fixtures";
 
-/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. */
-function renderCardsPage(cards: TCard[], language: TLanguage = "en") {
-  const onDelete = vi.fn();
+/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card. */
+function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
+  const onDelete = vi.fn().mockResolvedValue(deletes);
   const onDeleteAll = vi.fn();
   const page = (cards: TCard[]) => (
     <LanguageContext.Provider value={language}>
@@ -202,14 +202,263 @@ it("a cloze row blanks every gap", () => {
   expect(shownTexts(rows()[0])[0]).toBe("____ tree splits on ____.");
 });
 
-it("Delete on a row deletes that Card", () => {
+/** The button of this Card's row that opens its preview: the row's other button, beside Delete. Fails while the row has no such button. */
+function rowButton(id: string): HTMLButtonElement {
+  // The row's Delete, named in English or German.
+  const remove = screen.getByRole("button", {
+    name: (name) => name === `Delete ${id}` || name === `${id} löschen`,
+  });
+  const others = within(remove.closest("li")!)
+    .getAllByRole<HTMLButtonElement>("button")
+    .filter((button) => button !== remove);
+  expect(others).toHaveLength(1);
+  return others[0];
+}
+
+function previewDialog() {
+  return screen.getByRole("dialog", { name: "Card preview" });
+}
+
+/** Opens this Card's preview from its row and returns queries inside it. */
+function openPreview(id: string) {
+  fireEvent.click(rowButton(id));
+  return within(previewDialog());
+}
+
+/** Presses this Card's row Delete, then Delete in the modal that asks first. */
+function confirmDelete(id: string) {
+  fireEvent.click(deleteButton(id));
+  const modal = within(screen.getByRole("dialog", { name: "Delete this Card?" }));
+  fireEvent.click(modal.getByRole("button", { name: "Delete" }));
+}
+
+it("a row holds two buttons side by side: the row button with the Card's copy, then Delete", () => {
+  renderCardsPage([qa("a", 1)]);
+
+  const buttons = within(rows()[0]).getAllByRole("button");
+
+  expect(buttons).toHaveLength(2);
+  expect(buttons[1]).toBe(deleteButton("a"));
+  expect(shownTexts(buttons[0])).toEqual([
+    "What is a?",
+    "a",
+    "qa",
+    "Machine Learning",
+    "Decision Tree",
+  ]);
+  expect(buttons[0].querySelector("button")).toBeNull();
+});
+
+it("a row button opens the Card preview of its Card", () => {
+  renderCardsPage([qa("a", 1), qa("b", 1)]);
+
+  const preview = openPreview("b");
+
+  expect(preview.getByRole("heading", { level: 3 }).textContent).toBe("What is b?");
+});
+
+it.each<[string, () => void]>([
+  ["Close", () => fireEvent.click(within(previewDialog()).getByRole("button", { name: "Close" }))],
+  ["Escape", () => fireEvent.keyDown(previewDialog(), { key: "Escape" })],
+  // The backdrop is the dialog's parent; it has no role to query by.
+  ["a mouse-down on the backdrop", () => fireEvent.mouseDown(previewDialog().parentElement!)],
+])("%s closes the Card preview and deletes nothing", (_, close) => {
+  const { onDelete } = renderCardsPage([qa("a", 1)]);
+  openPreview("a");
+
+  close();
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(onDelete).not.toHaveBeenCalled();
+});
+
+it.each([
+  { type: "qa", card: qa("a", 2), title: "What is a?", answer: ["An answer."] },
+  {
+    type: "formula",
+    card: formula("a", 2, "For example, 6 = 2 · 3."),
+    title: "The a formula",
+    answer: ["a is a times b.", "a = a · b", "For example, 6 = 2 · 3."],
+  },
+  {
+    type: "formula",
+    card: formula("a", 2),
+    title: "The a formula",
+    answer: ["a is a times b.", "a = a · b"],
+  },
+  {
+    type: "cloze",
+    card: cloze("a", 2, "{{A}} tree splits on {{features}}."),
+    title: "____ tree splits on ____.",
+    answer: ["A tree splits on features."],
+  },
+  {
+    type: "multiple_choice",
+    card: { ...multipleChoice("a", 2), answerIndex: 1 },
+    title: "Which is a?",
+    answer: ["That", "This one."],
+  },
+  { type: "true_false", card: trueFalse("a", 2), title: "a is true.", answer: ["True"] },
+  { type: "true_false", card: trueFalse("a", 2, false), title: "a is true.", answer: ["False"] },
+  { type: "numeric", card: numeric("a", 2, "m"), title: "How much is a?", answer: ["5 m"] },
+  { type: "numeric", card: numeric("a", 2), title: "How much is a?", answer: ["5"] },
+])(
+  "a $type preview shows the type, question, answer $answer, tags, ID and version, and Delete",
+  ({ type, card, title, answer }) => {
+    renderCardsPage([card]);
+
+    const preview = openPreview("a");
+
+    expect(preview.getByRole("heading", { level: 3 }).textContent).toBe(title);
+    expect(shownTexts(previewDialog())).toEqual([
+      "Card preview",
+      type,
+      title,
+      "Answer",
+      ...answer,
+      "Machine Learning",
+      "Decision Tree",
+      "a · version 2",
+      "Delete",
+    ]);
+  },
+);
+
+it("a preview shows every domain tag, then every topic tag", () => {
+  renderCardsPage([tagged(qa("a", 1), ["Statistics", "Machine Learning"], ["Regression"])]);
+
+  openPreview("a");
+
+  const texts = shownTexts(previewDialog());
+  expect(texts.slice(texts.indexOf("An answer.") + 1, texts.indexOf("a · version 1"))).toEqual([
+    "Statistics",
+    "Machine Learning",
+    "Regression",
+  ]);
+});
+
+it("in German, a translated qa preview shows its German question and answer", () => {
+  renderCardsPage([german(qa("q", 3), { question: "Was ist q?", answer: "Eine Antwort." })], "de");
+
+  fireEvent.click(rowButton("q"));
+  const preview = within(screen.getByRole("dialog", { name: "Kartenvorschau" }));
+
+  expect(preview.getByRole("heading", { level: 3 }).textContent).toBe("Was ist q?");
+  expect(preview.getByText("Antwort")).toBeTruthy();
+  expect(preview.getByText("Eine Antwort.")).toBeTruthy();
+  expect(preview.queryByText("An answer.")).toBeNull();
+  expect(preview.getByText("q · Version 3")).toBeTruthy();
+  expect(preview.getByRole("button", { name: "Löschen" })).toBeTruthy();
+});
+
+it("in German, a true_false preview shows Wahr", () => {
+  renderCardsPage([german(trueFalse("t", 1), { statement: "t ist wahr." })], "de");
+
+  fireEvent.click(rowButton("t"));
+  const preview = within(screen.getByRole("dialog", { name: "Kartenvorschau" }));
+
+  expect(preview.getByRole("heading", { level: 3 }).textContent).toBe("t ist wahr.");
+  expect(preview.getByText("Wahr")).toBeTruthy();
+});
+
+it("the preview closes by itself once its Card is gone", () => {
+  const { rerender } = renderCardsPage([qa("a", 1), qa("b", 1)]);
+  openPreview("b");
+
+  rerender([qa("a", 1)]);
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("a row's Delete asks first in a modal naming the Card, and deletes nothing yet", () => {
   const { onDelete, onDeleteAll } = renderCardsPage([qa("a", 1), qa("b", 1)]);
 
-  fireEvent.click(screen.getByRole("button", { name: "Delete b" }));
+  fireEvent.click(deleteButton("b"));
 
+  const modal = within(screen.getByRole("dialog", { name: "Delete this Card?" }));
+  expect(modal.getByText("This cannot be undone.")).toBeTruthy();
+  expect(modal.getByText("The Card b will be permanently removed from this browser.")).toBeTruthy();
+  expect(onDelete).not.toHaveBeenCalled();
+  expect(onDeleteAll).not.toHaveBeenCalled();
+});
+
+it("Cancel closes the Delete modal and keeps the Card", () => {
+  const { onDelete } = renderCardsPage([qa("a", 1)]);
+  fireEvent.click(deleteButton("a"));
+
+  fireEvent.click(
+    within(screen.getByRole("dialog", { name: "Delete this Card?" })).getByRole("button", {
+      name: "Cancel",
+    }),
+  );
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(onDelete).not.toHaveBeenCalled();
+  expect(listedIds()).toEqual(["a"]);
+});
+
+it("Delete in the modal closes it, deletes that Card and shows Card deleted.", async () => {
+  const { onDelete, onDeleteAll } = renderCardsPage([qa("a", 1), qa("b", 1)]);
+
+  confirmDelete("b");
+
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(onDelete).toHaveBeenCalledTimes(1);
   expect(onDelete).toHaveBeenCalledWith("b");
   expect(onDeleteAll).not.toHaveBeenCalled();
+  expect((await screen.findByRole("status")).textContent).toBe("Card deleted.");
+});
+
+it("Delete in the preview deletes at once, closes the preview and shows Card deleted.", async () => {
+  const { onDelete } = renderCardsPage([qa("a", 1), qa("b", 1)]);
+
+  fireEvent.click(openPreview("b").getByRole("button", { name: "Delete" }));
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(onDelete).toHaveBeenCalledTimes(1);
+  expect(onDelete).toHaveBeenCalledWith("b");
+  expect((await screen.findByRole("status")).textContent).toBe("Card deleted.");
+});
+
+it("Card deleted. stays after a second delete, and Dismiss removes it", async () => {
+  renderCardsPage([qa("a", 1), qa("b", 1)]);
+  confirmDelete("a");
+  const notice = await screen.findByRole("status");
+
+  confirmDelete("b");
+  // Let the page handle the second onDelete's result before looking.
+  await act(async () => {});
+  expect(screen.getAllByRole("status")).toEqual([notice]);
+  fireEvent.click(within(notice).getByRole("button", { name: "Dismiss" }));
+
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByText("Card deleted.")).toBeNull();
+});
+
+it("a failed delete shows no Card deleted.", async () => {
+  const { onDelete } = renderCardsPage([qa("a", 1)], "en", false);
+
+  confirmDelete("a");
+  // Let the page handle onDelete's result before looking.
+  await act(async () => {});
+
+  expect(onDelete).toHaveBeenCalledWith("a");
+  expect(screen.queryByText("Card deleted.")).toBeNull();
+  expect(screen.queryByRole("status")).toBeNull();
+});
+
+it("in German, the Delete modal asks Diese Karte löschen?, and the notice reads Karte gelöscht.", async () => {
+  renderCardsPage([qa("q", 1)], "de");
+
+  fireEvent.click(screen.getByRole("button", { name: "q löschen" }));
+  const modal = within(screen.getByRole("dialog", { name: "Diese Karte löschen?" }));
+  expect(modal.getByText("Das kann nicht rückgängig gemacht werden.")).toBeTruthy();
+  expect(modal.getByText("Die Karte q wird endgültig aus diesem Browser entfernt.")).toBeTruthy();
+  fireEvent.click(modal.getByRole("button", { name: "Löschen" }));
+
+  const notice = await screen.findByRole("status");
+  expect(notice.textContent).toBe("Karte gelöscht.");
+  expect(within(notice).getByRole("button", { name: "Ausblenden" })).toBeTruthy();
 });
 
 it("Delete all Cards asks in a modal first, and its Delete all Cards closes the modal and deletes", () => {
@@ -520,12 +769,16 @@ it("in German, a search that matches nothing shows the German no-match state", (
 });
 
 it.each([
-  { language: "en" as const, label: "Windowed list" },
-  { language: "de" as const, label: "Fensterliste" },
-])("the summary says the list is windowed: $label", ({ language, label }) => {
+  { language: "en" as const, count: "1 of 1 Card", label: "Windowed list" },
+  { language: "de" as const, count: "1 von 1 Karte", label: "Fensterliste" },
+])("the summary shows only the count, no $label", ({ language, count, label }) => {
   renderCardsPage([qa("a", 1)], language);
 
-  expect(screen.getByText(label)).toBeTruthy();
+  const summary = screen.getByText(count).parentElement!;
+
+  expect(screen.queryByText(label)).toBeNull();
+  expect(shownTexts(summary)).toEqual([count]);
+  expect(summary.querySelector("svg")).toBeNull();
 });
 
 /** card-1 to card-1000, in that order. */
@@ -598,6 +851,28 @@ it("a focused Delete stays focused while the list scrolls, and the next Delete i
   expect(document.activeElement).toBe(focused);
   const deletes = screen.getAllByRole("button", { name: /^Delete card-/ });
   expect(deletes[deletes.indexOf(focused) + 1]).toBe(deleteButton("card-506"));
+});
+
+it("Tab goes from a row button to its Delete, then to the next row's button", () => {
+  renderCardsPage(thousand);
+  scrollToRow(500);
+
+  const buttons = within(screen.getByRole("list")).getAllByRole("button");
+  const at = buttons.indexOf(deleteButton("card-505"));
+
+  expect(buttons[at - 1]).toBe(rowButton("card-505"));
+  expect(buttons[at + 1]).toBe(rowButton("card-506"));
+});
+
+it("a focused row button keeps its row in the list when the list scrolls far from it", () => {
+  renderCardsPage(thousand);
+  const focused = rowButton("card-3");
+  focused.focus();
+
+  scrollToRow(500);
+
+  expect(document.activeElement).toBe(focused);
+  expect(listedIds()).toEqual(["card-3", ...ids(498, 508)]);
 });
 
 it("the row holding focus stays in the list, in its place, when the list scrolls far from it", () => {
