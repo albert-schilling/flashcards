@@ -10,6 +10,7 @@ import { Header, type TPage } from "./Header";
 import { Home } from "./Home";
 import { Select } from "./Select";
 import { Session } from "./Session";
+import { Settings } from "./Settings";
 import { allTags, pickCards } from "./session.helper";
 import { Statistics } from "./Statistics";
 import {
@@ -142,13 +143,11 @@ export function App() {
     } else setPage(target);
   }
 
-  const placeholder = <p>{text.pageNotBuilt}</p>;
-
   return (
     <LanguageContext.Provider value={language}>
       <Header page={page} onNavigate={navigate} sessionDisabled={!session && !canStart} />
       <main className="page-shell">
-        {page !== "home" && page !== "cards" && <h1>Flashcards</h1>}
+        {page !== "home" && page !== "cards" && page !== "settings" && <h1>Flashcards</h1>}
         {error && (
           <Alert tone="danger" role="alert">
             {error}
@@ -187,7 +186,7 @@ export function App() {
             />
           </CardsPage>
         )}
-        {page === "settings" && placeholder}
+        {page === "settings" && <Settings onLanguage={pickLanguage} />}
         {page === "statistics" && reviews && (
           <Statistics
             cards={cards}

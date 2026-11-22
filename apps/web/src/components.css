@@ -887,6 +887,18 @@
   text-transform: uppercase;
 }
 
+/* Settings */
+/* The prototype's .settings-page is left out: main.page-shell already sets width: min(100%, var(--content-width)). */
+.settings-panel {
+  max-width: var(--reading-width);
+}
+
+.settings-help {
+  margin-top: var(--space-3);
+  color: var(--color-ink-600);
+  font-size: var(--font-size-sm);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

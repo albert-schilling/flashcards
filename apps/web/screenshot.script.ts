@@ -164,7 +164,7 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await page.getByRole("button", { name: text.startSession, exact: true }).waitFor();
   await shot("statistics-back");
   await goTo(page, text.settings);
-  await page.getByText(text.pageNotBuilt, { exact: true }).waitFor();
+  await page.getByRole("heading", { name: text.settings, exact: true }).waitFor();
   await shot("settings");
   await page.getByRole("button", { name: text.brandHome, exact: true }).click();
   await page.getByRole("button", { name: text.startSession, exact: true }).waitFor();
