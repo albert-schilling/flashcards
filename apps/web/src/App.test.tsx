@@ -622,14 +622,14 @@ it.each(["Upload Deck", "Create Card"])("with no Cards, %s opens the Cards page"
   expect(screen.getByRole("heading", { level: 1, name: "Cards" })).toBeTruthy();
 });
 
-it("hides the upload and the Card list during a Session", async () => {
+it("hides the upload, the Card list and the Flashcards heading during a Session", async () => {
   render(<App />);
   await uploaded(qa("ml.trees.depth", 1));
 
   startSession();
 
   await screen.findByRole("button", { name: "Reveal" });
-  expect(screen.getByRole("heading", { name: "Flashcards" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "Flashcards" })).toBeNull();
   expect(screen.queryByLabelText("Upload Deck")).toBeNull();
   expect(screen.queryByText("ml.trees.depth")).toBeNull();
 });
@@ -937,6 +937,9 @@ it("the summary counts Cards answered and right, and Done goes back", async () =
   await answer(true);
 
   await screen.findByText(/4 answered, 3 right/);
+  expect(screen.getByRole("heading", { level: 1, name: "4 answered, 3 right" })).toBeTruthy();
+  expect(screen.getByText("Session complete")).toBeTruthy();
+  expect(screen.getByText("Good work. Every Review makes the next one easier.")).toBeTruthy();
   await waitFor(async () =>
     expect((await loadReviews()).map((review) => review.right).sort()).toEqual([
       false,
@@ -948,6 +951,24 @@ it("the summary counts Cards answered and right, and Done goes back", async () =
   fireEvent.click(screen.getByRole("button", { name: "Done" }));
   expect(startButton()).toBeTruthy();
   await expectListed(qa("a", 1));
+});
+
+it("the progress shows position and total, and the total grows when a Card answered wrong comes back", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+
+  startSession();
+  expect(await screen.findByText("1 / 2")).toBeTruthy();
+  await answer(false);
+  expect(await screen.findByText("2 / 3")).toBeTruthy();
+  await answer();
+  expect(await screen.findByText("3 / 3")).toBeTruthy();
+  await answer();
+
+  await screen.findByRole("button", { name: "Done" });
+  expect(screen.getByText("3 / 3")).toBeTruthy();
+  const bar = document.querySelector<HTMLElement>(".progress-track > span");
+  expect(bar?.style.width).toBe("100%");
 });
 
 it("a Card answered wrong comes back once, at the end", async () => {
@@ -1922,6 +1943,21 @@ it("a running Session keeps its place while other pages show", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Knew it" }));
   await screen.findByRole("button", { name: "Done" });
   expect(screen.getByText("2 answered, 2 right")).toBeTruthy();
+});
+
+it("Back leaves the Session for Home; the answers given stay in the Review log and the Session keeps its place", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  startSession();
+  await answer();
+
+  fireEvent.click(await screen.findByRole("button", { name: "Back" }));
+
+  expect(startButton()).toBeTruthy();
+  expect(isCurrent("Home")).toBe(true);
+  await waitFor(async () => expect(await loadReviews()).toHaveLength(1));
+  goTo("Session");
+  expect(screen.getByText("2 / 2")).toBeTruthy();
 });
 
 it("the Session link stays enabled while a Session runs, even with 0 Cards set on Home", async () => {
