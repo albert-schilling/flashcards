@@ -940,6 +940,10 @@ it("the summary counts Cards answered and right, and Done goes back", async () =
   expect(screen.getByRole("heading", { level: 1, name: "4 answered, 3 right" })).toBeTruthy();
   expect(screen.getByText("Session complete")).toBeTruthy();
   expect(screen.getByText("Good work. Every Review makes the next one easier.")).toBeTruthy();
+  for (const name of ["Back", "Done"]) {
+    const icon = screen.getByRole("button", { name }).querySelector("svg");
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
+  }
   await waitFor(async () =>
     expect((await loadReviews()).map((review) => review.right).sort()).toEqual([
       false,
@@ -959,6 +963,10 @@ it("the progress shows position and total, and the total grows when a Card answe
 
   startSession();
   expect(await screen.findByText("1 / 2")).toBeTruthy();
+  const bar = document.querySelector<HTMLElement>(".progress-track > span");
+  expect(bar?.style.width).toBe("50%");
+  // The text is the accessible progress; the bar is decoration.
+  expect(bar?.parentElement?.getAttribute("aria-hidden")).toBe("true");
   await answer(false);
   expect(await screen.findByText("2 / 3")).toBeTruthy();
   await answer();
@@ -967,8 +975,7 @@ it("the progress shows position and total, and the total grows when a Card answe
 
   await screen.findByRole("button", { name: "Done" });
   expect(screen.getByText("3 / 3")).toBeTruthy();
-  const bar = document.querySelector<HTMLElement>(".progress-track > span");
-  expect(bar?.style.width).toBe("100%");
+  expect(document.querySelector<HTMLElement>(".progress-track > span")?.style.width).toBe("100%");
 });
 
 it("a Card answered wrong comes back once, at the end", async () => {
@@ -1648,6 +1655,9 @@ it.each([
   await c.answer();
 
   await screen.findByText(c.summary);
+  expect(screen.getByText("Sitzung abgeschlossen")).toBeTruthy();
+  expect(screen.getByText("Gute Arbeit. Jede Wiederholung stärkt dein Wissen.")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Zurück" })).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Fertig" }));
   expect(screen.getByRole("button", { name: "Sitzung starten" })).toBeTruthy();
 });
@@ -1958,6 +1968,21 @@ it("Back leaves the Session for Home; the answers given stay in the Review log a
   await waitFor(async () => expect(await loadReviews()).toHaveLength(1));
   goTo("Session");
   expect(screen.getByText("2 / 2")).toBeTruthy();
+});
+
+it("Back on the summary goes Home without ending the Session; the Session link shows the summary again", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  startSession();
+  await answer();
+  await screen.findByRole("button", { name: "Done" });
+
+  fireEvent.click(screen.getByRole("button", { name: "Back" }));
+
+  expect(isCurrent("Home")).toBe(true);
+  goTo("Session");
+  expect(screen.getByText("1 answered, 1 right")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Done" })).toBeTruthy();
 });
 
 it("the Session link stays enabled while a Session runs, even with 0 Cards set on Home", async () => {
