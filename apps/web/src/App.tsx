@@ -142,8 +142,10 @@ export function App() {
   return (
     <LanguageContext.Provider value={language}>
       <Header page={page} onNavigate={navigate} sessionDisabled={!session && !canStart} />
-      <main className="page-shell">
-        {page !== "home" && page !== "cards" && page !== "settings" && <h1>Flashcards</h1>}
+      <main className={page === "session" ? "session-page" : "page-shell"}>
+        {page !== "home" && page !== "cards" && page !== "settings" && page !== "session" && (
+          <h1>Flashcards</h1>
+        )}
         {error && (
           <Alert tone="danger" role="alert">
             {error}
@@ -156,6 +158,7 @@ export function App() {
               key={session.id}
               cards={session.cards}
               shown={page === "session"}
+              onBack={() => setPage("home")}
               onEnd={() => {
                 setSession(undefined);
                 setPage("home");

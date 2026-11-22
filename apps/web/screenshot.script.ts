@@ -86,6 +86,7 @@ async function answerEveryCard(
       throw new Error("answer flow: no Card view it knows is shown");
     }
   }
+  await shot("summary");
 }
 
 // From the start page, opens Statistics and waits for its Cards table. Looks inside main, because the navigation has a Statistics button too.
@@ -158,6 +159,10 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await goTo(page, text.session);
   await waitForFirstCard(page, text);
   await shot("session");
+  await page.getByRole("button", { name: text.back, exact: true }).click();
+  await page.getByRole("button", { name: text.startSession, exact: true }).waitFor();
+  await shot("session-back");
+  await goTo(page, text.session);
   await goTo(page, text.statistics);
   await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
   await shot("statistics");

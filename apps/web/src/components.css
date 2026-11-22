@@ -482,7 +482,8 @@
 }
 
 .section-icon,
-.empty-icon {
+.empty-icon,
+.summary-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -905,4 +906,98 @@
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
   border-top: var(--border-width) solid var(--color-line-100);
+}
+
+/* Session */
+.session-page {
+  min-height: calc(100vh - var(--space-16));
+}
+
+.session-page > .alert {
+  margin: var(--space-4) var(--space-4) var(--space-0);
+}
+
+.session-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: min(100%, var(--content-width));
+  margin: var(--space-0) auto;
+  padding: var(--space-4);
+}
+
+.progress-copy {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-ink-600);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The prototype's 6rem has no token; this is 6rem. */
+.progress-track {
+  width: calc(var(--space-20) + var(--space-4));
+  height: var(--progress-height);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-line-200);
+}
+
+/* The prototype's `width: var(--progress)` is left out: the width is set inline, because styles.test.ts rejects the variable. */
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent-600);
+  transition: width var(--transition-base);
+}
+
+.session-stage {
+  display: grid;
+  gap: var(--space-4);
+  width: min(100%, var(--reading-width));
+  margin: var(--space-0) auto;
+  padding: var(--space-6) var(--space-4) var(--space-20);
+}
+
+.summary-card {
+  padding: var(--space-10) var(--space-5);
+  border: var(--border-width) solid var(--color-line-200);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.summary-icon {
+  width: var(--space-16);
+  height: var(--space-16);
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-success-50);
+  color: var(--color-success-700);
+}
+
+.summary-card h1 {
+  margin: var(--space-2) var(--space-0);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.summary-card > p:not(.eyebrow) {
+  margin-bottom: var(--space-6);
+  color: var(--color-ink-600);
+}
+
+/* A media query can't use a variable: --breakpoint-desktop. It follows the base rules, so its padding wins. */
+@media (min-width: 48rem) {
+  .session-toolbar {
+    padding: var(--space-5) var(--space-6);
+  }
+
+  .session-stage {
+    padding-top: var(--space-10);
+  }
 }
