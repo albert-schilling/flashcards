@@ -99,6 +99,7 @@ async function showControls(page: Page, shot: (name: string) => Promise<void>): 
   const text = uiText.en;
   await shot("empty-start-page");
   // Tab from the page start reaches the header brand first, so focus the Language select directly.
+  await goTo(page, text.settings);
   await page.getByLabel(text.language).focus();
   await shot("field-focus");
   // A file that isn't a Deck is rejected and shows the danger alert in the Files panel.
@@ -164,7 +165,7 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await page.getByRole("button", { name: text.startSession, exact: true }).waitFor();
   await shot("statistics-back");
   await goTo(page, text.settings);
-  await page.getByText(text.pageNotBuilt, { exact: true }).waitFor();
+  await page.getByRole("heading", { name: text.settings, exact: true }).waitFor();
   await shot("settings");
   await page.getByRole("button", { name: text.brandHome, exact: true }).click();
   await page.getByRole("button", { name: text.startSession, exact: true }).waitFor();
@@ -299,10 +300,14 @@ const flows: Record<string, TFlow> = {
     await shot("end");
   },
   answer: answerEveryCard,
-  // Picks Deutsch, answers every Card, then shows the start page and Statistics; Cards without a German field show it in English.
+  // Picks Deutsch on Settings, answers every Card, then shows the start page and Statistics; Cards without a German field show it in English.
   german: async (page, shot) => {
+    await goTo(page, uiText.en.settings);
     // Not exact: the label's name includes the option names.
     await page.getByLabel(uiText.en.language).selectOption("de");
+    await page.getByRole("heading", { name: uiText.de.settings, exact: true }).waitFor();
+    await shot("settings");
+    await goTo(page, uiText.de.home, uiText.de);
     await shot("empty-start-page");
     await answerEveryCard(page, shot, uiText.de);
     await page.getByRole("button", { name: uiText.de.done, exact: true }).click();

@@ -8,8 +8,8 @@ import { CardsPage } from "./CardsPage";
 import { FilesPanel } from "./FilesPanel";
 import { Header, type TPage } from "./Header";
 import { Home } from "./Home";
-import { Select } from "./Select";
 import { Session } from "./Session";
+import { Settings } from "./Settings";
 import { allTags, pickCards } from "./session.helper";
 import { Statistics } from "./Statistics";
 import {
@@ -22,7 +22,6 @@ import {
   saveLanguage,
   type TReview,
 } from "./storage";
-import { uiText } from "./ui.text";
 
 export function App() {
   const [cards, setCards] = useState<TCard[]>([]);
@@ -37,8 +36,6 @@ export function App() {
   const [language, setLanguage] = useState<TLanguage>(browserLanguage);
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
-  // App provides the language context, so it can't read it.
-  const text = uiText[language];
 
   useEffect(() => {
     // Ask the browser not to evict the stored Cards.
@@ -142,13 +139,11 @@ export function App() {
     } else setPage(target);
   }
 
-  const placeholder = <p>{text.pageNotBuilt}</p>;
-
   return (
     <LanguageContext.Provider value={language}>
       <Header page={page} onNavigate={navigate} sessionDisabled={!session && !canStart} />
       <main className="page-shell">
-        {page !== "home" && page !== "cards" && <h1>Flashcards</h1>}
+        {page !== "home" && page !== "cards" && page !== "settings" && <h1>Flashcards</h1>}
         {error && (
           <Alert tone="danger" role="alert">
             {error}
@@ -187,7 +182,7 @@ export function App() {
             />
           </CardsPage>
         )}
-        {page === "settings" && placeholder}
+        {page === "settings" && <Settings onLanguage={pickLanguage} />}
         {page === "statistics" && reviews && (
           <Statistics
             cards={cards}
@@ -199,30 +194,18 @@ export function App() {
           />
         )}
         {page === "home" && (
-          <>
-            <Home
-              cardCount={cards.length}
-              size={size}
-              onSize={setSize}
-              tags={tags}
-              tag={pickedTag}
-              onTag={setTag}
-              canStart={canStart}
-              onStart={() => void startSession()}
-              onStatistics={() => void openStatistics()}
-              onCards={() => navigate("cards")}
-            />
-            <label className="field">
-              {text.language}
-              <Select
-                value={language}
-                onChange={(event) => pickLanguage(event.target.value as TLanguage)}
-              >
-                <option value="en">English</option>
-                <option value="de">Deutsch</option>
-              </Select>
-            </label>
-          </>
+          <Home
+            cardCount={cards.length}
+            size={size}
+            onSize={setSize}
+            tags={tags}
+            tag={pickedTag}
+            onTag={setTag}
+            canStart={canStart}
+            onStart={() => void startSession()}
+            onStatistics={() => void openStatistics()}
+            onCards={() => navigate("cards")}
+          />
         )}
       </main>
     </LanguageContext.Provider>
