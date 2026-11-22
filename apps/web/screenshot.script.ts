@@ -132,7 +132,7 @@ async function goTo(page: Page, name: string, text: TUiText = uiText.en): Promis
   await navLink(page, name, text).click();
 }
 
-// Shows the menu, then each page the navigation reaches, Back on Statistics and the brand.
+// Shows the menu, then each page the navigation reaches, Back on the Session and on Statistics, and the brand.
 async function showNavigation(page: Page, shot: (name: string) => Promise<void>): Promise<void> {
   const text = uiText.en;
   await uploadExampleDeck(page);
@@ -162,7 +162,9 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await page.getByRole("button", { name: text.back, exact: true }).click();
   await page.getByRole("button", { name: text.startSession, exact: true }).waitFor();
   await shot("session-back");
+  // The Session link returns to the running Session.
   await goTo(page, text.session);
+  await waitForFirstCard(page, text);
   await goTo(page, text.statistics);
   await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
   await shot("statistics");
