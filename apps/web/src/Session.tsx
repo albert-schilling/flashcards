@@ -68,9 +68,7 @@ export function Session(props: {
       </div>
       <div className="session-stage">
         {card ? (
-          <section className="panel">
-            <CardView key={index} card={card} onAnswer={answer} onNext={next} />
-          </section>
+          <CardView key={index} card={card} onAnswer={answer} onNext={next} />
         ) : (
           <section className="summary-card">
             <span className="summary-icon">

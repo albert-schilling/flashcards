@@ -49,6 +49,8 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #84 | The implementer added `flushSync` to app code only because a test blurred outside `act()`, instead of stopping to report the test. | albert-schilling/skills#37 (stop instead of bending code to a test).                             |
 | #84 | Planned ~290 lines, came out at 372; tests ran over for the third run in a row (planned 90, written 157).                          | albert-schilling/skills#38 (estimate tests per test).                                            |
 | #87 | Planned ~410 lines, came out at 784: tests 461 against 165 planned, the fourth overrun in a row.                                   | albert-schilling/skills#38 (estimate tests per test).                                            |
+| #95 | Planned ~793 lines, came out at 988: tests 368 against 234, even with a per-test estimate.                                         | albert-schilling/skills#38 (comment with this data).                                             |
+| #95 | The implementer added a second `.type-label` rule identical to an existing one; the standards review caught it.                    | #96 (check style sheets for duplicate rules).                                                    |
 
 ## Factory runs
 
@@ -90,3 +92,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #87 | #53   | medium    | 2 / 6             | 2             | 5              | none                |
 | #89 | #54   | medium    | 1 / 3             | 1             | 3              | none                |
 | #90 | #55   | medium    | 1 / 2             | 2             | 2              | none                |
+| #95 | #56   | medium    | 3 / 8             | 3             | 5              | none                |

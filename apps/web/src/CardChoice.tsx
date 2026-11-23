@@ -1,9 +1,11 @@
+import { Check, X } from "lucide-react";
 import { useState } from "react";
 import { CardVerdict } from "./CardVerdict";
+import { StudyCard, type TStudyCardFrame } from "./StudyCard";
 
-/** Options to click. The click answers; then it shows right or wrong, the right option, the explanation if any, and Next. */
+/** Options to click, marked A, B, ... The click answers; then the options show right and wrong, followed by the verdict, the explanation if any, and Next below the card. */
 export function CardChoice(props: {
-  prompt: string;
+  frame: TStudyCardFrame;
   options: string[];
   answerIndex: number;
   explanation?: string;
@@ -11,31 +13,50 @@ export function CardChoice(props: {
   onNext: () => void;
 }) {
   const [picked, setPicked] = useState<number>();
+  const answered = picked !== undefined;
   return (
-    <>
-      <p>{props.prompt}</p>
-      {/* Keyed by position: options may repeat, and never reorder. */}
-      {props.options.map((option, i) => (
-        <button
-          className="button secondary"
-          key={i}
-          disabled={picked !== undefined}
-          onClick={() => {
-            setPicked(i);
-            props.onAnswer(i === props.answerIndex);
-          }}
-        >
-          {option}
-        </button>
-      ))}
-      {picked !== undefined && (
+    <StudyCard frame={props.frame} onNext={answered ? props.onNext : undefined}>
+      <div className="options">
+        {/* Keyed by position: options may repeat, and never reorder. */}
+        {props.options.map((option, i) => {
+          const status = !answered
+            ? ""
+            : i === props.answerIndex
+              ? "correct"
+              : i === picked
+                ? "incorrect"
+                : "";
+          return (
+            <button
+              className={`option-button ${status}`}
+              key={i}
+              disabled={answered}
+              onClick={() => {
+                setPicked(i);
+                props.onAnswer(i === props.answerIndex);
+              }}
+            >
+              <span className="option-marker" aria-hidden="true">
+                {status === "correct" ? (
+                  <Check size={17} />
+                ) : status === "incorrect" ? (
+                  <X size={17} />
+                ) : (
+                  String.fromCharCode(65 + i)
+                )}
+              </span>
+              <span>{option}</span>
+            </button>
+          );
+        })}
+      </div>
+      {answered && (
         <CardVerdict
           right={picked === props.answerIndex}
           answer={props.options[props.answerIndex]}
           explanation={props.explanation}
-          onNext={props.onNext}
         />
       )}
-    </>
+    </StudyCard>
   );
 }
