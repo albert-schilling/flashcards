@@ -1274,6 +1274,19 @@ it("domain tags and topic tags each have their own style", async () => {
   expect(styled("tag-topic")).toEqual(fiveTags.slice(2));
 });
 
+it("a tag in both domain and topic shows twice, once in each style", async () => {
+  const error = vi.spyOn(console, "error");
+  const article = await studyCard(tagged(qa("q", 1), ["Bias"], ["Bias", "Variance"]));
+  fireEvent.click(moreTags(article, "+1 more tag"));
+  const logged = error.mock.calls.flat().join(" ");
+  error.mockRestore();
+
+  expect(shownTags(article)).toEqual(["Bias", "Bias", "Variance"]);
+  expect(tagList(article).querySelector(".tag-domain")?.textContent).toBe("Bias");
+  expect(tagList(article).querySelector(".tag-topic")?.textContent).toBe("Bias");
+  expect(logged).not.toContain("same key");
+});
+
 it.each(cardTypes)("a $card.type Card's prompt is a level 2 heading", async (c) => {
   const article = await studyCard(c.card);
 
