@@ -37,8 +37,8 @@ async function waitForFirstCard(page: Page, text: TUiText): Promise<void> {
   await page.locator("article button").first().waitFor();
 }
 
-// Answers every Card, Reveal Cards as known. Right by default: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01).
-// With `mirrored`, the other way round: a wrong multiple_choice (first option), a right true_false (True), a wrong numeric (9); each wrong one comes back once and is then answered right, and its shots end in -2.
+// Answers every Card, Reveal Cards as known. By default: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01).
+// With `mirrored`, the other way round: a wrong multiple_choice (first option), a right true_false (True), a wrong numeric (9); the wrong multiple_choice and numeric come back once, are then answered right, and their shots end in -2.
 async function answerEveryCard(
   page: Page,
   shot: (name: string) => Promise<void>,
@@ -52,13 +52,16 @@ async function answerEveryCard(
   const done = page.getByRole("button", { name: text.done, exact: true });
   const reveal = page.getByRole("button", { name: text.reveal, exact: true });
   const check = page.getByRole("button", { name: text.check, exact: true });
-  const wrong = page.getByRole("button", { name: mirrored ? text.true : text.false, exact: true });
+  const trueFalsePick = page.getByRole("button", {
+    name: mirrored ? text.true : text.false,
+    exact: true,
+  });
   const options = page.locator("article .option-button");
-  // How often a Card type was answered, because a wrong answer comes back.
-  const attempts = { choice: 0, numeric: 0 };
+  // Reviews so far per Card type, because a wrong answer comes back.
+  const reviews = { choice: 0, numeric: 0 };
   // Sessions are shuffled, so Reveal Cards (qa, formula, cloze) are numbered, not named by type.
   let revealed = 0;
-  // The wrong true_false comes back once, so it is numbered too.
+  // A wrong true_false comes back once, so it is numbered too.
   let trueFalse = 0;
   while (!(await done.isVisible())) {
     if (await reveal.isVisible()) {
@@ -67,23 +70,23 @@ async function answerEveryCard(
       await reveal.click();
       await shot(`reveal-${revealed}-after`);
       await page.getByRole("button", { name: text.knewIt, exact: true }).click();
-    } else if (await wrong.isVisible()) {
+    } else if (await trueFalsePick.isVisible()) {
       trueFalse++;
       await shot(`true-false-${trueFalse}-before`);
-      await wrong.click();
+      await trueFalsePick.click();
       await shot(`true-false-${trueFalse}-after`);
       await page.getByRole("button", { name: text.next, exact: true }).click();
     } else if (await check.isVisible()) {
-      const again = ++attempts.numeric > 1 ? `-${attempts.numeric}` : "";
+      const again = ++reviews.numeric > 1 ? `-${reviews.numeric}` : "";
       await shot(`numeric-before${again}`);
-      // On the edge of the allowed error, so right.
+      // 5.01 is on the edge of the allowed error, so right; 9 is wrong.
       const typed = mirrored && !again ? "9" : "5.01";
       await page.getByLabel(text.answer, { exact: true }).fill(typed);
       await check.click();
       await shot(`numeric-after${again}`);
       await page.getByRole("button", { name: text.next, exact: true }).click();
     } else if ((await options.count()) > 0) {
-      const again = ++attempts.choice > 1 ? `-${attempts.choice}` : "";
+      const again = ++reviews.choice > 1 ? `-${reviews.choice}` : "";
       await shot(`multiple-choice-before${again}`);
       await options.nth(mirrored && !again ? 0 : 1).click();
       await shot(`multiple-choice-after${again}`);
