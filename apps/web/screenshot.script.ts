@@ -212,7 +212,6 @@ async function showTags(page: Page, shot: (name: string) => Promise<void>, text:
 }
 
 const flows: Record<string, TFlow> = {
-  // One Card with 5 tags: the "+3 more" button, then all tags.
   tags: (page, shot) => showTags(page, shot, uiText.en),
   "tags-german": async (page, shot) => {
     await goTo(page, uiText.en.settings);
