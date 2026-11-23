@@ -14,7 +14,8 @@ export function StudyCardTags(props: { tags: TCard["tags"] }) {
     ...props.tags.domain.map((name) => ({ name, kind: "domain" })),
     ...props.tags.topic.map((name) => ({ name, kind: "topic" })),
   ];
-  const hidden = expanded ? 0 : Math.max(0, tags.length - collapsedCount);
+  const shown = expanded ? tags : tags.slice(0, collapsedCount);
+  const hiddenCount = tags.length - shown.length;
 
   // The button is gone after the click, so focus goes to the list; never on mount.
   useEffect(() => {
@@ -24,21 +25,21 @@ export function StudyCardTags(props: { tags: TCard["tags"] }) {
   return (
     <div className="study-card-tags">
       <ul ref={list} tabIndex={-1} aria-label={text.tags}>
-        {tags.slice(0, expanded ? undefined : collapsedCount).map((tag, i) => (
+        {shown.map((tag, i) => (
           // Keyed by position: tags may repeat, and never reorder.
           <li key={i} className={`card-tag tag-${tag.kind}`}>
             {tag.name}
           </li>
         ))}
       </ul>
-      {hidden > 0 && (
+      {hiddenCount > 0 && (
         <button
           type="button"
           className="more-tags"
-          aria-label={text.moreTagsName(hidden)}
+          aria-label={text.moreTagsName(hiddenCount)}
           onClick={() => setExpanded(true)}
         >
-          {text.moreTags(hidden)}
+          {text.moreTags(hiddenCount)}
         </button>
       )}
     </div>
