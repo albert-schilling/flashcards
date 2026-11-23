@@ -1074,11 +1074,9 @@
   padding: var(--space-1) var(--space-2);
   border: var(--border-width) solid var(--color-accent-700);
   border-radius: var(--radius-pill);
-  background: transparent;
   color: var(--color-accent-700);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  cursor: pointer;
 }
 
 .more-tags:hover {
