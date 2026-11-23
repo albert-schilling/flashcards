@@ -29,19 +29,21 @@ async function requireInter(page: Page): Promise<void> {
   }
 }
 
-// A Session loads the Review log before its first Card. Home's panel is a section too, so Start Session must go first.
+// A Session loads the Review log before its first Card, which is the study card, an article.
 async function waitForFirstCard(page: Page, text: TUiText): Promise<void> {
   await page
     .getByRole("button", { name: text.startSession, exact: true })
     .waitFor({ state: "detached" });
-  await page.locator("section button").first().waitFor();
+  await page.locator("article button").first().waitFor();
 }
 
-// Answers every Card: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01), Reveal Cards as known.
+// Answers every Card, Reveal Cards as known. Right by default: a right multiple_choice (second option), a wrong true_false (False), a right numeric (5.01).
+// With `mirrored`, the other way round: a wrong multiple_choice (first option), a right true_false (True), a wrong numeric (9); each wrong one comes back once and is then answered right, and its shots end in -2.
 async function answerEveryCard(
   page: Page,
   shot: (name: string) => Promise<void>,
   text: TUiText = uiText.en,
+  mirrored = false,
 ): Promise<void> {
   await uploadExampleDeck(page, text);
   await page.getByLabel(text.cards, { exact: true }).fill("6");
@@ -50,8 +52,10 @@ async function answerEveryCard(
   const done = page.getByRole("button", { name: text.done, exact: true });
   const reveal = page.getByRole("button", { name: text.reveal, exact: true });
   const check = page.getByRole("button", { name: text.check, exact: true });
-  const wrong = page.getByRole("button", { name: text.false, exact: true });
-  const options = page.locator("section button");
+  const wrong = page.getByRole("button", { name: mirrored ? text.true : text.false, exact: true });
+  const options = page.locator("article .option-button");
+  // How often a Card type was answered, because a wrong answer comes back.
+  const attempts = { choice: 0, numeric: 0 };
   // Sessions are shuffled, so Reveal Cards (qa, formula, cloze) are numbered, not named by type.
   let revealed = 0;
   // The wrong true_false comes back once, so it is numbered too.
@@ -70,16 +74,19 @@ async function answerEveryCard(
       await shot(`true-false-${trueFalse}-after`);
       await page.getByRole("button", { name: text.next, exact: true }).click();
     } else if (await check.isVisible()) {
-      await shot("numeric-before");
+      const again = ++attempts.numeric > 1 ? `-${attempts.numeric}` : "";
+      await shot(`numeric-before${again}`);
       // On the edge of the allowed error, so right.
-      await page.getByLabel(text.answer, { exact: true }).fill("5.01");
+      const typed = mirrored && !again ? "9" : "5.01";
+      await page.getByLabel(text.answer, { exact: true }).fill(typed);
       await check.click();
-      await shot("numeric-after");
+      await shot(`numeric-after${again}`);
       await page.getByRole("button", { name: text.next, exact: true }).click();
     } else if ((await options.count()) > 0) {
-      await shot("multiple-choice-before");
-      await options.nth(1).click();
-      await shot("multiple-choice-after");
+      const again = ++attempts.choice > 1 ? `-${attempts.choice}` : "";
+      await shot(`multiple-choice-before${again}`);
+      await options.nth(mirrored && !again ? 0 : 1).click();
+      await shot(`multiple-choice-after${again}`);
       await page.getByRole("button", { name: text.next, exact: true }).click();
     } else {
       // Each pass answers one Card, so an unknown view would loop forever.
@@ -307,6 +314,8 @@ const flows: Record<string, TFlow> = {
     await shot("end");
   },
   answer: answerEveryCard,
+  // The answer flow with the right and wrong answers swapped, so every Card type shows both.
+  "answer-wrong": async (page, shot) => answerEveryCard(page, shot, uiText.en, true),
   // Picks Deutsch on Settings, answers every Card, then shows the start page and Statistics; Cards without a German field show it in English.
   german: async (page, shot) => {
     await goTo(page, uiText.en.settings);

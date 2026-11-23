@@ -1,21 +1,18 @@
+import { CircleCheck, CircleX } from "lucide-react";
 import { useText } from "./language.context";
 
-/** After an answer: right or wrong, the right answer, the explanation if any, and Next. */
-export function CardVerdict(props: {
-  right: boolean;
-  answer: string;
-  explanation?: string;
-  onNext: () => void;
-}) {
+/** After an answer: right or wrong with its icon, the right answer and the explanation if any. */
+export function CardVerdict(props: { right: boolean; answer: string; explanation?: string }) {
   const text = useText();
+  const Icon = props.right ? CircleCheck : CircleX;
   return (
-    <>
-      <p>{props.right ? text.right : text.wrong}</p>
-      <p>{text.correctAnswer(props.answer)}</p>
-      {props.explanation && <p>{props.explanation}</p>}
-      <button className="button primary" onClick={props.onNext}>
-        {text.next}
-      </button>
-    </>
+    <div className={`feedback ${props.right ? "right" : "wrong"}`} role="status">
+      <Icon size={24} aria-hidden="true" />
+      <div>
+        <strong>{props.right ? text.right : text.wrong}</strong>
+        <p>{text.correctAnswer(props.answer)}</p>
+        {props.explanation && <span>{props.explanation}</span>}
+      </div>
+    </div>
   );
 }

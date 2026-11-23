@@ -1,4 +1,5 @@
 // Every UI text in English and German. The screenshot script runs this file in Node, which only strips types, so it imports types only.
+import type { TCard } from "@flashcards/cards";
 import type { TLanguage } from "./language.context";
 
 const en = {
@@ -79,6 +80,15 @@ const en = {
   wrong: "Wrong.",
   correctAnswer: (answer: string) => `Answer: ${answer}`,
   next: "Next",
+  cardTypes: {
+    qa: "Question & answer",
+    formula: "Formula",
+    cloze: "Fill the gap",
+    multiple_choice: "Multiple choice",
+    true_false: "True or false",
+    numeric: "Numeric",
+  } satisfies Record<TCard["type"], string>,
+  example: (example: string) => `Example: ${example}`,
   answer: "Answer",
   check: "Check",
   true: "True",
@@ -174,6 +184,15 @@ const de: TUiText = {
   wrong: "Falsch.",
   correctAnswer: (answer) => `Antwort: ${answer}`,
   next: "Weiter",
+  cardTypes: {
+    qa: "Frage & Antwort",
+    formula: "Formel",
+    cloze: "Lückentext",
+    multiple_choice: "Multiple Choice",
+    true_false: "Wahr oder falsch",
+    numeric: "Numerisch",
+  },
+  example: (example) => `Beispiel: ${example}`,
   answer: "Antwort",
   check: "Prüfen",
   true: "Wahr",

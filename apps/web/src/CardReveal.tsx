@@ -1,36 +1,40 @@
-import { useState } from "react";
+import { CircleCheck, CircleX } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { useText } from "./language.context";
+import { StudyCard, type TStudyCardFrame } from "./StudyCard";
 
-/** Shows the `prompt` lines and Reveal; after Reveal, the `answer` lines with Knew it and Didn't know, which call `onGrade`. */
+/** Shows the study card and Reveal; after Reveal, `answer` in `.revealed-answer` with Didn't know and Knew it, which call `onGrade`. */
 export function CardReveal(props: {
-  prompt: string[];
-  answer: string[];
+  frame: TStudyCardFrame;
+  answer: ReactNode;
   onGrade: (right: boolean) => void;
 }) {
   const text = useText();
   const [revealed, setRevealed] = useState(false);
   return (
-    <>
-      {props.prompt.map((line, i) => (
-        <p key={i}>{line}</p>
-      ))}
+    <StudyCard frame={props.frame}>
       {revealed ? (
         <>
-          {props.answer.map((line, i) => (
-            <p key={i}>{line}</p>
-          ))}
-          <button className="button primary" onClick={() => props.onGrade(true)}>
-            {text.knewIt}
-          </button>
-          <button className="button secondary" onClick={() => props.onGrade(false)}>
-            {text.didntKnow}
-          </button>
+          <div className="revealed-answer">
+            <span className="answer-label">{text.answer}</span>
+            {props.answer}
+          </div>
+          <div className="rating-actions">
+            <button className="button secondary" onClick={() => props.onGrade(false)}>
+              <CircleX size={18} aria-hidden="true" />
+              {text.didntKnow}
+            </button>
+            <button className="button primary" onClick={() => props.onGrade(true)}>
+              <CircleCheck size={18} aria-hidden="true" />
+              {text.knewIt}
+            </button>
+          </div>
         </>
       ) : (
-        <button className="button primary" onClick={() => setRevealed(true)}>
+        <button className="button primary large reveal-button" onClick={() => setRevealed(true)}>
           {text.reveal}
         </button>
       )}
-    </>
+    </StudyCard>
   );
 }

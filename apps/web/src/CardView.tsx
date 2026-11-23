@@ -1,9 +1,10 @@
 import type { TCard } from "@flashcards/cards";
-import { useContext } from "react";
+import { useContext, type ReactNode } from "react";
 import { CardChoice } from "./CardChoice";
 import { CardNumeric } from "./CardNumeric";
 import { CardReveal } from "./CardReveal";
 import { LanguageContext, useText, type TLanguage } from "./language.context";
+import type { TStudyCardFrame } from "./StudyCard";
 import { uiText } from "./ui.text";
 
 // A cloze gap, `{{word}}`; the group is the word that fills it.
@@ -59,6 +60,12 @@ export function cardAnswer(card: TCard, language: TLanguage): string[] {
   }
 }
 
+// The cloze answer: the text with every gap word marked. React nodes, never HTML, because Deck text is uploaded.
+function clozeAnswer(text: string): ReactNode {
+  // Splitting on a pattern with a group alternates plain text and gap words.
+  return text.split(gap).map((part, i) => (i % 2 === 1 ? <mark key={i}>{part}</mark> : part));
+}
+
 // With cardTitle and cardAnswer above, the one place Card text is chosen.
 export function CardView(props: {
   card: TCard;
@@ -71,29 +78,47 @@ export function CardView(props: {
     props.onAnswer(right);
     props.onNext();
   };
+  // The chip is the Card's first topic tag; the schema guarantees one.
+  const frame = (prompt: string, detail?: string): TStudyCardFrame => ({
+    type: card.type,
+    tag: card.tags.topic[0],
+    prompt,
+    detail,
+  });
   switch (card.type) {
     case "qa":
-      return <CardReveal prompt={[card.en.question]} answer={[card.en.answer]} onGrade={grade} />;
+      return (
+        <CardReveal
+          frame={frame(card.en.question)}
+          answer={<p>{card.en.answer}</p>}
+          onGrade={grade}
+        />
+      );
     case "formula":
       return (
         <CardReveal
-          prompt={[card.en.name, card.en.wordFormula]}
-          answer={card.en.example ? [card.formula, card.en.example] : [card.formula]}
+          frame={frame(card.en.name, card.en.wordFormula)}
+          answer={
+            <>
+              <p className="formula">{card.formula}</p>
+              {card.en.example && <span className="example">{text.example(card.en.example)}</span>}
+            </>
+          }
           onGrade={grade}
         />
       );
     case "cloze":
       return (
         <CardReveal
-          prompt={[withGapsBlank(card.en.text)]}
-          answer={[card.en.text.replaceAll(gap, "$1")]}
+          frame={frame(withGapsBlank(card.en.text))}
+          answer={<p>{clozeAnswer(card.en.text)}</p>}
           onGrade={grade}
         />
       );
     case "multiple_choice":
       return (
         <CardChoice
-          prompt={card.en.question}
+          frame={frame(card.en.question)}
           options={card.en.options}
           answerIndex={card.answerIndex}
           explanation={card.en.explanation}
@@ -104,7 +129,7 @@ export function CardView(props: {
     case "true_false":
       return (
         <CardChoice
-          prompt={card.en.statement}
+          frame={frame(card.en.statement)}
           options={[text.true, text.false]}
           answerIndex={card.answer ? 0 : 1}
           onAnswer={props.onAnswer}
@@ -114,7 +139,7 @@ export function CardView(props: {
     case "numeric":
       return (
         <CardNumeric
-          prompt={card.en.question}
+          frame={frame(card.en.question)}
           answer={card.answer}
           allowedError={card.allowedError}
           unit={card.unit}

@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { CardVerdict } from "./CardVerdict";
 import { useText } from "./language.context";
 import { withinAllowedError } from "./session.helper";
+import { StudyCard, type TStudyCardFrame } from "./StudyCard";
 
-/** A number to type, with the unit after it; Check (or Enter) answers within the allowed error, then shows the verdict. */
+/** A number to type, with the unit inside the field; Check (or Enter) answers within the allowed error, then Check goes, the verdict shows and Next follows the card. */
 export function CardNumeric(props: {
-  prompt: string;
+  frame: TStudyCardFrame;
   answer: number;
   allowedError: number;
   unit?: string;
@@ -13,13 +14,14 @@ export function CardNumeric(props: {
   onNext: () => void;
 }) {
   const text = useText();
+  const inputId = useId();
   const [typed, setTyped] = useState("");
   const [right, setRight] = useState<boolean>();
   const answered = right !== undefined;
   return (
-    <>
-      <p>{props.prompt}</p>
+    <StudyCard frame={props.frame} onNext={answered ? props.onNext : undefined}>
       <form
+        className="numeric-form"
         onSubmit={(event) => {
           event.preventDefault();
           if (answered || typed === "") return;
@@ -28,32 +30,33 @@ export function CardNumeric(props: {
           props.onAnswer(isRight);
         }}
       >
-        <input
-          className="control"
-          type="number"
-          step="any"
-          aria-label={text.answer}
-          value={typed}
-          disabled={answered}
-          onChange={(event) => setTyped(event.target.value)}
-        />
-        {props.unit && (
-          <>
-            {" "}
-            <span>{props.unit}</span>
-          </>
-        )}{" "}
-        <button className="button primary" disabled={answered || typed === ""}>
-          {text.check}
-        </button>
+        <div className="field">
+          <label htmlFor={inputId}>{text.answer}</label>
+          <span className="input-with-unit">
+            <input
+              id={inputId}
+              className="control"
+              type="number"
+              step="any"
+              value={typed}
+              disabled={answered}
+              onChange={(event) => setTyped(event.target.value)}
+            />
+            {props.unit && <span>{props.unit}</span>}
+          </span>
+        </div>
+        {!answered && (
+          <button className="button primary" disabled={typed === ""}>
+            {text.check}
+          </button>
+        )}
       </form>
       {answered && (
         <CardVerdict
           right={right}
           answer={props.unit ? `${props.answer} ${props.unit}` : String(props.answer)}
-          onNext={props.onNext}
         />
       )}
-    </>
+    </StudyCard>
   );
 }
