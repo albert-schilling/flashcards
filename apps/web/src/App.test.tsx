@@ -1284,11 +1284,13 @@ it.each([
   { card: multipleChoice("mc", 1), act: (a: HTMLElement) => clickOption(a, "This") },
   { card: trueFalse("tf", 1), act: (a: HTMLElement) => clickOption(a, "True") },
   { card: numeric("n", 1), act: (a: HTMLElement) => checkNumber(a, "5") },
-])("Next follows the study card, outside it ($card.type)", async (c) => {
+])("Next appears only after answering, after the same study card ($card.type)", async (c) => {
   const article = await studyCard(c.card);
+  expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
 
   c.act(article);
 
+  expect(screen.getByRole("article")).toBe(article);
   const next = screen.getByRole("button", { name: "Next" });
   expect(article.contains(next)).toBe(false);
   expect(article.nextElementSibling).toBe(next);
@@ -1333,6 +1335,69 @@ it.each([
   checkNumber(article, c.typed);
 
   expect(expectFeedback(article, c.word, c.right).textContent).toContain("Answer: 5 cm");
+});
+
+it.each([qa("q", 1), formula("f", 1), cloze("c", 1)])(
+  "a $type Card shows no Next, before or after Reveal",
+  async (card) => {
+    const article = await studyCard(card);
+    expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+
+    reveal(article);
+
+    expect(screen.queryByRole("button", { name: "Next" })).toBeNull();
+  },
+);
+
+it("a revealed formula shows its German example after the German prefix", async () => {
+  const card = german(formula("norm", 1, "2 · 3 = 6"), { example: "zwei mal drei" });
+  const article = await studyCard(card, "de");
+
+  reveal(article);
+
+  expect(article.querySelector(".revealed-answer .example")?.textContent).toBe(
+    "Beispiel: zwei mal drei",
+  );
+});
+
+it.each([
+  { case: "ending in a gap", text: "A tree has {{depth}}", words: ["depth"] },
+  { case: "with adjacent gaps", text: "{{deep}}{{tree}} here.", words: ["deep", "tree"] },
+])("marks the cloze words in a text $case", async (c) => {
+  const article = await studyCard(cloze("c", 1, c.text));
+
+  reveal(article);
+
+  const sentence = article.querySelector(".revealed-answer p")!;
+  expect(sentence.textContent).toBe(c.text.replaceAll(/\{\{|\}\}/g, ""));
+  expect(Array.from(sentence.querySelectorAll("mark"), (word) => word.textContent)).toEqual(
+    c.words,
+  );
+});
+
+it("four options show A to D, and a wrong pick leaves the others' letters and names", async () => {
+  const card = multipleChoice("mc", 1);
+  const options = ["One", "Two", "Three", "Four"];
+  const article = await studyCard({ ...card, en: { ...card.en, options } });
+  expect(optionMarks(article)).toEqual(["A", "B", "C", "D"]);
+
+  clickOption(article, "Three");
+
+  expect(optionMarks(article)).toEqual(["correct check", "B", "incorrect x", "D"]);
+  for (const name of options) {
+    expect(within(article).getByRole("button", { name })).toBeTruthy();
+  }
+});
+
+it.each([
+  { click: "This", word: "Right.", right: true },
+  { click: "That", word: "Wrong.", right: false },
+])("the explanation is inside the $word feedback", async (c) => {
+  const article = await studyCard(multipleChoice("mc", 1));
+
+  clickOption(article, c.click);
+
+  expect(within(expectFeedback(article, c.word, c.right)).getByText("This one.")).toBeTruthy();
 });
 
 // The navigation has a Statistics button too, so a click on Home's looks inside main only.
