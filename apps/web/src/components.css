@@ -1039,14 +1039,6 @@
   gap: var(--space-3);
 }
 
-.type-label {
-  color: var(--color-accent-700);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-eyebrow);
-  text-transform: uppercase;
-}
-
 .card-tag {
   display: inline-flex;
   align-items: center;
