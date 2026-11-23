@@ -1059,9 +1059,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
-  margin: var(--space-0);
-  padding: var(--space-0);
-  list-style: none;
 }
 
 .study-card-tags {
