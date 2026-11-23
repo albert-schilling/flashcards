@@ -1284,7 +1284,7 @@ it("a tag repeated within and across domain and topic shows each time, in its st
   expect(shownTags(article)).toEqual(["Bias", "Bias", "Bias", "Variance"]);
   expect(tagList(article).querySelector(".tag-domain")?.textContent).toBe("Bias");
   expect(tagList(article).querySelector(".tag-topic")?.textContent).toBe("Bias");
-  expect(logged).not.toContain("same key");
+  expect(logged).toBe("");
 });
 
 it.each(cardTypes)("a $card.type Card's prompt is a level 2 heading", async (c) => {
