@@ -2,11 +2,12 @@ import type { TCard } from "@flashcards/cards";
 import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { useText } from "./language.context";
+import { StudyCardTags } from "./StudyCardTags";
 
-/** What a study card shows above its answer: the Card type, one tag, the prompt and an optional line below it. */
+/** What a study card shows above its answer: the Card type, all its tags, the prompt and an optional line below it. */
 export type TStudyCardFrame = {
   type: TCard["type"];
-  tag: string;
+  tags: TCard["tags"];
   prompt: string;
   detail?: string;
 };
@@ -24,7 +25,7 @@ export function StudyCard(props: {
       <article className={`study-card type-${frame.type}`}>
         <div className="study-card-top">
           <span className="type-label">{text.cardTypes[frame.type]}</span>
-          <span className="card-tag">{frame.tag}</span>
+          <StudyCardTags tags={frame.tags} />
         </div>
         <div className="prompt">
           <h2>{frame.prompt}</h2>

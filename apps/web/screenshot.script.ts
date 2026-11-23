@@ -189,7 +189,36 @@ async function showNavigation(page: Page, shot: (name: string) => Promise<void>)
   await shot("brand-home");
 }
 
+// Uploads a Deck of one Card with 5 tags, the first two domain tags, starts a Session and shoots the study card collapsed and expanded.
+async function showTags(page: Page, shot: (name: string) => Promise<void>, text: TUiText) {
+  const deck = JSON.parse(await readFile(exampleDeck, "utf8"));
+  const tags = {
+    domain: ["Statistics", "Machine Learning"],
+    topic: ["Regression", "Bias", "Variance"],
+  };
+  await goTo(page, text.cards, text);
+  await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles({
+    name: "tags.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ cards: [{ ...deck.cards[0], tags }] })),
+  });
+  await page.getByText(text.deckSummary(1, 0, 0), { exact: true }).waitFor();
+  await goTo(page, text.home, text);
+  await page.getByRole("button", { name: text.startSession, exact: true }).click();
+  await waitForFirstCard(page, text);
+  await shot("collapsed");
+  await page.getByRole("button", { name: text.moreTagsName(3), exact: true }).click();
+  await shot("expanded");
+}
+
 const flows: Record<string, TFlow> = {
+  tags: (page, shot) => showTags(page, shot, uiText.en),
+  "tags-german": async (page, shot) => {
+    await goTo(page, uiText.en.settings);
+    await page.getByLabel(uiText.en.language).selectOption("de");
+    await page.getByRole("heading", { name: uiText.de.settings, exact: true }).waitFor();
+    await showTags(page, shot, uiText.de);
+  },
   navigation: showNavigation,
   controls: showControls,
   upload: async (page, shot) => {

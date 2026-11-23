@@ -78,10 +78,9 @@ export function CardView(props: {
     props.onAnswer(right);
     props.onNext();
   };
-  // The chip is the Card's first topic tag; the schema guarantees one.
   const frame = (prompt: string, detail?: string): TStudyCardFrame => ({
     type: card.type,
-    tag: card.tags.topic[0],
+    tags: card.tags,
     prompt,
     detail,
   });
