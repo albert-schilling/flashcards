@@ -39,7 +39,7 @@ export function cardTitle(card: TCard, language: TLanguage): string {
   }
 }
 
-/** What the Card preview shows as a Card's answer in this language, one line each, as a Session reveals it: the answer (qa); the word formula, the formula and the example if any (formula); the text with its gaps filled (cloze); the right option, then the explanation (multiple_choice); True or False (true_false); the answer and its unit (numeric). */
+/** What the Card preview shows as a Card's answer in this language, one line each: the answer (qa); the word formula, the formula and the example if any (formula); the text with its gaps filled (cloze); the right option, then the explanation (multiple_choice); True or False (true_false); the answer and its unit (numeric). */
 export function cardAnswer(card: TCard, language: TLanguage): string[] {
   const shown = inLanguage(card, language);
   switch (shown.type) {
