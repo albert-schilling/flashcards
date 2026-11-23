@@ -1274,14 +1274,14 @@ it("domain tags and topic tags each have their own style", async () => {
   expect(styled("tag-topic")).toEqual(fiveTags.slice(2));
 });
 
-it("a tag in both domain and topic shows twice, once in each style", async () => {
+it("a tag repeated within and across domain and topic shows each time, in its style", async () => {
   const error = vi.spyOn(console, "error");
-  const article = await studyCard(tagged(qa("q", 1), ["Bias"], ["Bias", "Variance"]));
-  fireEvent.click(moreTags(article, "+1 more tag"));
+  const article = await studyCard(tagged(qa("q", 1), ["Bias", "Bias"], ["Bias", "Variance"]));
+  fireEvent.click(moreTags(article, "+2 more tags"));
   const logged = error.mock.calls.flat().join(" ");
   error.mockRestore();
 
-  expect(shownTags(article)).toEqual(["Bias", "Bias", "Variance"]);
+  expect(shownTags(article)).toEqual(["Bias", "Bias", "Bias", "Variance"]);
   expect(tagList(article).querySelector(".tag-domain")?.textContent).toBe("Bias");
   expect(tagList(article).querySelector(".tag-topic")?.textContent).toBe("Bias");
   expect(logged).not.toContain("same key");

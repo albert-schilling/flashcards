@@ -24,9 +24,9 @@ export function StudyCardTags(props: { tags: TCard["tags"] }) {
   return (
     <div className="study-card-tags">
       <ul ref={list} tabIndex={-1} aria-label={text.tags}>
-        {tags.slice(0, expanded ? undefined : collapsedCount).map((tag) => (
-          // A name can be both a domain and a topic tag, so the kind is part of the key.
-          <li key={`${tag.kind}:${tag.name}`} className={`card-tag tag-${tag.kind}`}>
+        {tags.slice(0, expanded ? undefined : collapsedCount).map((tag, i) => (
+          // Keyed by position: tags may repeat, and never reorder.
+          <li key={i} className={`card-tag tag-${tag.kind}`}>
             {tag.name}
           </li>
         ))}
