@@ -105,6 +105,23 @@ async function openStatistics(page: Page, text: TUiText): Promise<void> {
   await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
 }
 
+// Fails when an overview figure is wider than its box; throws when it finds no figure. jsdom does no layout, so the browser checks it.
+async function checkStatisticsFits(page: Page, flow: string): Promise<void> {
+  const found = await page.evaluate(() => {
+    const figures = Array.from(document.querySelectorAll(".stat-overview div"));
+    const tables = Array.from(document.querySelectorAll(".table-scroll"));
+    return {
+      figures: figures.length,
+      tables: tables.length,
+      overflowing: figures.filter((figure) => figure.scrollWidth > figure.clientWidth).length,
+    };
+  });
+  if (found.figures === 0) throw new Error(`${flow} flow: found no overview figures`);
+  if (found.overflowing > 0) {
+    throw new Error(`${flow} flow: ${found.overflowing} overview figures are wider than their box`);
+  }
+}
+
 // Shows the states a plain page doesn't: disabled, hovered, keyboard-focused and rejected.
 async function showControls(page: Page, shot: (name: string) => Promise<void>): Promise<void> {
   const text = uiText.en;
@@ -453,6 +470,7 @@ const flows: Record<string, TFlow> = {
     await shot("start-page");
     await openStatistics(page, uiText.de);
     await shot("statistics");
+    await checkStatisticsFits(page, "german");
   },
   // Answers every Card without shots, then opens Statistics.
   statistics: async (page, shot) => {
@@ -460,6 +478,7 @@ const flows: Record<string, TFlow> = {
     await page.getByRole("button", { name: uiText.en.done, exact: true }).click();
     await openStatistics(page, uiText.en);
     await shot("statistics");
+    await checkStatisticsFits(page, "statistics");
   },
 };
 

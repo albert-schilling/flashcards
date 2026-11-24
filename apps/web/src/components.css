@@ -1351,3 +1351,48 @@
     align-items: end;
   }
 }
+
+/* Statistics */
+.back-button {
+  margin-bottom: var(--space-6);
+}
+
+.stat-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.stat-overview div {
+  display: grid;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-line-200);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.stat-overview strong {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.stat-overview span {
+  color: var(--color-ink-600);
+  font-size: var(--font-size-xs);
+}
+
+/* A media query can't use a variable: --breakpoint-desktop. It follows the base rules, so its values win. */
+@media (min-width: 48rem) {
+  .stat-overview {
+    gap: var(--space-4);
+  }
+
+  .stat-overview div {
+    padding: var(--space-6);
+  }
+
+  .stat-overview strong {
+    font-size: var(--font-size-2xl);
+  }
+}
