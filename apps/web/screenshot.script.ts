@@ -537,7 +537,11 @@ const flows: Record<string, TFlow> = {
     await dialog.getByRole("heading", { name: text.editCard, exact: true }).waitFor();
     await shot("edit");
     await editorControl(page, text.answer).selectOption("false");
-    await dialog.getByRole("button", { name: text.saveChanges, exact: true }).click();
+    // The editor scrolls inside its modal, so no other shot shows Cancel and Save changes.
+    const saveChanges = dialog.getByRole("button", { name: text.saveChanges, exact: true });
+    await saveChanges.scrollIntoViewIfNeeded();
+    await shot("edit-actions");
+    await saveChanges.click();
     await preview.getByText(/version 2$/).waitFor();
     await shot("edit-saved");
   },
