@@ -3413,3 +3413,20 @@ it("a second Create Card opens an empty editor, not the last one's text", async 
   expect(field("Question").value).toBe("");
   expect(field("ID").value).toBe("");
 });
+
+it.each([
+  { type: "formula", card: formula("a", 1) },
+  { type: "numeric", card: numeric("a", 1) },
+  { type: "multiple_choice", card: multipleChoice("a", 1) },
+])(
+  "the preview of a $type Card offers Delete but no Edit, since the editor can't open it",
+  async ({ card }) => {
+    render(<App />);
+    await uploaded(card);
+
+    const preview = openPreview("a");
+
+    expect(preview.getByRole("button", { name: "Delete" })).toBeTruthy();
+    expect(preview.queryByRole("button", { name: "Edit" })).toBeNull();
+  },
+);
