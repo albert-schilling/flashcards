@@ -1,5 +1,13 @@
 import type { TCard } from "@flashcards/cards";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+  type BoundFunctions,
+  type queries,
+} from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { ArrowLeft, Check, CircleCheck, CircleX, X, type LucideIcon } from "lucide-react";
 import { expect, it, vi } from "vitest";
@@ -613,7 +621,7 @@ it("with no Cards, Home shows the empty state and no Start a Session panel", () 
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
 });
 
-// Upload Deck opens the Cards page for its Files panel; Create Card opens it until the Card editor exists.
+// Upload Deck opens the Cards page for its Files panel; Create Card opens it with the Card editor.
 it.each(["Upload Deck", "Create Card"])("with no Cards, %s opens the Cards page", (name) => {
   render(<App />);
 
@@ -2651,4 +2659,426 @@ it("a finished Session keeps its summary until Done, so the Session link shows i
 
   expect(screen.getByText("1 answered, 1 right")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
+});
+
+function editor(title = "Create Card") {
+  return within(screen.getByRole("dialog", { name: title }));
+}
+
+/** Opens the Cards page and the Card editor from Create Card in its heading, and returns queries inside the editor. */
+function openEditor() {
+  openCards();
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+  return editor();
+}
+
+type TQueries = BoundFunctions<typeof queries>;
+
+function fill(dialog: TQueries, label: string, value: string) {
+  fireEvent.change(dialog.getByLabelText(label), { target: { value } });
+}
+
+function pickCardType(dialog: TQueries, type: string) {
+  fireEvent.change(dialog.getByLabelText("Type"), { target: { value: type } });
+}
+
+/** Picks the option with this text in the select with this label. */
+function pickOption(dialog: TQueries, label: string, text: string) {
+  const select = dialog.getByLabelText<HTMLSelectElement>(label);
+  const option = [...select.options].find((option) => option.textContent === text)!;
+  fireEvent.change(select, { target: { value: option.value } });
+}
+
+function fieldValue(dialog: TQueries, label: string) {
+  return dialog.getByLabelText<HTMLInputElement>(label).value;
+}
+
+/** Fills the fields every Card type shares, all but the ID. */
+function fillShared(dialog: TQueries) {
+  fill(dialog, "Domain tags", "Machine Learning, Statistics");
+  fill(dialog, "Topic tags", "Decision Tree");
+  fill(dialog, "Lesson", "lesson-04");
+}
+
+/** The labels of the editor's fields, in order. */
+function fieldLabels(dialog: HTMLElement) {
+  return [...dialog.querySelectorAll("label")].map((label) => label.textContent);
+}
+
+/** The error text under this field, from the elements that describe it; null when it has none. */
+function fieldError(field: HTMLElement): string | null {
+  const ids = field.getAttribute("aria-describedby")?.split(" ") ?? [];
+  const error = ids
+    .map((id) => document.getElementById(id))
+    .find((element) => element?.classList.contains("field-error"));
+  return error?.textContent ?? null;
+}
+
+/** The labels of the fields marked invalid, in order; each must show an error text. */
+function invalidFields(dialog: HTMLElement) {
+  return [...dialog.querySelectorAll<HTMLInputElement>('[aria-invalid="true"]')].map((field) => {
+    expect(fieldError(field)).toBeTruthy();
+    return field.labels![0].textContent;
+  });
+}
+
+/** On the Cards page, opens this Card's preview from its row and returns queries inside it. */
+function openPreview(id: string) {
+  const remove = screen.getByRole("button", { name: `Delete ${id}` });
+  const row = within(remove.closest("li")!)
+    .getAllByRole("button")
+    .find((button) => button !== remove)!;
+  fireEvent.click(row);
+  return within(screen.getByRole("dialog", { name: "Card preview" }));
+}
+
+/** Opens this Card's preview on the Cards page and presses Edit there. */
+function openEdit(id: string) {
+  openCards();
+  fireEvent.click(openPreview(id).getByRole("button", { name: "Edit" }));
+  return editor("Edit Card");
+}
+
+async function expectSaved() {
+  expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+}
+
+const created = [
+  {
+    type: "qa",
+    fillType: (dialog: TQueries) => {
+      fill(dialog, "Question", "What is the leaf mean?");
+      fill(dialog, "Answer", "The mean of its targets.");
+    },
+    card: {
+      id: "what-is-the-leaf-mean",
+      type: "qa",
+      en: { question: "What is the leaf mean?", answer: "The mean of its targets." },
+    },
+    answer: "The mean of its targets.",
+  },
+  {
+    type: "cloze",
+    fillType: (dialog: TQueries) => {
+      pickCardType(dialog, "cloze");
+      fill(dialog, "Text", "A leaf predicts the {{mean}}.");
+    },
+    card: {
+      id: "a-leaf-predicts-the-mean",
+      type: "cloze",
+      en: { text: "A leaf predicts the {{mean}}." },
+    },
+    answer: "A leaf predicts the mean.",
+  },
+  {
+    type: "true_false",
+    fillType: (dialog: TQueries) => {
+      pickCardType(dialog, "true_false");
+      fill(dialog, "Statement", "A leaf is a node.");
+      pickOption(dialog, "Answer", "False");
+    },
+    card: {
+      id: "a-leaf-is-a-node",
+      type: "true_false",
+      en: { statement: "A leaf is a node." },
+      answer: false,
+    },
+    answer: "False",
+  },
+];
+
+it.each(created)(
+  "Create Card on the Cards page makes a $type Card, shows Card saved. and its preview, and keeps it after a reload",
+  async ({ fillType, card, answer }) => {
+    const { unmount } = render(<App />);
+    const dialog = openEditor();
+    fillType(dialog);
+    fillShared(dialog);
+
+    fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+
+    await expectSaved();
+    const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
+    expect(preview.getByText(`${card.id} · version 1`)).toBeTruthy();
+    expect(preview.getByText(answer)).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Create Card" })).toBeNull();
+    fireEvent.click(preview.getByRole("button", { name: "Close" }));
+    await screen.findByText(card.id);
+    unmount();
+    render(<App />);
+    await expectListed(card as TCard);
+  },
+);
+
+it("a created Card is in Download Cards like an uploaded one, and the file uploads again unchanged", async () => {
+  render(<App />);
+  const dialog = openEditor();
+  created[0].fillType(dialog);
+  fillShared(dialog);
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+  await expectSaved();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+  const file = await download("Download Cards");
+
+  expect(JSON.parse(await file.text()).cards).toEqual([
+    {
+      id: "what-is-the-leaf-mean",
+      version: 1,
+      tags: { domain: ["Machine Learning", "Statistics"], topic: ["Decision Tree"] },
+      sourceIds: [],
+      lesson: "lesson-04",
+      type: "qa",
+      en: { question: "What is the leaf mean?", answer: "The mean of its targets." },
+    },
+  ]);
+  pick(file, "Upload Deck");
+  await screen.findByText(/0 added, 0 updated, 1 unchanged/);
+});
+
+it("the editor shows the picked type's fields, then its German fields, tags, Lesson and ID, and keeps what was typed across types", () => {
+  render(<App />);
+  const dialog = openEditor();
+  const element = screen.getByRole("dialog", { name: "Create Card" });
+  const shared = ["Domain tags", "Topic tags", "Lesson", "ID"];
+  const select = dialog.getByLabelText<HTMLSelectElement>("Type");
+  expect([...select.options].map((option) => option.value)).toEqual(["qa", "cloze", "true_false"]);
+  expect(select.value).toBe("qa");
+  expect(fieldLabels(element)).toEqual([
+    "Type",
+    "Question",
+    "Answer",
+    "Question (German)",
+    "Answer (German)",
+    ...shared,
+  ]);
+  fill(dialog, "Question", "What is the leaf mean?");
+
+  pickCardType(dialog, "cloze");
+  expect(fieldLabels(element)).toEqual(["Type", "Text", "Text (German)", ...shared]);
+  pickCardType(dialog, "true_false");
+  expect(fieldLabels(element)).toEqual([
+    "Type",
+    "Statement",
+    "Answer",
+    "Statement (German)",
+    ...shared,
+  ]);
+  expect(dialog.getByLabelText("Answer").tagName).toBe("SELECT");
+  fill(dialog, "Statement", "A leaf is a node.");
+  pickCardType(dialog, "qa");
+
+  expect(fieldValue(dialog, "Question")).toBe("What is the leaf mean?");
+  pickCardType(dialog, "true_false");
+  expect(fieldValue(dialog, "Statement")).toBe("A leaf is a node.");
+});
+
+it("the ID follows the question until the Learner types one", () => {
+  render(<App />);
+  const dialog = openEditor();
+  expect(fieldValue(dialog, "ID")).toBe("");
+
+  fill(dialog, "Question", "What is the leaf mean?");
+  expect(fieldValue(dialog, "ID")).toBe("what-is-the-leaf-mean");
+  fill(dialog, "Question", "How deep is a tree?");
+  expect(fieldValue(dialog, "ID")).toBe("how-deep-is-a-tree");
+
+  fill(dialog, "ID", "ml.trees.depth");
+  fill(dialog, "Question", "How deep can a tree grow?");
+  expect(fieldValue(dialog, "ID")).toBe("ml.trees.depth");
+});
+
+it("with no Cards, Home's Create Card opens the Card editor on the Cards page, only that once", async () => {
+  render(<App />);
+
+  fireEvent.click(home().getByRole("button", { name: "Create Card" }));
+
+  expect(isCurrent("Cards")).toBe(true);
+  fireEvent.click(editor().getByRole("button", { name: "Cancel" }));
+  await expectNoDialog();
+  goHome();
+  openCards();
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("Cancel closes the Card editor and stores nothing, also after a reload", async () => {
+  const { unmount } = render(<App />);
+  const dialog = openEditor();
+  created[0].fillType(dialog);
+  fillShared(dialog);
+
+  fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+
+  await expectNoDialog();
+  expect(screen.getByText("0 of 0 Cards")).toBeTruthy();
+  expect(screen.queryByText("Card saved.")).toBeNull();
+  unmount();
+  render(<App />);
+  // An empty list proves nothing before the reload finishes; "1 added" shows storage was empty.
+  upload(qa("ml.trees.depth", 1));
+  await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+  expect(screen.queryByText("what-is-the-leaf-mean")).toBeNull();
+});
+
+it("Create Card with empty fields marks each with its error after Save and stores nothing; fixing a field clears its error", async () => {
+  render(<App />);
+  const dialog = openEditor();
+  const element = screen.getByRole("dialog", { name: "Create Card" });
+  expect(invalidFields(element)).toEqual([]);
+
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+
+  expect(invalidFields(element)).toEqual([
+    "Question",
+    "Answer",
+    "Domain tags",
+    "Topic tags",
+    "Lesson",
+    "ID",
+  ]);
+  expect(screen.queryByText("Card saved.")).toBeNull();
+  expect(screen.getByText("0 of 0 Cards")).toBeTruthy();
+  // The ID follows the question, so it is fixed too.
+  fill(dialog, "Question", "What is the leaf mean?");
+  expect(invalidFields(element)).toEqual(["Answer", "Domain tags", "Topic tags", "Lesson"]);
+  expect(fieldError(dialog.getByLabelText("Question"))).toBeNull();
+});
+
+it.each([
+  { field: "Text", value: "A leaf predicts the mean." },
+  { field: "Text (German)", value: "Ein Blatt sagt den Mittelwert voraus." },
+])("Create Card shows an error under $field for a cloze without a gap", ({ field, value }) => {
+  render(<App />);
+  const dialog = openEditor();
+  pickCardType(dialog, "cloze");
+  fill(dialog, "Text", "A leaf predicts the {{mean}}.");
+  fill(dialog, field, value);
+  fillShared(dialog);
+
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+
+  expect(invalidFields(screen.getByRole("dialog", { name: "Create Card" }))).toEqual([field]);
+});
+
+it("Create Card with the ID of a stored Card shows Another Card has this ID. and keeps the stored Card", async () => {
+  render(<App />);
+  await uploaded(qa("ml.trees.depth", 1));
+  const dialog = openEditor();
+  created[0].fillType(dialog);
+  fillShared(dialog);
+  fill(dialog, "ID", "ml.trees.depth");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+
+  expect(invalidFields(screen.getByRole("dialog", { name: "Create Card" }))).toEqual(["ID"]);
+  expect(fieldError(dialog.getByLabelText("ID"))).toBe("Another Card has this ID.");
+  fireEvent.click(dialog.getByRole("button", { name: "Cancel" }));
+  expect(openPreview("ml.trees.depth").getByText("An answer.")).toBeTruthy();
+});
+
+it("closes the Card editor before saving, so a failure shows in the page's error and nothing is stored", async () => {
+  render(<App />);
+  const dialog = openEditor();
+  created[0].fillType(dialog);
+  fillShared(dialog);
+  blockStorage();
+
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("Card saved.")).toBeNull();
+  expect(screen.getByText("0 of 0 Cards")).toBeTruthy();
+});
+
+it("Card saved. and Card deleted. share one notice", async () => {
+  render(<App />);
+  await uploaded(qa("ml.trees.depth", 1));
+  const dialog = openEditor();
+  created[0].fillType(dialog);
+  fillShared(dialog);
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+  await expectSaved();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+  deleteFromRow("ml.trees.depth");
+
+  await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Card deleted."));
+  expect(screen.queryByText("Card saved.")).toBeNull();
+});
+
+const edited = german(
+  tagged(qa("ml.trees.leaf-mean", 1), ["Machine Learning", "Statistics"], ["Decision Tree"]),
+  {
+    question: "Was ist ml.trees.leaf-mean?",
+    answer: "Eine Antwort.",
+  },
+);
+
+it("Edit in the preview opens the Card's fields with the ID disabled; Save changes raises the version, also after a reload", async () => {
+  const { unmount } = render(<App />);
+  await uploaded(edited);
+
+  const dialog = openEdit("ml.trees.leaf-mean");
+
+  expect(screen.queryByRole("dialog", { name: "Card preview" })).toBeNull();
+  expect(fieldValue(dialog, "Type")).toBe("qa");
+  expect(fieldValue(dialog, "Question")).toBe("What is ml.trees.leaf-mean?");
+  expect(fieldValue(dialog, "Answer")).toBe("An answer.");
+  expect(fieldValue(dialog, "Question (German)")).toBe("Was ist ml.trees.leaf-mean?");
+  expect(fieldValue(dialog, "Answer (German)")).toBe("Eine Antwort.");
+  expect(fieldValue(dialog, "Domain tags")).toBe("Machine Learning, Statistics");
+  expect(fieldValue(dialog, "Topic tags")).toBe("Decision Tree");
+  expect(fieldValue(dialog, "Lesson")).toBe("lesson-04");
+  expect(fieldValue(dialog, "ID")).toBe("ml.trees.leaf-mean");
+  expect(dialog.getByLabelText<HTMLInputElement>("ID").disabled).toBe(true);
+
+  fill(dialog, "Answer", "The mean of its targets.");
+  fireEvent.click(dialog.getByRole("button", { name: "Save changes" }));
+
+  await expectSaved();
+  const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
+  expect(preview.getByText("ml.trees.leaf-mean · version 2")).toBeTruthy();
+  expect(preview.getByText("The mean of its targets.")).toBeTruthy();
+  unmount();
+  render(<App />);
+  await expectListed(edited);
+  expect(
+    openPreview("ml.trees.leaf-mean").getByText("ml.trees.leaf-mean · version 2"),
+  ).toBeTruthy();
+});
+
+it("Save changes with nothing changed keeps the version", async () => {
+  render(<App />);
+  await uploaded(edited);
+  const dialog = openEdit("ml.trees.leaf-mean");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Save changes" }));
+
+  await expectSaved();
+  const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
+  expect(preview.getByText("ml.trees.leaf-mean · version 1")).toBeTruthy();
+});
+
+it("after an edit, Statistics no longer count the Reviews of the Card's older version", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  startSession();
+  await answer();
+  goTo("Statistics");
+  await screen.findByRole("table", { name: "Cards" });
+  expect(overview()[1]).toEqual(["1", "Reviews"]);
+
+  const dialog = openEdit("a");
+  fill(dialog, "Answer", "Another answer.");
+  fireEvent.click(dialog.getByRole("button", { name: "Save changes" }));
+  await expectSaved();
+  goTo("Statistics");
+
+  await screen.findByRole("table", { name: "Cards" });
+  expect(overview()).toEqual([
+    ["1", "Cards"],
+    ["0", "Reviews"],
+    ["–", "Share right"],
+  ]);
 });

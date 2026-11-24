@@ -19,9 +19,10 @@ import {
 function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
   const onDelete = vi.fn().mockResolvedValue(deletes);
   const onDeleteAll = vi.fn();
+  const onSave = vi.fn().mockResolvedValue(true);
   const page = (cards: TCard[]) => (
     <LanguageContext.Provider value={language}>
-      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} />
+      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} onSave={onSave} />
     </LanguageContext.Provider>
   );
   const { rerender } = render(page(cards));
@@ -345,8 +346,9 @@ it.each([
   { type: "numeric", card: numeric("a", 2, "m"), title: "How much is a?", answer: ["5 m"] },
   { type: "numeric", card: numeric("a", 2), title: "How much is a?", answer: ["5"] },
 ])(
-  "a $type preview shows the type name, question, answer $answer, tags, ID and version, and Delete",
+  "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, and Edit for the editable types",
   ({ card, title, answer }) => {
+    const editable = ["qa", "cloze", "true_false"].includes(card.type);
     renderCardsPage([card]);
 
     const preview = openPreview("a");
@@ -362,6 +364,7 @@ it.each([
       "Decision Tree",
       "a · version 2",
       "Delete",
+      ...(editable ? ["Edit"] : []),
     ]);
   },
 );
@@ -648,7 +651,7 @@ it.each([
 ])("$case, shows its children right after the Card list panel", ({ cards }) => {
   render(
     <LanguageContext.Provider value="en">
-      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()}>
+      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()} onSave={vi.fn()}>
         <aside>Second column</aside>
       </CardsPage>
     </LanguageContext.Provider>,
@@ -1091,4 +1094,61 @@ it("a change of the Cards keeps the scroll position, so deleting a row leaves th
   rerender(thousand.filter((card) => card.id !== "card-501"));
 
   expect(listedIds()).toEqual([...ids(498, 500), ...ids(502, 509)]);
+});
+
+it("the heading holds Create Card with a hidden plus icon, which opens the Card editor", () => {
+  renderCardsPage([qa("a", 1)]);
+  const create = screen.getByRole("button", { name: "Create Card" });
+  expect(create.closest(".cards-page-heading")).toBeTruthy();
+  expect(create.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+
+  fireEvent.click(create);
+
+  expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
+});
+
+it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1)])(
+  "a $type preview has Edit, with a hidden icon, after Delete",
+  (card) => {
+    renderCardsPage([card]);
+
+    const buttons = openPreview("a").getAllByRole("button");
+
+    expect(buttons.slice(-2).map((button) => button.textContent)).toEqual(["Delete", "Edit"]);
+    expect(buttons.at(-1)!.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+  },
+);
+
+it.each([formula("a", 1), multipleChoice("a", 1), numeric("a", 1)])(
+  "a $type preview has no Edit until the editor has its fields",
+  (card) => {
+    renderCardsPage([card]);
+
+    expect(openPreview("a").queryByRole("button", { name: "Edit" })).toBeNull();
+  },
+);
+
+it.each([
+  {
+    card: german(cloze("a", 1), { text: "a hat eine {{Lücke}}." }),
+    fields: { Type: "cloze", Text: "a has a {{gap}}.", "Text (German)": "a hat eine {{Lücke}}." },
+  },
+  {
+    card: german(trueFalse("a", 1, false), { statement: "a ist wahr." }),
+    fields: { Type: "true_false", Statement: "a is true.", "Statement (German)": "a ist wahr." },
+  },
+])("Edit in a $card.type preview opens the editor with the Card's fields", ({ card, fields }) => {
+  renderCardsPage([card]);
+
+  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+
+  const editor = within(screen.getByRole("dialog", { name: "Edit Card" }));
+  for (const [label, value] of Object.entries(fields)) {
+    expect(editor.getByLabelText<HTMLInputElement>(label).value).toBe(value);
+  }
+  if (card.type === "true_false") {
+    const answer = editor.getByLabelText<HTMLSelectElement>("Answer");
+    expect(answer.selectedOptions[0].textContent).toBe("False");
+  }
+  expect(editor.getByRole("button", { name: "Save changes" })).toBeTruthy();
 });
