@@ -15,7 +15,7 @@ import {
   trueFalse,
 } from "./test/cards.fixtures";
 
-/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card. */
+/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card; onSave resolves to true unless a test changes it. */
 function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
   const onDelete = vi.fn().mockResolvedValue(deletes);
   const onDeleteAll = vi.fn();
@@ -26,7 +26,12 @@ function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = t
     </LanguageContext.Provider>
   );
   const { rerender } = render(page(cards));
-  return { onDelete, onDeleteAll, rerender: (cards: TCard[]) => rerender(page(cards)) };
+  return {
+    onDelete,
+    onDeleteAll,
+    onSave,
+    rerender: (cards: TCard[]) => rerender(page(cards)),
+  };
 }
 
 function rows() {
@@ -1151,4 +1156,162 @@ it.each([
     expect(answer.selectedOptions[0].textContent).toBe("False");
   }
   expect(editor.getByRole("button", { name: "Save changes" })).toBeTruthy();
+});
+
+function editorDialog(title = "Create Card") {
+  return screen.getByRole("dialog", { name: title });
+}
+
+/** Presses Create Card in the heading and returns queries inside the Card editor. */
+function openCreate(name = "Create Card") {
+  fireEvent.click(screen.getByRole("button", { name }));
+  return within(editorDialog(name));
+}
+
+function fillField(editor: ReturnType<typeof within>, label: string, value: string) {
+  fireEvent.change(editor.getByLabelText(label), { target: { value } });
+}
+
+/** The texts that describe this field (its hint, then its error), from aria-describedby. */
+function described(field: HTMLElement): string[] {
+  const ids = field.getAttribute("aria-describedby")?.split(" ") ?? [];
+  return ids.map((id) => document.getElementById(id)!.textContent!);
+}
+
+it.each<[string, () => void]>([
+  ["Close", () => fireEvent.click(within(editorDialog()).getByRole("button", { name: "Close" }))],
+  ["Escape", () => fireEvent.keyDown(editorDialog(), { key: "Escape" })],
+  ["a mouse-down on the backdrop", () => fireEvent.mouseDown(editorDialog().parentElement!)],
+])("%s closes the Card editor and saves nothing", (_, close) => {
+  const { onSave } = renderCardsPage([qa("a", 1)]);
+  const editor = openCreate();
+  fillField(editor, "Question", "What is b?");
+
+  close();
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(onSave).not.toHaveBeenCalled();
+});
+
+it("after an Edit is cancelled, Create Card opens an empty editor whose ID follows the question", () => {
+  renderCardsPage([german(qa("a", 1), { question: "Was ist a?" })]);
+  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+  fireEvent.click(within(editorDialog("Edit Card")).getByRole("button", { name: "Cancel" }));
+
+  const editor = openCreate();
+
+  expect(editor.getByLabelText<HTMLTextAreaElement>("Question").value).toBe("");
+  expect(editor.getByLabelText<HTMLTextAreaElement>("Question (German)").value).toBe("");
+  expect(editor.getByLabelText<HTMLInputElement>("Lesson").value).toBe("");
+  const id = editor.getByLabelText<HTMLInputElement>("ID");
+  expect(id.disabled).toBe(false);
+  fillField(editor, "Question", "What is b?");
+  expect(id.value).toBe("what-is-b");
+});
+
+it("the editor's fields show their hints and tag placeholders, and an error follows the hint", () => {
+  renderCardsPage([qa("a", 1)]);
+  const editor = openCreate();
+  fireEvent.change(editor.getByLabelText("Type"), { target: { value: "cloze" } });
+  const domain = editor.getByLabelText<HTMLInputElement>("Domain tags");
+  const topic = editor.getByLabelText<HTMLInputElement>("Topic tags");
+
+  expect(described(editor.getByLabelText("Text"))).toEqual([
+    "Put each gap in double braces, like {{gap}}.",
+  ]);
+  expect(described(editor.getByLabelText("Text (German)"))).toEqual([
+    "Optional. Without it, the English text shows.",
+  ]);
+  expect(described(domain)).toEqual(["Separate Tags with commas."]);
+  expect(described(topic)).toEqual(["Separate Tags with commas."]);
+  expect(domain.placeholder).toBe("Machine Learning");
+  expect(topic.placeholder).toBe("Decision Tree");
+  expect(described(editor.getByLabelText("Lesson"))).toEqual([]);
+  expect(described(editor.getByLabelText("ID"))).toEqual([
+    "Lowercase words joined by dots or hyphens.",
+  ]);
+
+  fillField(editor, "Text", "A leaf predicts the mean.");
+  fireEvent.click(editor.getByRole("button", { name: "Create Card" }));
+
+  expect(described(editor.getByLabelText("Text"))).toEqual([
+    "Put each gap in double braces, like {{gap}}.",
+    "Add a gap in double braces, like {{gap}}.",
+  ]);
+});
+
+it("each field problem shows its own text: an empty field, a cloze without a gap, an ID that is not lowercase words", () => {
+  const { onSave } = renderCardsPage([qa("a", 1)]);
+  const editor = openCreate();
+  fireEvent.change(editor.getByLabelText("Type"), { target: { value: "cloze" } });
+  fillField(editor, "Text", "A leaf predicts the mean.");
+  fillField(editor, "Domain tags", "Machine Learning");
+  fillField(editor, "Topic tags", "Decision Tree");
+  fillField(editor, "ID", "Bad ID");
+
+  fireEvent.click(editor.getByRole("button", { name: "Create Card" }));
+
+  expect(described(editor.getByLabelText("Text")).at(-1)).toBe(
+    "Add a gap in double braces, like {{gap}}.",
+  );
+  expect(described(editor.getByLabelText("Lesson"))).toEqual(["This field can't be empty."]);
+  expect(described(editor.getByLabelText("ID")).at(-1)).toBe(
+    "Use lowercase words joined by dots or hyphens.",
+  );
+  expect(onSave).not.toHaveBeenCalled();
+});
+
+it("in German, the Card editor, its errors and the saved notice read in German", async () => {
+  const { onSave } = renderCardsPage([qa("a", 1)], "de");
+  const editor = openCreate("Karte erstellen");
+  const labels = [...editorDialog("Karte erstellen").querySelectorAll("label")].map(
+    (label) => label.textContent,
+  );
+  expect(labels).toEqual([
+    "Typ",
+    "Frage",
+    "Antwort",
+    "Frage (Deutsch)",
+    "Antwort (Deutsch)",
+    "Fachgebiet-Tags",
+    "Themen-Tags",
+    "Lektion",
+    "ID",
+  ]);
+
+  fireEvent.click(editor.getByRole("button", { name: "Karte erstellen" }));
+  expect(described(editor.getByLabelText("Lektion"))).toEqual([
+    "Dieses Feld darf nicht leer sein.",
+  ]);
+
+  fillField(editor, "Frage", "What is b?");
+  fillField(editor, "Antwort", "B.");
+  fillField(editor, "Fachgebiet-Tags", "Machine Learning");
+  fillField(editor, "Themen-Tags", "Decision Tree");
+  fillField(editor, "Lektion", "lesson-04");
+  fireEvent.click(editor.getByRole("button", { name: "Karte erstellen" }));
+
+  expect((await screen.findByRole("status")).textContent).toBe("Karte gespeichert.");
+  expect(onSave).toHaveBeenCalledTimes(1);
+});
+
+it("a failed save after a deleted Card removes Card deleted. and opens no preview", async () => {
+  const { onSave } = renderCardsPage([qa("a", 1), qa("b", 1)]);
+  onSave.mockResolvedValue(false);
+  confirmDelete("a");
+  await screen.findByRole("status");
+  const editor = openCreate();
+  fillField(editor, "Question", "What is c?");
+  fillField(editor, "Answer", "C.");
+  fillField(editor, "Domain tags", "Machine Learning");
+  fillField(editor, "Topic tags", "Decision Tree");
+  fillField(editor, "Lesson", "lesson-04");
+
+  fireEvent.click(editor.getByRole("button", { name: "Create Card" }));
+  // Let the page handle onSave's result before looking.
+  await act(async () => {});
+
+  expect(onSave).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });

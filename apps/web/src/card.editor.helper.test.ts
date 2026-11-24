@@ -205,6 +205,13 @@ describe("cardFromForm", () => {
     });
   });
 
+  it("trims the ID, and checks the trimmed ID against the taken ones", () => {
+    expect(made(form({ id: " ml.trees.depth " })).id).toBe("ml.trees.depth");
+    expect(errors(form({ id: " ml.trees.depth " }), { takenIds: ["ml.trees.depth"] })).toEqual({
+      id: "idTaken",
+    });
+  });
+
   describe("with the Card being edited", () => {
     // Stored Cards went through the schema, as an upload does.
     const stored = ZCard.parse({
