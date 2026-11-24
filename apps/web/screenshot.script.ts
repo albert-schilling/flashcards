@@ -313,19 +313,25 @@ const flows: Record<string, TFlow> = {
     );
     if (tooTall > 0)
       throw new Error(`cards-german flow: ${tooTall} row buttons are shorter than their copy`);
-    const notSquare = await page
+    const deletes = await page
       .locator(".library-card-row > button:last-child")
       .evaluateAll((buttons) => {
         const root = getComputedStyle(document.documentElement);
         const target =
           parseFloat(root.getPropertyValue("--touch-target")) * parseFloat(root.fontSize);
-        return buttons.filter((button) => {
-          const box = button.getBoundingClientRect();
-          return Math.abs(box.width - target) > 1 || Math.abs(box.height - target) > 1;
-        }).length;
+        return {
+          count: buttons.length,
+          notSquare: buttons.filter((button) => {
+            const box = button.getBoundingClientRect();
+            return Math.abs(box.width - target) > 1 || Math.abs(box.height - target) > 1;
+          }).length,
+        };
       });
-    if (notSquare > 0)
-      throw new Error(`cards-german flow: ${notSquare} row Deletes are not a touch-target square`);
+    if (deletes.count === 0) throw new Error("cards-german flow: found no row Delete buttons");
+    if (deletes.notSquare > 0)
+      throw new Error(
+        `cards-german flow: ${deletes.notSquare} row Deletes are not a touch-target square`,
+      );
     const select = page.getByLabel(text.type);
     const names = [...Object.values(uiText.en.cardTypes), ...Object.values(text.cardTypes)];
     const tooWide = await select.evaluate((element, labels) => {
