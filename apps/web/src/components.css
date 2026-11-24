@@ -721,6 +721,17 @@
   text-align: left;
 }
 
+/* The icon alone no longer stops the button from shrinking below the touch target. */
+.library-card-row .icon-button {
+  flex: none;
+}
+
+/* The shared surface-muted hover barely shows on the hovered row's accent-50. */
+.library-card-row .icon-button:hover {
+  background: var(--color-accent-100);
+  color: var(--color-ink-950);
+}
+
 .library-card-copy {
   display: block;
   min-width: var(--space-0);
