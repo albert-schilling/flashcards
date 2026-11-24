@@ -242,8 +242,7 @@ it("in German, the editor and its errors are German", () => {
 
   const errors = shownErrors();
   expect(errors.length).toBe(6);
-  expect(new Set(errors)).toEqual(new Set([uiText.de.fieldErrors.required]));
-  expect(uiText.de.fieldErrors.required).not.toBe(uiText.en.fieldErrors.required);
+  expect(new Set(errors)).toEqual(new Set(["Dieses Feld ist erforderlich."]));
 });
 
 it("editing doesn't change the ID when the question changes", () => {
