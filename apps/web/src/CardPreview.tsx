@@ -1,13 +1,18 @@
 import type { TCard } from "@flashcards/cards";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useContext } from "react";
 import { cardAnswer, cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
 import { Modal } from "./Modal";
 import { RowTags } from "./RowTags";
 
-/** The Card preview: a Modal with the Card's type name, its question and answer in the current language (see cardTitle and cardAnswer), its tags, its ID and version, and Delete, which deletes without asking. Edit and the Session buttons come later. */
-export function CardPreview(props: { card: TCard; onClose: () => void; onDelete: () => void }) {
+/** The Card preview: a Modal with the Card's type name, its question and answer in the current language (see cardTitle and cardAnswer), its tags, its ID and version, Edit, which opens the Card editor, and Delete, which deletes without asking. The Session buttons come later. */
+export function CardPreview(props: {
+  card: TCard;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const text = useText();
   const language = useContext(LanguageContext);
   const { card } = props;
@@ -26,6 +31,10 @@ export function CardPreview(props: { card: TCard; onClose: () => void; onDelete:
         <p className="preview-id">{text.cardIdAndVersion(card.id, card.version)}</p>
       </div>
       <div className="modal-actions modal-actions-wrap">
+        <button className="button secondary" onClick={props.onEdit}>
+          <Pencil size={17} aria-hidden="true" />
+          {text.edit}
+        </button>
         <button className="button danger" onClick={props.onDelete}>
           <Trash2 size={17} aria-hidden="true" />
           {text.delete}

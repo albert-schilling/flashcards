@@ -133,6 +133,49 @@
   color: var(--color-ink-500);
 }
 
+.control[readonly] {
+  background: var(--color-surface-muted);
+  color: var(--color-ink-600);
+}
+
+.control[aria-invalid="true"] {
+  border-color: var(--color-danger-600);
+}
+
+textarea.control {
+  height: auto;
+  min-height: var(--textarea-min-height);
+  padding-block: var(--space-3);
+  resize: vertical;
+}
+
+.field .field-error {
+  color: var(--color-danger-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The Card editor */
+.editor-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.editor-german {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-0);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-line-200);
+  border-radius: var(--radius-md);
+}
+
+.editor-german legend {
+  padding: var(--space-0) var(--space-2);
+  color: var(--color-ink-700);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
 /* The native arrow is hidden; ChevronDown stands in for it. */
 .select {
   position: relative;
