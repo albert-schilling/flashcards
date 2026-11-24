@@ -274,7 +274,7 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
     await shot("cleared");
   },
-  // The Cards list in German with a long title, a long ID and four tags. Fails when a row's copy is taller than its row, or when a Card type name in either language is wider than the Type select's room for text; jsdom does no layout, so the browser checks it.
+  // The Cards list in German with a long title, a long ID and four tags. Fails when a row's copy is taller than its row button, which fills the row inside its padding, or when a Card type name in either language is wider than the Type select's room for text; jsdom does no layout, so the browser checks it.
   "cards-german": async (page, shot) => {
     const text = uiText.de;
     await goTo(page, uiText.en.settings);
@@ -307,12 +307,12 @@ const flows: Record<string, TFlow> = {
     const tooTall = await page.locator(".library-card-row").evaluateAll(
       (rows) =>
         rows.filter((row) => {
-          const copy = row.querySelector(".library-card-copy")?.getBoundingClientRect().height ?? 0;
-          return copy > row.getBoundingClientRect().height;
+          const copy = row.querySelector(".library-card-copy")!.getBoundingClientRect().height;
+          return copy > row.querySelector(".library-card-open")!.getBoundingClientRect().height;
         }).length,
     );
     if (tooTall > 0)
-      throw new Error(`cards-german flow: ${tooTall} rows are shorter than their copy`);
+      throw new Error(`cards-german flow: ${tooTall} row buttons are shorter than their copy`);
     const select = page.getByLabel(text.type);
     const names = [...Object.values(uiText.en.cardTypes), ...Object.values(text.cardTypes)];
     const tooWide = await select.evaluate((element, labels) => {
