@@ -15,17 +15,29 @@ import {
   trueFalse,
 } from "./test/cards.fixtures";
 
-/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card. */
-function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
+/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` and `saves` are what onDelete and onSave resolve to: whether App deleted or saved the Card. `creating` opens the Card editor. */
+function renderCardsPage(
+  cards: TCard[],
+  language: TLanguage = "en",
+  deletes = true,
+  { saves = true, creating = false } = {},
+) {
   const onDelete = vi.fn().mockResolvedValue(deletes);
   const onDeleteAll = vi.fn();
+  const onSave = vi.fn().mockResolvedValue(saves);
   const page = (cards: TCard[]) => (
     <LanguageContext.Provider value={language}>
-      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} />
+      <CardsPage
+        cards={cards}
+        creating={creating}
+        onDelete={onDelete}
+        onDeleteAll={onDeleteAll}
+        onSave={onSave}
+      />
     </LanguageContext.Provider>
   );
   const { rerender } = render(page(cards));
-  return { onDelete, onDeleteAll, rerender: (cards: TCard[]) => rerender(page(cards)) };
+  return { onDelete, onDeleteAll, onSave, rerender: (cards: TCard[]) => rerender(page(cards)) };
 }
 
 function rows() {
@@ -1091,4 +1103,125 @@ it("a change of the Cards keeps the scroll position, so deleting a row leaves th
   rerender(thousand.filter((card) => card.id !== "card-501"));
 
   expect(listedIds()).toEqual([...ids(498, 500), ...ids(502, 509)]);
+});
+
+function editorDialog(name: string) {
+  return within(screen.getByRole("dialog", { name }));
+}
+
+/** Fills in the open editor with a valid qa Card, ID new.card. */
+function fillEditor(editor: ReturnType<typeof editorDialog>) {
+  const fill = (label: string, value: string) =>
+    fireEvent.change(editor.getByLabelText(label, { exact: true }), { target: { value } });
+  fill("Question", "What is new?");
+  fill("Answer", "This.");
+  fill("ID", "new.card");
+  fill("Domain tags", "Machine Learning");
+  fill("Topic tags", "Decision Tree");
+  fill("Lesson", "lesson-04");
+}
+
+it("Create Card beside the Library heading opens an empty Card editor", () => {
+  renderCardsPage([qa("a", 1)]);
+
+  const heading = screen.getByRole("heading", { level: 1 }).closest(".cards-page-heading")!;
+  fireEvent.click(within(heading as HTMLElement).getByRole("button", { name: "Create Card" }));
+
+  expect(editorDialog("Create Card").getByLabelText<HTMLTextAreaElement>("Question").value).toBe(
+    "",
+  );
+});
+
+it("with creating, the page opens with the Card editor", () => {
+  renderCardsPage([], "en", true, { creating: true });
+
+  expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
+});
+
+it("a new Card's ID may not be one a stored Card has", () => {
+  const { onSave } = renderCardsPage([qa("new.card", 1)], "en", true, { creating: true });
+  const editor = editorDialog("Create Card");
+  fillEditor(editor);
+
+  fireEvent.click(editor.getByRole("button", { name: "Create Card" }));
+
+  expect(editor.getByText("Another Card has this ID.")).toBeTruthy();
+  expect(onSave).not.toHaveBeenCalled();
+});
+
+it("saving closes the editor, opens the saved Card's preview and shows Card saved.", async () => {
+  const { onSave, rerender } = renderCardsPage([qa("a", 1)], "en", true, { creating: true });
+  const editor = editorDialog("Create Card");
+  fillEditor(editor);
+
+  fireEvent.click(editor.getByRole("button", { name: "Create Card" }));
+
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ id: "new.card", version: 1 }));
+  expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+  expect(screen.queryByRole("dialog", { name: "Create Card" })).toBeNull();
+  rerender([qa("a", 1), onSave.mock.calls[0][0]]);
+  expect(within(previewDialog()).getByText("new.card · version 1")).toBeTruthy();
+});
+
+it("a failed save closes the editor and shows no Card saved.", async () => {
+  const { onSave } = renderCardsPage([], "en", true, { saves: false, creating: true });
+  const editor = editorDialog("Create Card");
+  fillEditor(editor);
+
+  fireEvent.click(editor.getByRole("button", { name: "Create Card" }));
+  await act(async () => {});
+
+  expect(onSave).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("Card saved.")).toBeNull();
+});
+
+it("Card saved. replaces Card deleted., so one notice shows", async () => {
+  renderCardsPage([qa("a", 1), qa("b", 1)]);
+  confirmDelete("a");
+  await screen.findByText("Card deleted.");
+
+  fireEvent.click(openPreview("b").getByRole("button", { name: "Edit" }));
+  fireEvent.click(editorDialog("Edit Card").getByRole("button", { name: "Save changes" }));
+
+  expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+});
+
+it.each([
+  ["qa", qa("a", 2)],
+  ["cloze", cloze("a", 2)],
+  ["true_false", trueFalse("a", 2)],
+])("Edit in a %s preview closes it and opens the Card editor with the Card", (_, card) => {
+  const { onSave } = renderCardsPage([card]);
+
+  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+
+  expect(screen.queryByRole("dialog", { name: "Card preview" })).toBeNull();
+  const editor = editorDialog("Edit Card");
+  expect(editor.getByLabelText<HTMLInputElement>("ID").value).toBe("a");
+  fireEvent.click(editor.getByRole("button", { name: "Save changes" }));
+  expect(onSave).toHaveBeenCalledWith({ ...card, version: 3 });
+});
+
+it.each([
+  ["formula", formula("a", 1)],
+  ["multiple_choice", multipleChoice("a", 1)],
+  ["numeric", numeric("a", 1)],
+])("a %s preview has no Edit yet", (_, card) => {
+  renderCardsPage([card]);
+
+  expect(openPreview("a").queryByRole("button", { name: "Edit" })).toBeNull();
+});
+
+it("in German, the editor is titled Karte bearbeiten and the notice reads Karte gespeichert.", async () => {
+  renderCardsPage([qa("a", 1)], "de");
+
+  fireEvent.click(rowButton("a"));
+  const preview = within(screen.getByRole("dialog", { name: "Kartenvorschau" }));
+  fireEvent.click(preview.getByRole("button", { name: "Bearbeiten" }));
+  fireEvent.click(
+    editorDialog("Karte bearbeiten").getByRole("button", { name: "Änderungen speichern" }),
+  );
+
+  expect((await screen.findByRole("status")).textContent).toBe("Karte gespeichert.");
 });

@@ -1,11 +1,11 @@
 import type { TCard } from "@flashcards/cards";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { ArrowLeft, Check, CircleCheck, CircleX, X, type LucideIcon } from "lucide-react";
 import { expect, it, vi } from "vitest";
 import { Alert, type TAlertTone } from "./Alert";
 import { App } from "./App";
-import { addReview, loadLanguage, loadReviews } from "./storage";
+import { addReview, loadCards, loadLanguage, loadReviews } from "./storage";
 import {
   cloze,
   formula,
@@ -613,7 +613,7 @@ it("with no Cards, Home shows the empty state and no Start a Session panel", () 
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
 });
 
-// Upload Deck opens the Cards page for its Files panel; Create Card opens it until the Card editor exists.
+// Upload Deck opens the Cards page for its Files panel; Create Card opens it with the Card editor.
 it.each(["Upload Deck", "Create Card"])("with no Cards, %s opens the Cards page", (name) => {
   render(<App />);
 
@@ -2651,4 +2651,134 @@ it("a finished Session keeps its summary until Done, so the Session link shows i
 
   expect(screen.getByText("1 answered, 1 right")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
+});
+
+/** Opens the Card editor from the Cards page, fills in the type's fields, the ID and the tags, and clicks Create Card. */
+function submitNewCard(type: string, id: string, fields: Record<string, string>) {
+  openCards();
+  const heading = screen.getByRole("heading", { level: 1, name: "Cards" }).closest("div")!;
+  fireEvent.click(within(heading.parentElement!).getByRole("button", { name: "Create Card" }));
+  const editor = within(screen.getByRole("dialog", { name: "Create Card" }));
+  const fill = (label: string, value: string) =>
+    fireEvent.change(editor.getByLabelText(label, { exact: true }), { target: { value } });
+  fill("Type", type);
+  for (const [label, value] of Object.entries(fields)) fill(label, value);
+  fill("ID", id);
+  fill("Domain tags", "Machine Learning");
+  fill("Topic tags", "Decision Tree, Entropy");
+  fill("Lesson", "lesson-04");
+  fireEvent.click(editor.getByRole("button", { name: "Create Card" }));
+}
+
+/** Creates a Card as submitNewCard does, waits for Card saved. and closes the preview that opens. */
+async function createCard(type: string, id: string, fields: Record<string, string>) {
+  submitNewCard(type, id, fields);
+  await screen.findByText("Card saved.");
+  fireEvent.click(
+    within(await screen.findByRole("dialog", { name: "Card preview" })).getByRole("button", {
+      name: "Close",
+    }),
+  );
+}
+
+async function createOneOfEach() {
+  await createCard("qa", "ml.entropy", { Question: "What is entropy?", Answer: "Disorder." });
+  await createCard("cloze", "ml.gini", { Text: "Gini measures {{impurity}}." });
+  await createCard("true_false", "ml.depth", {
+    Statement: "Deeper trees overfit.",
+    Answer: "false",
+  });
+}
+
+it("Create Card stores a qa, a cloze and a true_false Card, listed after a reload", async () => {
+  const { unmount } = render(<App />);
+  await createOneOfEach();
+  unmount();
+
+  render(<App />);
+
+  for (const id of ["ml.entropy", "ml.gini", "ml.depth"]) await expectListed(qa(id, 1));
+});
+
+it("created Cards are in Download Cards, which uploads unchanged here and adds them in a new browser", async () => {
+  render(<App />);
+  await createOneOfEach();
+
+  const file = await download("Download Cards");
+  pick(file, "Upload Deck");
+  await screen.findByText(/0 added, 0 updated, 3 unchanged/);
+
+  globalThis.indexedDB = new IDBFactory();
+  cleanup();
+  render(<App />);
+  pick(file, "Upload Deck");
+  await screen.findByText(/3 added, 0 updated, 0 unchanged/);
+  const stored = await loadCards();
+  expect(stored.find((card) => card.id === "ml.depth")).toMatchObject({
+    type: "true_false",
+    en: { statement: "Deeper trees overfit." },
+    answer: false,
+    tags: { domain: ["Machine Learning"], topic: ["Decision Tree", "Entropy"] },
+  });
+});
+
+it("with no Cards, Home's Create Card opens the Card editor on the Cards page", () => {
+  render(<App />);
+
+  fireEvent.click(home().getByRole("button", { name: "Create Card" }));
+
+  expect(isCurrent("Cards")).toBe(true);
+  expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
+});
+
+it("the Cards page opened from the menu after Home's Create Card opens no editor", () => {
+  render(<App />);
+  fireEvent.click(home().getByRole("button", { name: "Create Card" }));
+  fireEvent.click(
+    within(screen.getByRole("dialog", { name: "Create Card" })).getByRole("button", {
+      name: "Cancel",
+    }),
+  );
+  goHome();
+
+  openCards();
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("saving an edit stores the next version, so the older version of the Card is rejected", async () => {
+  render(<App />);
+  upload(qa("ml.entropy", 1));
+  await screen.findByText(/1 added, /);
+  fireEvent.click(screen.getByRole("button", { name: /What is ml\.entropy\?/ }));
+  fireEvent.click(
+    within(screen.getByRole("dialog", { name: "Card preview" })).getByRole("button", {
+      name: "Edit",
+    }),
+  );
+  const editor = within(screen.getByRole("dialog", { name: "Edit Card" }));
+  fireEvent.change(editor.getByLabelText("Answer", { exact: true }), {
+    target: { value: "Disorder." },
+  });
+  fireEvent.click(editor.getByRole("button", { name: "Save changes" }));
+
+  const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
+  expect(preview.getByText("ml.entropy · version 2")).toBeTruthy();
+  expect(preview.getByText("Disorder.")).toBeTruthy();
+  expect(await loadCards()).toMatchObject([{ id: "ml.entropy", version: 2 }]);
+  fireEvent.click(preview.getByRole("button", { name: "Close" }));
+  upload(qa("ml.entropy", 1));
+  await screen.findByText(/Version 1 is lower than the stored version 2\./);
+});
+
+it("shows an error and no Card saved. when the Card can't be stored", async () => {
+  render(<App />);
+  openCards();
+  blockStorage();
+
+  submitNewCard("qa", "ml.entropy", { Question: "What is entropy?", Answer: "Disorder." });
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(screen.queryByText("Card saved.")).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
