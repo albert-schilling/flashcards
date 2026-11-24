@@ -1,6 +1,7 @@
 // Every UI text in English and German. The screenshot script runs this file in Node, which only strips types, so it imports types only.
 import type { TCard } from "@flashcards/cards";
 import type { TLanguage } from "./language.context";
+import type { TFieldError } from "./editor.helper";
 
 const en = {
   home: "Home",
@@ -108,6 +109,25 @@ const en = {
   lastReviewed: "Last reviewed",
   never: "never",
   date: (date: Date) => date.toLocaleDateString("en"),
+  editCard: "Edit Card",
+  edit: "Edit",
+  saveChanges: "Save changes",
+  cardSaved: "Card saved.",
+  question: "Question",
+  clozeText: "Text",
+  clozeHint: "Put each gap in double braces: {{gap}}.",
+  statement: "Statement",
+  inGerman: (label: string) => `${label} in German (optional)`,
+  cardId: "ID",
+  cardIdHint: "Suggested from the text: lowercase words joined by dots or hyphens.",
+  lesson: "Lesson",
+  tagsHint: "Separate Tags with commas.",
+  fieldErrors: {
+    required: "Fill in this field.",
+    needsGap: "Add a gap in double braces, like {{gap}}.",
+    idFormat: "Use lowercase letters and digits, joined by dots or hyphens.",
+    duplicateId: "Another Card has this ID.",
+  } satisfies Record<TFieldError, string>,
 };
 
 /** The UI texts of one language; templates are functions. */
@@ -219,6 +239,26 @@ const de: TUiText = {
   lastReviewed: "Zuletzt wiederholt",
   never: "nie",
   date: (date) => date.toLocaleDateString("de"),
+  editCard: "Karte bearbeiten",
+  edit: "Bearbeiten",
+  saveChanges: "Änderungen speichern",
+  cardSaved: "Karte gespeichert.",
+  question: "Frage",
+  clozeText: "Text",
+  clozeHint: "Setz jede Lücke in doppelte geschweifte Klammern: {{Lücke}}.",
+  statement: "Aussage",
+  inGerman: (label) => `${label} auf Deutsch (optional)`,
+  cardId: "ID",
+  cardIdHint:
+    "Aus dem Text vorgeschlagen: kleingeschriebene Wörter, verbunden durch Punkte oder Bindestriche.",
+  lesson: "Lektion",
+  tagsHint: "Trenne Tags mit Kommas.",
+  fieldErrors: {
+    required: "Füll dieses Feld aus.",
+    needsGap: "Füg eine Lücke in doppelten geschweiften Klammern hinzu, etwa {{Lücke}}.",
+    idFormat: "Nutze Kleinbuchstaben und Ziffern, verbunden durch Punkte oder Bindestriche.",
+    duplicateId: "Eine andere Karte hat diese ID.",
+  },
 };
 
 /** UI text by language; `de` is typed TUiText, so a missing German text fails the type check. */

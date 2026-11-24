@@ -462,6 +462,56 @@ const flows: Record<string, TFlow> = {
     await page.getByText("bulk.card-1000", { exact: true }).waitFor();
     await shot("end");
   },
+  // From Home's Create Card: the empty editor, its field errors, one Card of each type the editor makes, then Edit and Save changes on the last one.
+  editor: async (page, shot) => {
+    const text = uiText.en;
+    const editor = page.getByRole("dialog", { name: text.createCard, exact: true });
+    const preview = page.getByRole("dialog", { name: text.cardPreview, exact: true });
+    const fill = async (values: Record<string, string>) => {
+      for (const [label, value] of Object.entries(values)) {
+        const field = page.getByRole("dialog").getByLabel(label, { exact: true });
+        if (label === text.type || value === "false") await field.selectOption(value);
+        else await field.fill(value);
+      }
+    };
+    const shared = {
+      [text.lesson]: "lesson-04",
+      [text.domainTags]: "Machine Learning",
+      [text.topicTags]: "Decision Tree, Variance",
+    };
+    await page.getByRole("button", { name: text.createCard, exact: true }).click();
+    await shot("empty");
+    await editor.getByRole("button", { name: text.createCard, exact: true }).click();
+    await editor.getByText(text.fieldErrors.required).first().waitFor();
+    await shot("errors");
+    const cards = [
+      { [text.question]: "What does a regression leaf predict?", [text.answer]: "The mean." },
+      { [text.type]: "cloze", [text.clozeText]: "A deeper tree has {{higher}} variance." },
+      {
+        [text.type]: "true_false",
+        [text.statement]: "Pruning lowers variance.",
+        [text.answer]: "false",
+      },
+    ];
+    for (const [i, fields] of cards.entries()) {
+      if (i > 0) await page.getByRole("button", { name: text.createCard, exact: true }).click();
+      await fill({ ...fields, ...shared });
+      await shot(`filled-${i + 1}`);
+      await editor.getByRole("button", { name: text.createCard, exact: true }).click();
+      await preview.waitFor();
+      await shot(`saved-${i + 1}`);
+      await page.keyboard.press("Escape");
+      await preview.waitFor({ state: "detached" });
+    }
+    await page.getByText(text.cardCountOf(3, 3), { exact: true }).waitFor();
+    await page.getByText("Pruning lowers variance.", { exact: true }).click();
+    await preview.getByRole("button", { name: text.edit, exact: true }).click();
+    await fill({ [text.inGerman(text.statement)]: "Beschneiden senkt die Varianz." });
+    await shot("edit");
+    await page.getByRole("button", { name: text.saveChanges, exact: true }).click();
+    await preview.getByText(/· version 2$/).waitFor();
+    await shot("edited");
+  },
   answer: answerEveryCard,
   // The answer flow with the right and wrong answers swapped, so every Card type shows both.
   "answer-wrong": async (page, shot) => answerEveryCard(page, shot, uiText.en, true),

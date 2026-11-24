@@ -19,6 +19,7 @@ import {
   loadLanguage,
   loadLastDownload,
   loadReviews,
+  saveCards,
   saveLanguage,
   type TReview,
 } from "./storage";
@@ -30,6 +31,8 @@ export function App() {
   const [size, setSize] = useState(20);
   const [tag, setTag] = useState("");
   const [page, setPage] = useState<TPage>("home");
+  // Home's Create Card opens the Cards page with the Card editor open.
+  const [creating, setCreating] = useState(false);
   const [session, setSession] = useState<{ id: number; cards: TCard[] }>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
@@ -95,7 +98,7 @@ export function App() {
   }
 
   // Whether the change was saved and the Cards reloaded; a failure shows the error and gives false.
-  async function remove(change: () => Promise<void>): Promise<boolean> {
+  async function store(change: () => Promise<void>): Promise<boolean> {
     try {
       await change();
       setCards(await loadCards());
@@ -132,6 +135,7 @@ export function App() {
   }
 
   function navigate(target: TPage) {
+    setCreating(false);
     if (target === "statistics") void openStatistics();
     else if (target === "session") {
       if (session) setPage("session");
@@ -167,8 +171,10 @@ export function App() {
         {page === "cards" && (
           <CardsPage
             cards={cards}
-            onDelete={(id) => remove(() => deleteCard(id))}
-            onDeleteAll={() => void remove(clearCards)}
+            onDelete={(id) => store(() => deleteCard(id))}
+            onDeleteAll={() => void store(clearCards)}
+            onSave={(card) => store(() => saveCards([card]))}
+            creating={creating}
           >
             <FilesPanel
               report={report}
@@ -205,6 +211,10 @@ export function App() {
             onStart={() => void startSession()}
             onStatistics={() => void openStatistics()}
             onCards={() => navigate("cards")}
+            onCreate={() => {
+              navigate("cards");
+              setCreating(true);
+            }}
           />
         )}
       </main>

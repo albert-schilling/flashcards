@@ -133,6 +133,27 @@
   color: var(--color-ink-500);
 }
 
+textarea.control {
+  height: auto;
+  min-height: var(--textarea-min-height);
+  padding-block: var(--space-3);
+  resize: vertical;
+}
+
+/* Not in the prototype, which has no field errors: the danger colours of its alerts. */
+.control[aria-invalid="true"] {
+  border-color: var(--color-danger-600);
+}
+
+.field .field-error {
+  color: var(--color-danger-700);
+}
+
+.editor-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
 /* The native arrow is hidden; ChevronDown stands in for it. */
 .select {
   position: relative;

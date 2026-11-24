@@ -613,14 +613,18 @@ it("with no Cards, Home shows the empty state and no Start a Session panel", () 
   expect(screen.queryByRole("button", { name: "Start Session" })).toBeNull();
 });
 
-// Upload Deck opens the Cards page for its Files panel; Create Card opens it until the Card editor exists.
-it.each(["Upload Deck", "Create Card"])("with no Cards, %s opens the Cards page", (name) => {
+// Upload Deck opens the Cards page for its Files panel; Create Card opens it with the Card editor.
+it.each([
+  { name: "Upload Deck", editor: false },
+  { name: "Create Card", editor: true },
+])("with no Cards, $name opens the Cards page", ({ name, editor }) => {
   render(<App />);
 
   fireEvent.click(home().getByRole("button", { name }));
 
   expect(isCurrent("Cards")).toBe(true);
   expect(screen.getByRole("heading", { level: 1, name: "Cards" })).toBeTruthy();
+  expect(screen.queryByRole("dialog", { name: "Create Card" }) !== null).toBe(editor);
 });
 
 it("hides the upload, the Card list and the Flashcards heading during a Session", async () => {
@@ -2651,4 +2655,96 @@ it("a finished Session keeps its summary until Done, so the Session link shows i
 
   expect(screen.getByText("1 answered, 1 right")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
+});
+
+/** In the open Card editor, sets each labelled field to its value. */
+function fillEditor(values: Record<string, string>) {
+  const editor = within(screen.getByRole("dialog", { name: /^(Create Card|Edit Card)$/ }));
+  for (const [label, value] of Object.entries(values)) {
+    fireEvent.change(editor.getByLabelText(label, { exact: true }), { target: { value } });
+  }
+}
+
+const sharedFields = {
+  Lesson: "lesson-04",
+  "Domain tags": "Machine Learning",
+  "Topic tags": "Trees",
+};
+
+it("Create Card stores a qa, a cloze and a true_false Card, which Download Cards includes and a fresh browser takes", async () => {
+  const { unmount } = render(<App />);
+  fireEvent.click(home().getByRole("button", { name: "Create Card" }));
+  const cardsOf: Record<string, string>[] = [
+    { Question: "What is a leaf?", Answer: "An end node." },
+    { Type: "cloze", Text: "A tree has {{leaves}}." },
+    { Type: "true_false", Statement: "Trees overfit.", Answer: "true" },
+  ];
+  for (const fields of cardsOf) {
+    fireEvent.click(screen.getAllByRole("button", { name: "Create Card" })[0]);
+    fillEditor({ ...fields, ...sharedFields });
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Create Card" })).getByRole("button", {
+        name: "Create Card",
+      }),
+    );
+    // The notice stays from the Card before, so wait for the preview the save opens.
+    const preview = await screen.findByRole("dialog", { name: "Card preview" });
+    fireEvent.keyDown(preview, { key: "Escape" });
+  }
+  const ids = ["what-is-a-leaf", "a-tree-has-leaves", "trees-overfit"];
+  for (const id of ids) expect(screen.getByText(id)).toBeTruthy();
+
+  const file = await download("Download Cards");
+  const { cards } = JSON.parse(await file.text()) as { cards: TCard[] };
+  expect(cards.map((card) => [card.id, card.type, card.version]).sort()).toEqual([
+    ["a-tree-has-leaves", "cloze", 1],
+    ["trees-overfit", "true_false", 1],
+    ["what-is-a-leaf", "qa", 1],
+  ]);
+  unmount();
+  globalThis.indexedDB = new IDBFactory();
+  render(<App />);
+  pick(file, "Upload Deck");
+  await screen.findByText(/^3 added, 0 updated, 0 unchanged/);
+});
+
+it("Create Card shows a field error for a duplicate ID and stores nothing", async () => {
+  render(<App />);
+  await uploaded(qa("what-is-a-leaf", 1));
+  openCards();
+
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+  fillEditor({ Question: "What is a leaf?", Answer: "An end node.", ...sharedFields });
+  const editor = within(screen.getByRole("dialog", { name: "Create Card" }));
+  fireEvent.click(editor.getByRole("button", { name: "Create Card" }));
+
+  expect(editor.getByText("Another Card has this ID.")).toBeTruthy();
+  expect(screen.getByText("1 of 1 Card")).toBeTruthy();
+});
+
+it("Edit saves the next version, so Reviews of the older version stop counting", async () => {
+  const { unmount } = render(<App />);
+  await uploaded(qa("a", 1));
+  await addReview(review("a", 1, "2026-01-01T00:00:00.000Z"));
+  openCards();
+
+  fireEvent.click(await screen.findByText("What is a?"));
+  fireEvent.click(
+    within(screen.getByRole("dialog", { name: "Card preview" })).getByRole("button", {
+      name: "Edit",
+    }),
+  );
+  fillEditor({ Answer: "A new answer." });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await screen.findByText("Card saved.");
+  expect(screen.getByText("a · version 2")).toBeTruthy();
+
+  unmount();
+  render(<App />);
+  fireEvent.click(await home().findByRole("button", { name: "Statistics" }));
+  await screen.findByRole("table", { name: "Cards" });
+  expect(rows("Cards")).toEqual([
+    ["Card", "Reviews", "Share right", "Last reviewed"],
+    ["a", "0", "–", "never"],
+  ]);
 });

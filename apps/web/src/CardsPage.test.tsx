@@ -1,5 +1,5 @@
 import type { TCard } from "@flashcards/cards";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { Trash2 } from "lucide-react";
 import { expect, it, vi } from "vitest";
 import { CardsPage } from "./CardsPage";
@@ -15,17 +15,18 @@ import {
   trueFalse,
 } from "./test/cards.fixtures";
 
-/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card. */
-function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
+/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` and `saves` are what onDelete and onSave resolve to: whether App deleted or saved the Card. */
+function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true, saves = true) {
   const onDelete = vi.fn().mockResolvedValue(deletes);
   const onDeleteAll = vi.fn();
+  const onSave = vi.fn().mockResolvedValue(saves);
   const page = (cards: TCard[]) => (
     <LanguageContext.Provider value={language}>
-      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} />
+      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} onSave={onSave} />
     </LanguageContext.Provider>
   );
   const { rerender } = render(page(cards));
-  return { onDelete, onDeleteAll, rerender: (cards: TCard[]) => rerender(page(cards)) };
+  return { onDelete, onDeleteAll, onSave, rerender: (cards: TCard[]) => rerender(page(cards)) };
 }
 
 function rows() {
@@ -345,7 +346,7 @@ it.each([
   { type: "numeric", card: numeric("a", 2, "m"), title: "How much is a?", answer: ["5 m"] },
   { type: "numeric", card: numeric("a", 2), title: "How much is a?", answer: ["5"] },
 ])(
-  "a $type preview shows the type name, question, answer $answer, tags, ID and version, and Delete",
+  "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, and Edit if the editor makes the type",
   ({ card, title, answer }) => {
     renderCardsPage([card]);
 
@@ -362,6 +363,7 @@ it.each([
       "Decision Tree",
       "a · version 2",
       "Delete",
+      ...(["qa", "cloze", "true_false"].includes(card.type) ? ["Edit"] : []),
     ]);
   },
 );
@@ -648,7 +650,7 @@ it.each([
 ])("$case, shows its children right after the Card list panel", ({ cards }) => {
   render(
     <LanguageContext.Provider value="en">
-      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()}>
+      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()} onSave={vi.fn()}>
         <aside>Second column</aside>
       </CardsPage>
     </LanguageContext.Provider>,
@@ -1091,4 +1093,64 @@ it("a change of the Cards keeps the scroll position, so deleting a row leaves th
   rerender(thousand.filter((card) => card.id !== "card-501"));
 
   expect(listedIds()).toEqual([...ids(498, 500), ...ids(502, 509)]);
+});
+
+it("Create Card in the heading opens the Card editor; creating opens it at once", () => {
+  renderCardsPage([]);
+  expect(screen.queryByRole("dialog")).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+  expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
+  cleanup();
+
+  render(
+    <CardsPage cards={[]} onDelete={vi.fn()} onDeleteAll={vi.fn()} onSave={vi.fn()} creating />,
+  );
+  expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
+});
+
+it.each([
+  { card: qa("a", 1), edit: true },
+  { card: cloze("a", 1), edit: true },
+  { card: trueFalse("a", 1), edit: true },
+  { card: formula("a", 1), edit: false },
+  { card: multipleChoice("a", 1), edit: false },
+  { card: numeric("a", 1), edit: false },
+])("the preview of a $card.type Card has Edit: $edit", ({ card, edit }) => {
+  renderCardsPage([card]);
+
+  const preview = openPreview("a");
+
+  expect(preview.queryByRole("button", { name: "Edit" }) !== null).toBe(edit);
+});
+
+it("Edit opens the Card editor for that Card; Save changes saves the next version, shows Card saved. and its preview", async () => {
+  const { onSave, rerender } = renderCardsPage([qa("a", 1), qa("b", 1)]);
+
+  fireEvent.click(openPreview("b").getByRole("button", { name: "Edit" }));
+  const editor = within(screen.getByRole("dialog", { name: "Edit Card" }));
+  expect(screen.queryByRole("dialog", { name: "Card preview" })).toBeNull();
+  fireEvent.change(editor.getByLabelText("Answer", { exact: true }), {
+    target: { value: "Changed." },
+  });
+  fireEvent.click(editor.getByRole("button", { name: "Save changes" }));
+  const saved = { ...qa("b", 2, "Changed.") };
+  expect(onSave).toHaveBeenCalledWith(saved);
+  rerender([qa("a", 1), saved]);
+
+  expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+  expect(screen.queryByRole("dialog", { name: "Edit Card" })).toBeNull();
+  expect(within(previewDialog()).getByText("b · version 2")).toBeTruthy();
+});
+
+it("a failed save closes the editor and shows no Card saved.", async () => {
+  const { onSave } = renderCardsPage([qa("a", 1)], "en", true, false);
+
+  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+  const editor = within(screen.getByRole("dialog", { name: "Edit Card" }));
+  fireEvent.click(editor.getByRole("button", { name: "Save changes" }));
+
+  await vi.waitFor(() => expect(onSave).toHaveBeenCalled());
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("Card saved.")).toBeNull();
 });
