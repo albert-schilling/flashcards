@@ -246,14 +246,15 @@ function rowButton(id: string): HTMLButtonElement {
   return others[0];
 }
 
-function previewDialog() {
-  return screen.getByRole("dialog", { name: "Card preview" });
+/** The Card preview, named `name`: "Card preview" in English. */
+function previewDialog(name = "Card preview") {
+  return screen.getByRole("dialog", { name });
 }
 
-/** Opens this Card's preview from its row and returns queries inside it. */
-function openPreview(id: string) {
+/** Opens this Card's preview from its row and returns queries inside it; `name` is the preview's name in the page's language. */
+function openPreview(id: string, name?: string) {
   fireEvent.click(rowButton(id));
-  return within(previewDialog());
+  return within(previewDialog(name));
 }
 
 /** Presses this Card's row Delete, then Delete in the modal that asks first. */
@@ -739,7 +740,7 @@ it("in German, Create Card, Edit, Save changes and Card saved. are German", asyn
   renderCardsPage([qa("a", 1)], "de");
   expect(screen.getByRole("button", { name: "Karte erstellen" })).toBeTruthy();
 
-  fireEvent.click(openPreview("a").getByRole("button", { name: de.edit }));
+  fireEvent.click(openPreview("a", de.cardPreview).getByRole("button", { name: de.edit }));
   fireEvent.click(editorDialog(de.editCard).getByRole("button", { name: de.saveChanges }));
 
   expect((await screen.findByRole("status")).textContent).toBe(de.cardSaved);
@@ -791,7 +792,7 @@ it.each([
 ])("$case, shows its children right after the Card list panel", ({ cards }) => {
   render(
     <LanguageContext.Provider value="en">
-      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()}>
+      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()} onSave={vi.fn()}>
         <aside>Second column</aside>
       </CardsPage>
     </LanguageContext.Provider>,
