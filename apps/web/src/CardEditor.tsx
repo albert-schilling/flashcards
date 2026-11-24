@@ -10,7 +10,6 @@ import {
   type TEditableCard,
   type TEditableType,
   type TFieldProblem,
-  type TFormField,
 } from "./card.editor.helper";
 import { useText } from "./language.context";
 import { Modal } from "./Modal";
@@ -54,7 +53,8 @@ function Field(props: {
   );
 }
 
-const mainText = { qa: "question", cloze: "text", true_false: "statement" } as const;
+// The text field a new Card's ID is suggested from.
+const idSource = { qa: "question", cloze: "text", true_false: "statement" } as const;
 
 /** The Card editor: a Modal titled Create Card or Edit Card, with Type, the type's fields, optional German fields, Domain and Topic tags, Lesson and ID (suggested from the text while the Learner hasn't typed one; disabled when editing). Save checks the form with cardFromForm: errors show under their fields from then on, and a valid Card goes to onSave. Cancel, Close and Escape call onClose. */
 export function CardEditor(props: {
@@ -71,7 +71,7 @@ export function CardEditor(props: {
 
   const form: TCardForm = idTyped
     ? typed
-    : { ...typed, id: suggestId(typed.en[mainText[typed.type]]) };
+    : { ...typed, id: suggestId(typed.en[idSource[typed.type]]) };
   const result = cardFromForm(form, { takenIds: props.takenIds, editing: props.card });
   const errors = checked && "errors" in result ? result.errors : {};
 
@@ -90,8 +90,6 @@ export function CardEditor(props: {
     if ("card" in result) props.onSave(result.card);
     else setChecked(true);
   }
-
-  const problem = (name: TFormField) => errors[name];
 
   return (
     <Modal title={props.card ? text.editCard : text.createCard} onClose={props.onClose}>
@@ -119,7 +117,7 @@ export function CardEditor(props: {
             key={key}
             label={labels[key]}
             hint={key === "text" ? text.clozeHint : undefined}
-            problem={problem(`en.${key}`)}
+            problem={errors[`en.${key}`]}
             value={typed.en[key]}
             onChange={(value) => setTexts("en", key, value)}
           />
@@ -144,7 +142,7 @@ export function CardEditor(props: {
             key={`de-${key}`}
             label={text.inGerman(labels[key])}
             hint={text.germanHint}
-            problem={problem(`de.${key}`)}
+            problem={errors[`de.${key}`]}
             value={typed.de[key]}
             onChange={(value) => setTexts("de", key, value)}
           />
@@ -152,7 +150,7 @@ export function CardEditor(props: {
         <Field
           label={text.domainTags}
           hint={text.tagsHint}
-          problem={problem("tags.domain")}
+          problem={errors["tags.domain"]}
           control={(controlProps) => (
             <input
               {...controlProps}
@@ -166,7 +164,7 @@ export function CardEditor(props: {
         <Field
           label={text.topicTags}
           hint={text.tagsHint}
-          problem={problem("tags.topic")}
+          problem={errors["tags.topic"]}
           control={(controlProps) => (
             <input
               {...controlProps}
@@ -179,7 +177,7 @@ export function CardEditor(props: {
         />
         <Field
           label={text.lesson}
-          problem={problem("lesson")}
+          problem={errors.lesson}
           control={(controlProps) => (
             <input
               {...controlProps}
@@ -192,7 +190,7 @@ export function CardEditor(props: {
         <Field
           label={text.cardId}
           hint={text.idHint}
-          problem={problem("id")}
+          problem={errors.id}
           control={(controlProps) => (
             <input
               {...controlProps}
