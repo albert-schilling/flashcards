@@ -53,7 +53,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #95  | The implementer added a second `.type-label` rule identical to an existing one; the standards review caught it.                    | #96 (check style sheets for duplicate rules).                                                    |
 | #102 | Planned ~232 lines, came out at 290: tests 158 against 100, even with a per-test estimate.                                         | albert-schilling/skills#38 (comment with this data).                                             |
 | #102 | The implementer wrote `background: transparent`; the token check passed it and the standards review caught it.                     | #101 (the check rejects named colours).                                                          |
-| #106 | The new `cards-german` fit check measured the padded row, so a row too tall for its content would pass; the spec review caught it. | `pull-requests.md`: a new flow check is shown failing once before it is trusted.                 |
+| #106 | The `cards-german` fit check measured the padded row, so overflow passed; the spec review caught it by undoing the rule it guards. | `pull-requests.md`: a new flow check is shown failing once before it is trusted.                 |
 
 ## Factory runs
 
