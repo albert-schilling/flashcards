@@ -645,7 +645,7 @@
   padding-left: var(--space-10);
 }
 
-/* A media query can't use a variable: --breakpoint-desktop. It follows the base rule, so its columns win. Not in the prototype, which has one row: search sits alone on the first row, so the Type select has room for its longest name; Type and Tag share the second. */
+/* A media query can't use a variable: --breakpoint-desktop. It follows the base rule, so its columns win. Not in the prototype, which has one row. Here search sits alone on the first row and Type and Tag share the second, so the Type select has room for its longest name. */
 @media (min-width: 48rem) {
   .library-toolbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
