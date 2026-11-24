@@ -31,9 +31,37 @@ function rows() {
   return screen.getAllByRole("listitem");
 }
 
-/** The IDs of the listed Cards, in order; none when no list shows. */
+/** The IDs of the listed Cards, in order; none when no list shows. A row shows its type name, title, then ID. */
 function listedIds(): string[] {
-  return screen.queryAllByRole("listitem").map((row) => shownTexts(row)[1]);
+  return screen.queryAllByRole("listitem").map((row) => shownTexts(row)[2]);
+}
+
+/** Each Card type's name in English and German, in the Type select's order. */
+const typeNames: Record<TCard["type"], { en: string; de: string }> = {
+  qa: { en: "Question & answer", de: "Frage & Antwort" },
+  multiple_choice: { en: "Multiple choice", de: "Multiple Choice" },
+  formula: { en: "Formula", de: "Formel" },
+  numeric: { en: "Numeric", de: "Numerisch" },
+  cloze: { en: "Fill the gap", de: "Lückentext" },
+  true_false: { en: "True or false", de: "Wahr oder falsch" },
+};
+
+const cardTypes = Object.keys(typeNames) as TCard["type"][];
+
+/** Card a of each type, in each language, with its type name there. */
+const typeCases = [qa, multipleChoice, formula, numeric, cloze, trueFalse].flatMap((make) =>
+  (["en", "de"] as const).map((language) => {
+    const card: TCard = make("a", 1);
+    return { card, language, name: typeNames[card.type][language] };
+  }),
+);
+
+/** The tags in this element's tags row, in order, each with its style: tag-domain or tag-topic. */
+function styledTags(element: HTMLElement): string[][] {
+  return Array.from(element.querySelector(".row-tags")!.children, (tag) => [
+    tag.textContent!,
+    ["tag-domain", "tag-topic"].filter((style) => tag.classList.contains(style)).join(" "),
+  ]);
 }
 
 function search(query: string, label = "Search Cards") {
@@ -113,14 +141,14 @@ it.each([
   { type: "true_false", card: trueFalse("a", 1), title: "a is true." },
   { type: "cloze", card: cloze("a", 1), title: "a has a ____." },
 ])(
-  "a $type row shows the question or name, the ID, the type, the tags and Delete",
-  ({ type, card, title }) => {
+  "a $type row shows the type name, the question or name, the ID, the tags and Delete",
+  ({ card, title }) => {
     renderCardsPage([card]);
 
     expect(shownTexts(rows()[0])).toEqual([
+      typeNames[card.type].en,
       title,
       "a",
-      type,
       "Machine Learning",
       "Decision Tree",
       "Delete",
@@ -134,9 +162,9 @@ it("a row shows every domain tag, then every topic tag, even a tag in both", () 
   ]);
 
   expect(shownTexts(rows()[0])).toEqual([
+    "Question & answer",
     "What is a?",
     "a",
-    "qa",
     "Statistics",
     "Machine Learning",
     "Regression",
@@ -148,7 +176,7 @@ it("a row shows every domain tag, then every topic tag, even a tag in both", () 
 it("shows one row per Card", () => {
   renderCardsPage([qa("a", 1), formula("b", 1), cloze("c", 1)]);
 
-  expect(rows().map((row) => shownTexts(row)[1])).toEqual(["a", "b", "c"]);
+  expect(rows().map((row) => shownTexts(row)[2])).toEqual(["a", "b", "c"]);
 });
 
 it("in German, a row shows the German question, and English where there is no German", () => {
@@ -193,13 +221,13 @@ it.each([
 ])("in German, a translated $type row shows its German text", ({ card, title }) => {
   renderCardsPage([card], "de");
 
-  expect(shownTexts(rows()[0])[0]).toBe(title);
+  expect(shownTexts(rows()[0])[1]).toBe(title);
 });
 
 it("a cloze row blanks every gap", () => {
   renderCardsPage([cloze("a", 1, "{{A}} tree splits on {{features}}.")]);
 
-  expect(shownTexts(rows()[0])[0]).toBe("____ tree splits on ____.");
+  expect(shownTexts(rows()[0])[1]).toBe("____ tree splits on ____.");
 });
 
 /** The button of this Card's row that opens its preview: the row's other button, beside Delete. Fails while the row has no such button. */
@@ -240,9 +268,9 @@ it("a row holds two buttons side by side: the row button with the Card's copy, t
   expect(buttons).toHaveLength(2);
   expect(buttons[1]).toBe(deleteButton("a"));
   expect(shownTexts(buttons[0])).toEqual([
+    "Question & answer",
     "What is a?",
     "a",
-    "qa",
     "Machine Learning",
     "Decision Tree",
   ]);
@@ -303,8 +331,8 @@ it.each([
   { type: "numeric", card: numeric("a", 2, "m"), title: "How much is a?", answer: ["5 m"] },
   { type: "numeric", card: numeric("a", 2), title: "How much is a?", answer: ["5"] },
 ])(
-  "a $type preview shows the type, question, answer $answer, tags, ID and version, and Delete",
-  ({ type, card, title, answer }) => {
+  "a $type preview shows the type name, question, answer $answer, tags, ID and version, and Delete",
+  ({ card, title, answer }) => {
     renderCardsPage([card]);
 
     const preview = openPreview("a");
@@ -312,7 +340,7 @@ it.each([
     expect(preview.getByRole("heading", { level: 3 }).textContent).toBe(title);
     expect(shownTexts(previewDialog())).toEqual([
       "Card preview",
-      type,
+      typeNames[card.type].en,
       title,
       "Answer",
       ...answer,
@@ -320,6 +348,47 @@ it.each([
       "Decision Tree",
       "a · version 2",
       "Delete",
+    ]);
+  },
+);
+
+it.each(typeCases)(
+  "a $card.type row in $language shows its type name $name as a type label, apart from the tags",
+  ({ card, language, name }) => {
+    renderCardsPage([card], language);
+
+    // Inside the row: the Type select shows the same name.
+    const label = within(rows()[0]).getByText(name);
+    expect(label.classList.contains("type-label")).toBe(true);
+    expect(label.closest(".row-tags")).toBeNull();
+  },
+);
+
+it.each(typeCases)(
+  "a $card.type preview in $language shows its type name $name",
+  ({ card, language, name }) => {
+    renderCardsPage([card], language);
+
+    fireEvent.click(rowButton("a"));
+
+    const label = within(screen.getByRole("dialog")).getByText(name);
+    expect(label.classList.contains("type-label")).toBe(true);
+  },
+);
+
+it.each(["row", "preview"])(
+  "a %s shows domain tags in the domain style, then topic tags in the topic style, even a tag in both",
+  (shown) => {
+    renderCardsPage([
+      tagged(qa("a", 1), ["Statistics", "Machine Learning"], ["Regression", "Statistics"]),
+    ]);
+    if (shown === "preview") openPreview("a");
+
+    expect(styledTags(shown === "row" ? rows()[0] : previewDialog())).toEqual([
+      ["Statistics", "tag-domain"],
+      ["Machine Learning", "tag-domain"],
+      ["Regression", "tag-topic"],
+      ["Statistics", "tag-topic"],
     ]);
   },
 );
@@ -699,13 +768,29 @@ it("clearing the search, Type and Tag lists every Card again", () => {
   expect(screen.getByText("4 of 4 Cards")).toBeTruthy();
 });
 
-it("the Type select offers All types, then the six Card types, whatever types the Cards have", () => {
+it("the Type select offers All types, then the six Card type names, whatever types the Cards have", () => {
   renderCardsPage([qa("a", 1)]);
 
-  const types = ["qa", "multiple_choice", "formula", "numeric", "cloze", "true_false"];
   expect(typeSelect().value).toBe("");
-  expect(optionTexts(typeSelect())).toEqual(["All types", ...types]);
-  expect([...typeSelect().options].map((option) => option.value)).toEqual(["", ...types]);
+  expect(optionTexts(typeSelect())).toEqual([
+    "All types",
+    ...cardTypes.map((type) => typeNames[type].en),
+  ]);
+  expect([...typeSelect().options].map((option) => option.value)).toEqual(["", ...cardTypes]);
+});
+
+it("in German, the Type select offers the German type names, and Formel lists only the formula Cards", () => {
+  renderCardsPage([qa("a", 1), formula("x", 1), cloze("b", 1), formula("z", 1)], "de");
+  const select = typeSelect("Typ");
+
+  expect([...select.options].map((option) => [option.value, option.textContent])).toEqual([
+    ["", "Alle Typen"],
+    ...cardTypes.map((type) => [type, typeNames[type].de]),
+  ]);
+  // Picks the option a reader sees as Formel.
+  const formel = [...select.options].find((option) => option.textContent === "Formel")!;
+  fireEvent.change(select, { target: { value: formel.value } });
+  expect(listedIds()).toEqual(["x", "z"]);
 });
 
 it("the Tag select offers Any tag, then every tag of the Cards once, sorted", () => {

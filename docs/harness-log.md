@@ -53,6 +53,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #95  | The implementer added a second `.type-label` rule identical to an existing one; the standards review caught it.                    | #96 (check style sheets for duplicate rules).                                                    |
 | #102 | Planned ~232 lines, came out at 290: tests 158 against 100, even with a per-test estimate.                                         | albert-schilling/skills#38 (comment with this data).                                             |
 | #102 | The implementer wrote `background: transparent`; the token check passed it and the standards review caught it.                     | #101 (the check rejects named colours).                                                          |
+| #106 | The `cards-german` fit check measured the padded row, so overflow passed; the spec review caught it by undoing the rule it guards. | `pull-requests.md`: a new flow check is shown failing once before it is trusted.                 |
 
 ## Factory runs
 
@@ -96,3 +97,4 @@ One row for each pull request the Factory opens, added in its retro and updated 
 | #90  | #55   | medium    | 1 / 2             | 2             | 2              | none                |
 | #95  | #56   | medium    | 3 / 8             | 3             | 5              | none                |
 | #102 | #92   | medium    | 1 / 1             | 3             | 2              | none                |
+| #106 | #77   | medium    | 2 / 3             | 2             | 3              | none                |

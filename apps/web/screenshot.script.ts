@@ -274,6 +274,64 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
     await shot("cleared");
   },
+  // The Cards list in German with a long title, a long ID and four tags. Fails when a row's copy is taller than its row button, which fills the row inside its padding, or when a Card type name in either language is wider than the Type select's room for text; jsdom does no layout, so the browser checks it.
+  "cards-german": async (page, shot) => {
+    const text = uiText.de;
+    await goTo(page, uiText.en.settings);
+    await page.getByLabel(uiText.en.language).selectOption("de");
+    await page.getByRole("heading", { name: text.settings, exact: true }).waitFor();
+    const deck = JSON.parse(await readFile(exampleDeck, "utf8"));
+    const long = {
+      ...deck.cards[0],
+      id: "machine-learning.decision-trees.regression.leaf-mean-prediction",
+      tags: {
+        domain: ["Machine Learning", "Statistik"],
+        topic: ["Entscheidungsbaum", "Regressionsblatt"],
+      },
+      translations: {
+        de: {
+          question:
+            "Was sagt ein Regressionsblatt eines Entscheidungsbaums für eine neue Stichprobe mit mehreren Merkmalen genau vorher?",
+          answer: "Den Mittelwert seiner Stichproben.",
+        },
+      },
+    };
+    await goTo(page, text.cards, text);
+    await page.getByLabel(text.uploadDeck, { exact: true }).setInputFiles({
+      name: "long.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify({ cards: [long, ...deck.cards.slice(1)] })),
+    });
+    await page.getByText(text.deckSummary(6, 0, 0), { exact: true }).waitFor();
+    await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
+    const tooTall = await page.locator(".library-card-row").evaluateAll(
+      (rows) =>
+        rows.filter((row) => {
+          const copy = row.querySelector(".library-card-copy")!.getBoundingClientRect().height;
+          return copy > row.querySelector(".library-card-open")!.getBoundingClientRect().height;
+        }).length,
+    );
+    if (tooTall > 0)
+      throw new Error(`cards-german flow: ${tooTall} row buttons are shorter than their copy`);
+    const select = page.getByLabel(text.type);
+    const names = [...Object.values(uiText.en.cardTypes), ...Object.values(text.cardTypes)];
+    const tooWide = await select.evaluate((element, labels) => {
+      const style = getComputedStyle(element);
+      const context = document.createElement("canvas").getContext("2d");
+      if (context === null) throw new Error("no canvas context");
+      context.font = style.font;
+      const room =
+        element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      return labels.filter((label) => context.measureText(label).width > room);
+    }, names);
+    if (tooWide.length > 0) {
+      throw new Error(`cards-german flow: the Type select clips ${tooWide.join(", ")}`);
+    }
+    await shot("list");
+    await select.selectOption("true_false");
+    await page.getByText(text.cardCountOf(1, 6), { exact: true }).waitFor();
+    await shot("type-select");
+  },
   // Opens each Card of the example Deck in its preview, then deletes the last one from its preview.
   preview: async (page, shot) => {
     const text = uiText.en;
@@ -284,7 +342,9 @@ const flows: Record<string, TFlow> = {
     const dialog = page.getByRole("dialog", { name: text.cardPreview, exact: true });
     for (let i = 0; i < 6; i++) {
       await rows.nth(i).locator(".library-card-open").click();
-      const type = (await dialog.locator(".type-label").textContent()) ?? `card-${i + 1}`;
+      const label = await dialog.locator(".type-label").textContent();
+      const type = Object.entries(text.cardTypes).find(([, name]) => name === label)?.[0];
+      if (type === undefined) throw new Error(`preview flow: no Card type is named ${label}`);
       await shot(type.replaceAll("_", "-"));
       await page.keyboard.press("Escape");
       await dialog.waitFor({ state: "detached" });

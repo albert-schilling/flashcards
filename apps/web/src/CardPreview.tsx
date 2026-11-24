@@ -4,8 +4,9 @@ import { useContext } from "react";
 import { cardAnswer, cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
 import { Modal } from "./Modal";
+import { RowTags } from "./RowTags";
 
-/** The Card preview: a Modal with the Card's type, its question and answer in the current language (see cardTitle and cardAnswer), its tags, its ID and version, and Delete, which deletes without asking. Edit and the Session buttons come later. */
+/** The Card preview: a Modal with the Card's type name, its question and answer in the current language (see cardTitle and cardAnswer), its tags, its ID and version, and Delete, which deletes without asking. Edit and the Session buttons come later. */
 export function CardPreview(props: { card: TCard; onClose: () => void; onDelete: () => void }) {
   const text = useText();
   const language = useContext(LanguageContext);
@@ -13,7 +14,7 @@ export function CardPreview(props: { card: TCard; onClose: () => void; onDelete:
   return (
     <Modal title={text.cardPreview} onClose={props.onClose}>
       <div className="modal-body card-preview">
-        <span className="type-label">{card.type}</span>
+        <span className="type-label">{text.cardTypes[card.type]}</span>
         <h3>{cardTitle(card, language)}</h3>
         <div className="preview-answer">
           <span>{text.answer}</span>
@@ -21,11 +22,7 @@ export function CardPreview(props: { card: TCard; onClose: () => void; onDelete:
             <p key={i}>{line}</p>
           ))}
         </div>
-        <div className="row-tags">
-          {[...card.tags.domain, ...card.tags.topic].map((tag, i) => (
-            <span key={i}>{tag}</span>
-          ))}
-        </div>
+        <RowTags tags={card.tags} />
         <p className="preview-id">{text.cardIdAndVersion(card.id, card.version)}</p>
       </div>
       <div className="modal-actions modal-actions-wrap">

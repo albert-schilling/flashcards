@@ -105,8 +105,10 @@ export function CardsPage(props: {
               {text.type}
               <Select value={type} onChange={(event) => setType(event.target.value)}>
                 <option value="">{text.allTypes}</option>
-                {cardTypes.map((name) => (
-                  <option key={name}>{name}</option>
+                {cardTypes.map((cardType) => (
+                  <option key={cardType} value={cardType}>
+                    {text.cardTypes[cardType]}
+                  </option>
                 ))}
               </Select>
             </label>
