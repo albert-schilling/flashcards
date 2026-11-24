@@ -171,6 +171,17 @@ it.each([
   expect(control("Card ID").value).toBe(id);
 });
 
+it("a new Type suggests the ID from its own field", () => {
+  renderEditor();
+  fill("Question", "What is a leaf?");
+
+  fireEvent.change(control("Type"), { target: { value: "cloze" } });
+  expect(control("Card ID").value).toBe("");
+  fill("Text", "A {{leaf}} holds the mean.");
+
+  expect(control("Card ID").value).toBe("a-leaf-holds-the-mean");
+});
+
 it("Create Card stays enabled, and with empty fields marks each one required and saves nothing", () => {
   const onSave = renderEditor();
 

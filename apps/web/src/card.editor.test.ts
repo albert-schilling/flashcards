@@ -159,6 +159,28 @@ describe("a new Card", () => {
     },
   );
 
+  it("trims the ID, lesson and texts, and leaves out a German field of only spaces", () => {
+    const card = built(
+      buildCard(
+        fields({
+          id: " q ",
+          lesson: " lesson-04 ",
+          question: " Q? ",
+          answer: " A. ",
+          deAnswer: "  ",
+        }),
+        [],
+      ),
+    );
+
+    expect(card).toMatchObject({
+      id: "q",
+      lesson: "lesson-04",
+      en: { question: "Q?", answer: "A." },
+    });
+    expect("translations" in card).toBe(false);
+  });
+
   it("leaves out the translations when every German field is empty", () => {
     const card = built(buildCard(fields({ id: "c", question: "Q?", answer: "A." }), []));
 
@@ -201,6 +223,12 @@ describe("field errors", () => {
     );
 
     expect(result).toEqual({ errors: { domain: "required", topic: "required" } });
+  });
+
+  it("names fields of only spaces as required", () => {
+    expect(buildCard(fields({ id: "  ", lesson: " ", question: "  ", answer: "A." }), [])).toEqual({
+      errors: { id: "required", lesson: "required", question: "required" },
+    });
   });
 
   it.each(["What is a leaf", "leaf_mean", "Leaf", "leaf--mean", "-leaf"])(
