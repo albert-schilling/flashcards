@@ -127,7 +127,7 @@ it("the true_false answer is True or False", () => {
 it("the tag fields say to separate Tags with commas", () => {
   renderEditor();
 
-  expect(editor().getAllByText("Separate Tags with commas.").length).toBeGreaterThan(0);
+  expect(editor().getAllByText("Separate Tags with commas.")).toHaveLength(2);
 });
 
 it("suggests the ID from the question until the Learner types an ID", () => {

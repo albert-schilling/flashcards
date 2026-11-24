@@ -15,7 +15,6 @@ import {
   trueFalse,
 } from "./test/cards.fixtures";
 import { editorControl } from "./test/editor.queries";
-import { uiText } from "./ui.text";
 
 /** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card; onSave resolves to true. */
 function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
@@ -705,20 +704,15 @@ it("Card saved. replaces Card deleted., so one notice shows", async () => {
 });
 
 it("in German, Create Card, Edit, Save changes and Card saved. are German", async () => {
-  const de = uiText.de;
   renderCardsPage([qa("a", 1)], "de");
   expect(screen.getByRole("button", { name: "Karte erstellen" })).toBeTruthy();
 
-  fireEvent.click(openPreview("a", de.cardPreview).getByRole("button", { name: de.edit }));
-  fireEvent.click(editorDialog(de.editCard).getByRole("button", { name: de.saveChanges }));
+  fireEvent.click(openPreview("a", "Kartenvorschau").getByRole("button", { name: "Bearbeiten" }));
+  fireEvent.click(
+    editorDialog("Karte bearbeiten").getByRole("button", { name: "Änderungen speichern" }),
+  );
 
-  expect((await screen.findByRole("status")).textContent).toBe(de.cardSaved);
-  const en = uiText.en;
-  expect([de.edit, de.editCard, de.saveChanges, de.cardSaved]).not.toContain(undefined);
-  expect(de.edit).not.toBe(en.edit);
-  expect(de.editCard).not.toBe(en.editCard);
-  expect(de.saveChanges).not.toBe(en.saveChanges);
-  expect(de.cardSaved).not.toBe(en.cardSaved);
+  expect((await screen.findByRole("status")).textContent).toBe("Karte gespeichert.");
 });
 
 it("Delete all Cards asks in a modal first, and its Delete all Cards closes the modal and deletes", () => {
