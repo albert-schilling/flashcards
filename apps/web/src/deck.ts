@@ -37,8 +37,8 @@ function readDeck(text: string): TReadDeck {
   };
 }
 
-// Zod output has the schema's key order, so equal content gives equal JSON.
-function sameContent(a: TCard, b: TCard): boolean {
+/** Whether two Cards have equal content. Zod output has the schema's key order, so equal content gives equal JSON; a Card built another way must be parsed first. */
+export function sameContent(a: TCard, b: TCard): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
