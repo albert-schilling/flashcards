@@ -46,7 +46,7 @@ function errorOf(label: string): string | undefined {
 }
 
 function click(name: string) {
-  fireEvent.click(screen.getByRole("button", { name, exact: true }));
+  fireEvent.click(screen.getByRole("button", { name }));
 }
 
 /** Fills in a valid qa Card with ID ml.entropy. */

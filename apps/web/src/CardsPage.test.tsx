@@ -661,7 +661,7 @@ it.each([
 ])("$case, shows its children right after the Card list panel", ({ cards }) => {
   render(
     <LanguageContext.Provider value="en">
-      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()}>
+      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()} onSave={vi.fn()}>
         <aside>Second column</aside>
       </CardsPage>
     </LanguageContext.Provider>,
