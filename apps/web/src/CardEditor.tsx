@@ -15,7 +15,6 @@ import {
 import { useText } from "./language.context";
 import { Modal } from "./Modal";
 import { Select } from "./Select";
-import type { TUiText } from "./ui.text";
 
 type TControlProps = { id: string; "aria-invalid": boolean; "aria-describedby"?: string };
 
@@ -24,13 +23,19 @@ function Field(props: {
   label: string;
   hint?: string;
   problem?: TFieldProblem;
-  message: (problem: TFieldProblem) => string;
   control: (controlProps: TControlProps) => ReactNode;
 }) {
+  const text = useText();
   const id = useId();
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   const describedBy = [props.hint && hintId, props.problem && errorId].filter(Boolean).join(" ");
+  const problemTexts: Record<TFieldProblem, string> = {
+    empty: text.fieldEmpty,
+    noGap: text.needsGap,
+    idFormat: text.idFormat,
+    idTaken: text.idTaken,
+  };
   return (
     <div className="field">
       <label htmlFor={id}>{props.label}</label>
@@ -42,20 +47,11 @@ function Field(props: {
       {props.hint && <small id={hintId}>{props.hint}</small>}
       {props.problem && (
         <small id={errorId} className="field-error">
-          {props.message(props.problem)}
+          {problemTexts[props.problem]}
         </small>
       )}
     </div>
   );
-}
-
-function problemText(text: TUiText, problem: TFieldProblem): string {
-  return {
-    empty: text.fieldEmpty,
-    noGap: text.needsGap,
-    idFormat: text.idFormat,
-    idTaken: text.idTaken,
-  }[problem];
 }
 
 const mainText = { qa: "question", cloze: "text", true_false: "statement" } as const;
@@ -86,7 +82,7 @@ export function CardEditor(props: {
     statement: text.statement,
   };
 
-  function setTexts(language: "en" | "de", key: string, value: string) {
+  function setTexts(language: "en" | "de", key: keyof TCardForm["en"], value: string) {
     setTyped({ ...typed, [language]: { ...typed[language], [key]: value } });
   }
 
@@ -95,7 +91,6 @@ export function CardEditor(props: {
     else setChecked(true);
   }
 
-  const message = (problem: TFieldProblem) => problemText(text, problem);
   const problem = (name: TFormField) => errors[name];
 
   return (
@@ -103,7 +98,6 @@ export function CardEditor(props: {
       <div className="modal-body editor-form">
         <Field
           label={text.type}
-          message={message}
           control={(controlProps) => (
             <Select
               {...controlProps}
@@ -121,42 +115,36 @@ export function CardEditor(props: {
           )}
         />
         {textFields[typed.type].map((key) => (
-          <TextFields
+          <TextField
             key={key}
             label={labels[key]}
             hint={key === "text" ? text.clozeHint : undefined}
             problem={problem(`en.${key}`)}
-            message={message}
             value={typed.en[key]}
             onChange={(value) => setTexts("en", key, value)}
-          >
-            {typed.type === "true_false" && (
-              <Field
-                label={text.answer}
-                message={message}
-                control={(controlProps) => (
-                  <Select
-                    {...controlProps}
-                    value={String(typed.answer)}
-                    onChange={(event) =>
-                      setTyped({ ...typed, answer: event.target.value === "true" })
-                    }
-                  >
-                    <option value="true">{text.true}</option>
-                    <option value="false">{text.false}</option>
-                  </Select>
-                )}
-              />
-            )}
-          </TextFields>
+          />
         ))}
+        {typed.type === "true_false" && (
+          <Field
+            label={text.answer}
+            control={(controlProps) => (
+              <Select
+                {...controlProps}
+                value={String(typed.answer)}
+                onChange={(event) => setTyped({ ...typed, answer: event.target.value === "true" })}
+              >
+                <option value="true">{text.true}</option>
+                <option value="false">{text.false}</option>
+              </Select>
+            )}
+          />
+        )}
         {textFields[typed.type].map((key) => (
-          <TextFields
+          <TextField
             key={`de-${key}`}
             label={text.inGerman(labels[key])}
             hint={text.germanHint}
             problem={problem(`de.${key}`)}
-            message={message}
             value={typed.de[key]}
             onChange={(value) => setTexts("de", key, value)}
           />
@@ -165,7 +153,6 @@ export function CardEditor(props: {
           label={text.domainTags}
           hint={text.tagsHint}
           problem={problem("tags.domain")}
-          message={message}
           control={(controlProps) => (
             <input
               {...controlProps}
@@ -180,7 +167,6 @@ export function CardEditor(props: {
           label={text.topicTags}
           hint={text.tagsHint}
           problem={problem("tags.topic")}
-          message={message}
           control={(controlProps) => (
             <input
               {...controlProps}
@@ -194,7 +180,6 @@ export function CardEditor(props: {
         <Field
           label={text.lesson}
           problem={problem("lesson")}
-          message={message}
           control={(controlProps) => (
             <input
               {...controlProps}
@@ -208,7 +193,6 @@ export function CardEditor(props: {
           label={text.cardId}
           hint={text.idHint}
           problem={problem("id")}
-          message={message}
           control={(controlProps) => (
             <input
               {...controlProps}
@@ -235,33 +219,27 @@ export function CardEditor(props: {
   );
 }
 
-/** A text field as a textarea, with `children` right after it (the true_false Answer follows its Statement). */
-function TextFields(props: {
+/** A text field as a textarea. */
+function TextField(props: {
   label: string;
   hint?: string;
   problem?: TFieldProblem;
-  message: (problem: TFieldProblem) => string;
   value: string;
   onChange: (value: string) => void;
-  children?: ReactNode;
 }) {
   return (
-    <>
-      <Field
-        label={props.label}
-        hint={props.hint}
-        problem={props.problem}
-        message={props.message}
-        control={(controlProps) => (
-          <textarea
-            {...controlProps}
-            className="control"
-            value={props.value}
-            onChange={(event) => props.onChange(event.target.value)}
-          />
-        )}
-      />
-      {props.children}
-    </>
+    <Field
+      label={props.label}
+      hint={props.hint}
+      problem={props.problem}
+      control={(controlProps) => (
+        <textarea
+          {...controlProps}
+          className="control"
+          value={props.value}
+          onChange={(event) => props.onChange(event.target.value)}
+        />
+      )}
+    />
   );
 }
