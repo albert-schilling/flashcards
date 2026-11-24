@@ -135,6 +135,29 @@ async function checkStatisticsFits(page: Page, flow: string): Promise<void> {
   }
 }
 
+// Fails when the open Card editor scrolls sideways, when a field sticks out of it, or when the page scrolls sideways; throws when it finds no editor or no field. jsdom does no layout, so the browser checks it.
+async function checkEditorFits(page: Page, step: string): Promise<void> {
+  const found = await page.evaluate(() => {
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    const controls = Array.from(dialog?.querySelectorAll(".field .control") ?? []);
+    const edge = dialog?.getBoundingClientRect().right ?? 0;
+    return {
+      dialog: dialog !== null,
+      controls: controls.length,
+      scrollsSideways: dialog !== null && dialog.scrollWidth > dialog.clientWidth,
+      outside: controls.filter((control) => control.getBoundingClientRect().right > edge).length,
+      pageScrolls: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    };
+  });
+  if (!found.dialog) throw new Error(`editor flow, ${step}: found no editor`);
+  if (found.controls === 0) throw new Error(`editor flow, ${step}: found no fields`);
+  if (found.scrollsSideways) throw new Error(`editor flow, ${step}: the editor scrolls sideways`);
+  if (found.outside > 0) {
+    throw new Error(`editor flow, ${step}: ${found.outside} fields stick out of the editor`);
+  }
+  if (found.pageScrolls) throw new Error(`editor flow, ${step}: the page scrolls sideways`);
+}
+
 // Shows the states a plain page doesn't: disabled, hovered, keyboard-focused and rejected.
 async function showControls(page: Page, shot: (name: string) => Promise<void>): Promise<void> {
   const text = uiText.en;
@@ -461,6 +484,36 @@ const flows: Record<string, TFlow> = {
     });
     await page.getByText("bulk.card-1000", { exact: true }).waitFor();
     await shot("end");
+  },
+  // Creates a qa Card with errors shown first, then edits it from its preview; fails when the editor doesn't fit the screen or shows no field error.
+  editor: async (page, shot) => {
+    const text = uiText.en;
+    await goTo(page, text.cards);
+    await page.getByRole("button", { name: text.createCard, exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: text.createCard, exact: true });
+    await dialog.waitFor();
+    await checkEditorFits(page, "create");
+    await shot("create");
+    await dialog.getByRole("button", { name: text.createCard, exact: true }).click();
+    await dialog.locator('[aria-invalid="true"]').first().waitFor();
+    await checkEditorFits(page, "errors");
+    await shot("errors");
+    await dialog.getByLabel(text.question).first().fill("What is depth?");
+    await dialog.getByLabel(text.answer).first().fill("The longest path.");
+    await dialog.getByLabel(text.domainTags).fill("Machine Learning, Statistics");
+    await dialog.getByLabel(text.topicTags).fill("Decision Tree");
+    await dialog.getByLabel(text.lesson).fill("lesson-04");
+    await dialog.getByRole("group").getByLabel(text.question).fill("Was ist Tiefe?");
+    await shot("filled");
+    await dialog.getByRole("button", { name: text.createCard, exact: true }).click();
+    await page.getByText(text.cardSaved, { exact: true }).waitFor();
+    await shot("saved");
+    await page.locator(".library-card-open").first().click();
+    await page.getByRole("button", { name: text.edit, exact: true }).click();
+    const editDialog = page.getByRole("dialog", { name: text.editCard, exact: true });
+    await editDialog.waitFor();
+    await checkEditorFits(page, "edit");
+    await shot("edit");
   },
   answer: answerEveryCard,
   // The answer flow with the right and wrong answers swapped, so every Card type shows both.
