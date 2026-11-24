@@ -2,10 +2,10 @@ import type { TCard } from "@flashcards/cards";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
 import { ArrowLeft, Check, CircleCheck, CircleX, X, type LucideIcon } from "lucide-react";
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Alert, type TAlertTone } from "./Alert";
 import { App } from "./App";
-import { addReview, loadLanguage, loadReviews } from "./storage";
+import { addReview, loadCards, loadLanguage, loadReviews } from "./storage";
 import {
   cloze,
   formula,
@@ -2651,4 +2651,651 @@ it("a finished Session keeps its summary until Done, so the Session link shows i
 
   expect(screen.getByText("1 answered, 1 right")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
+});
+
+// The Card editor. A label is matched by its first word, so a hint inside a label doesn't matter.
+
+/** The open Card editor's dialog, named "Create Card" or "Edit Card". */
+function editorDialog(name = "Create Card") {
+  return screen.getByRole("dialog", { name });
+}
+
+/** The German fields' group inside the open editor. */
+function germanFields() {
+  return within(screen.getByRole("group", { name: "German (optional)" }));
+}
+
+/** The English side of the open editor's field with this label: everything outside the German group. */
+function field(label: string) {
+  const german = screen.getByRole("group", { name: "German (optional)" });
+  const found = within(editorDialog(editorName()))
+    .queryAllByLabelText(new RegExp(`^${label}\\b`))
+    .filter((element) => !german.contains(element));
+  expect(found, `one field labelled ${label}`).toHaveLength(1);
+  return found[0] as HTMLInputElement & HTMLSelectElement & HTMLTextAreaElement;
+}
+
+/** The German field with this label. */
+function germanField(label: string) {
+  return germanFields().getByLabelText<HTMLInputElement>(new RegExp(`^${label}\\b`));
+}
+
+/** The name of the editor dialog that is open. */
+function editorName() {
+  return screen.queryByRole("dialog", { name: "Edit Card" }) ? "Edit Card" : "Create Card";
+}
+
+function typeInto(element: HTMLElement, value: string) {
+  fireEvent.change(element, { target: { value } });
+}
+
+/** Picks the option of the select by its shown text. */
+function choose(select: HTMLSelectElement, optionText: string) {
+  const option = Array.from(select.options).find((each) => each.text === optionText);
+  expect(option, `an option ${optionText}`).toBeTruthy();
+  typeInto(select, option!.value);
+}
+
+/** Opens the Cards page and its Create Card editor. */
+function openCreate() {
+  openCards();
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+  return editorDialog();
+}
+
+/** Opens the Cards page and this Card's preview from its row. */
+function openPreview(id: string) {
+  openCards();
+  const remove = screen.getByRole("button", { name: `Delete ${id}` });
+  const others = within(remove.closest("li")!)
+    .getAllByRole("button")
+    .filter((button) => button !== remove);
+  expect(others).toHaveLength(1);
+  fireEvent.click(others[0]);
+  return within(screen.getByRole("dialog", { name: "Card preview" }));
+}
+
+/** Opens the Card's editor through its preview's Edit. */
+function openEdit(id: string) {
+  fireEvent.click(openPreview(id).getByRole("button", { name: "Edit" }));
+  return editorDialog("Edit Card");
+}
+
+/** Presses the editor's submit button: Create Card, or Save changes when editing. */
+function submitEditor() {
+  const dialog = within(editorDialog(editorName()));
+  fireEvent.click(dialog.getByRole("button", { name: /^(Create Card|Save changes)$/ }));
+}
+
+/** The text that describes the field: its error, once it has one. */
+function described(element: HTMLElement): string {
+  return (element.getAttribute("aria-describedby") ?? "")
+    .split(" ")
+    .map((id) => document.getElementById(id)?.textContent ?? "")
+    .join(" ")
+    .trim();
+}
+
+function isInvalid(element: HTMLElement) {
+  return element.getAttribute("aria-invalid") === "true";
+}
+
+const commonFields = {
+  "Domain tags": "Machine Learning,  Statistics",
+  "Topic tags": "Decision Tree",
+  Lesson: "lesson-04",
+};
+
+/** Fills the common fields and these others of the open editor, then the ID last, as suggesting it from the text would overwrite it. */
+function fillEditor(others: Record<string, string>, id: string | null = "ml.trees.depth") {
+  for (const [label, value] of Object.entries({ ...commonFields, ...others })) {
+    typeInto(field(label), value);
+  }
+  if (id !== null) typeInto(field("ID"), id);
+}
+
+const created: {
+  name: string;
+  type: string | null;
+  fill: Record<string, string>;
+  card: TCard;
+}[] = [
+  {
+    name: "qa",
+    type: null,
+    fill: { Question: "What is depth?", Answer: "The longest path." },
+    card: {
+      id: "ml.trees.depth",
+      version: 1,
+      type: "qa",
+      tags: { domain: ["Machine Learning", "Statistics"], topic: ["Decision Tree"] },
+      sourceIds: [],
+      lesson: "lesson-04",
+      en: { question: "What is depth?", answer: "The longest path." },
+    },
+  },
+  {
+    name: "cloze",
+    type: "Fill the gap",
+    fill: { Text: "Depth is the {{longest}} path." },
+    card: {
+      id: "ml.trees.depth",
+      version: 1,
+      type: "cloze",
+      tags: { domain: ["Machine Learning", "Statistics"], topic: ["Decision Tree"] },
+      sourceIds: [],
+      lesson: "lesson-04",
+      en: { text: "Depth is the {{longest}} path." },
+    },
+  },
+  {
+    name: "true_false",
+    type: "True or false",
+    fill: { Statement: "A leaf has depth 0." },
+    card: {
+      id: "ml.trees.depth",
+      version: 1,
+      type: "true_false",
+      tags: { domain: ["Machine Learning", "Statistics"], topic: ["Decision Tree"] },
+      sourceIds: [],
+      lesson: "lesson-04",
+      en: { statement: "A leaf has depth 0." },
+      answer: false,
+    },
+  },
+];
+
+/** Creates the Card in the open editor from the case, then presses Create Card. */
+function createFrom(c: (typeof created)[number]) {
+  if (c.type) choose(field("Type"), c.type);
+  fillEditor(c.fill);
+  if (c.card.type === "true_false") choose(field("Answer"), "False");
+  submitEditor();
+}
+
+it.each(created)(
+  "creates a $name Card: it is stored at version 1, listed, announced, and in Download Cards",
+  async (c) => {
+    render(<App />);
+    openCreate();
+
+    createFrom(c);
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+    await screen.findByText("ml.trees.depth");
+    expect(await loadCards()).toEqual([c.card]);
+    const file = await download("Download Cards");
+    expect(JSON.parse(await file.text())).toEqual({ cards: [c.card] });
+  },
+);
+
+it.each(created)("a created $name Card uploads as a Deck in an empty browser", async (c) => {
+  const { unmount } = render(<App />);
+  openCreate();
+  createFrom(c);
+  await screen.findByText("Card saved.");
+  const file = await download("Download Cards");
+  unmount();
+  globalThis.indexedDB = new IDBFactory();
+  render(<App />);
+
+  pick(file, "Upload Deck");
+
+  await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+  await expectListed(c.card);
+});
+
+it("Card saved. can be dismissed", async () => {
+  render(<App />);
+  openCreate();
+  createFrom(created[0]);
+  const notice = await screen.findByRole("status");
+
+  fireEvent.click(within(notice).getByRole("button", { name: "Dismiss" }));
+
+  expect(screen.queryByText("Card saved.")).toBeNull();
+});
+
+it("Card saved. goes away when the Learner leaves the Cards page", async () => {
+  render(<App />);
+  openCreate();
+  createFrom(created[0]);
+  await screen.findByText("Card saved.");
+
+  goHome();
+  openCards();
+
+  expect(screen.queryByText("Card saved.")).toBeNull();
+});
+
+it("the Type select of a new Card offers qa, cloze and true_false only", () => {
+  render(<App />);
+  openCreate();
+
+  const names = Array.from(field("Type").options, (option) => option.text);
+
+  expect(names.sort()).toEqual(["Fill the gap", "Question & answer", "True or false"]);
+});
+
+it("shows the fields of the chosen Type only, with the hints for Tags and the gap", () => {
+  render(<App />);
+  openCreate();
+  expect(field("Question")).toBeTruthy();
+  expect(field("Answer")).toBeTruthy();
+  expect(within(editorDialog()).queryByLabelText(/^Text\b/)).toBeNull();
+  expect(within(editorDialog()).queryByLabelText(/^Statement\b/)).toBeNull();
+  expect(screen.getAllByText("Separate Tags with commas.").length).toBeGreaterThan(0);
+
+  choose(field("Type"), "Fill the gap");
+  expect(field("Text")).toBeTruthy();
+  expect(within(editorDialog()).queryByLabelText(/^Question\b/)).toBeNull();
+  expect(screen.getByText("Mark the gap like {{this}}.")).toBeTruthy();
+
+  choose(field("Type"), "True or false");
+  expect(field("Statement")).toBeTruthy();
+  expect(Array.from(field("Answer").options, (option) => option.text)).toEqual(["True", "False"]);
+  expect(within(editorDialog()).queryByLabelText(/^Text\b/)).toBeNull();
+});
+
+it("Cancel closes the editor and stores nothing", async () => {
+  render(<App />);
+  openCreate();
+  fillEditor({ Question: "What is depth?", Answer: "The longest path." });
+
+  fireEvent.click(within(editorDialog()).getByRole("button", { name: "Cancel" }));
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("Card saved.")).toBeNull();
+  expect(await loadCards()).toEqual([]);
+});
+
+it("Create Card on the Cards page opens the editor", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+
+  openCreate();
+
+  expect(within(editorDialog()).getByRole("button", { name: "Create Card" })).toBeTruthy();
+});
+
+it("Create Card on Home opens the Cards page with the editor open", () => {
+  render(<App />);
+
+  fireEvent.click(home().getByRole("button", { name: "Create Card" }));
+
+  expect(levelOneHeadings()).toEqual(["Cards"]);
+  expect(editorDialog()).toBeTruthy();
+});
+
+it("the editor that Home's Create Card opened stays closed after leaving and returning to the Cards page", () => {
+  render(<App />);
+  fireEvent.click(home().getByRole("button", { name: "Create Card" }));
+  fireEvent.click(within(editorDialog()).getByRole("button", { name: "Cancel" }));
+
+  goHome();
+  openCards();
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+describe("the Card editor, with invalid input", () => {
+  it("shows a field error under each empty field, focuses the first, and stores nothing", async () => {
+    render(<App />);
+    openCreate();
+
+    submitEditor();
+
+    for (const label of ["Question", "Answer", "Domain tags", "Topic tags", "Lesson", "ID"]) {
+      expect(isInvalid(field(label)), `${label} is invalid`).toBe(true);
+      expect(described(field(label)), `${label} says why`).not.toBe("");
+    }
+    expect(isInvalid(field("Type"))).toBe(false);
+    const dialog = editorDialog();
+    const first = dialog.querySelector<HTMLElement>('[aria-invalid="true"]')!;
+    await waitFor(() => expect(document.activeElement).toBe(first));
+    expect(await loadCards()).toEqual([]);
+    expect(screen.queryByText("Card saved.")).toBeNull();
+  });
+
+  it("marks only the invalid fields, and saves once they are fixed", async () => {
+    render(<App />);
+    openCreate();
+    fillEditor({ Question: "What is depth?", Answer: "" });
+
+    submitEditor();
+
+    expect(isInvalid(field("Answer"))).toBe(true);
+    expect(isInvalid(field("Question"))).toBe(false);
+    expect(isInvalid(field("ID"))).toBe(false);
+    typeInto(field("Answer"), "The longest path.");
+    submitEditor();
+    await screen.findByText("Card saved.");
+  });
+
+  it("rejects a malformed ID and a stored ID with different messages", async () => {
+    render(<App />);
+    await uploaded(qa("ml.trees.depth", 1));
+    openCreate();
+    fillEditor({ Question: "What is depth?", Answer: "The longest path." }, "Not An ID");
+
+    submitEditor();
+    expect(isInvalid(field("ID"))).toBe(true);
+    const malformed = described(field("ID"));
+    typeInto(field("ID"), "ml.trees.depth");
+    submitEditor();
+
+    expect(isInvalid(field("ID"))).toBe(true);
+    expect(described(field("ID"))).not.toBe("");
+    expect(described(field("ID"))).not.toBe(malformed);
+    expect(screen.queryByRole("dialog", { name: "Create Card" })).toBeTruthy();
+    expect(await loadCards()).toEqual([qa("ml.trees.depth", 1)]);
+  });
+
+  it("asks for a gap in a cloze text", async () => {
+    render(<App />);
+    openCreate();
+    choose(field("Type"), "Fill the gap");
+    fillEditor({ Text: "There is no gap." });
+
+    submitEditor();
+
+    expect(isInvalid(field("Text"))).toBe(true);
+    expect(described(field("Text"))).not.toBe("");
+    typeInto(field("Text"), "There is a {{gap}}.");
+    submitEditor();
+    await screen.findByText("Card saved.");
+  });
+
+  it("asks for a gap in a German cloze text, and accepts the empty one", async () => {
+    render(<App />);
+    openCreate();
+    choose(field("Type"), "Fill the gap");
+    fillEditor({ Text: "There is a {{gap}}." });
+    typeInto(germanField("Text"), "Hier ist keine Lücke.");
+
+    submitEditor();
+
+    expect(isInvalid(germanField("Text"))).toBe(true);
+    expect(isInvalid(field("Text"))).toBe(false);
+    typeInto(germanField("Text"), "");
+    submitEditor();
+    await screen.findByText("Card saved.");
+  });
+
+  it("shows the page's error and keeps the editor open when the save fails", async () => {
+    render(<App />);
+    openCreate();
+    fillEditor({ Question: "What is depth?", Answer: "The longest path." });
+    blockStorage();
+
+    submitEditor();
+
+    expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+    expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
+    expect(field("Question").value).toBe("What is depth?");
+    expect(screen.queryByText("Card saved.")).toBeNull();
+  });
+});
+
+describe("the Card editor, German fields", () => {
+  it("stores no translations when the German fields stay empty", async () => {
+    render(<App />);
+    openCreate();
+    fillEditor({ Question: "What is depth?", Answer: "The longest path." });
+
+    submitEditor();
+
+    await screen.findByText("Card saved.");
+    const [card] = await loadCards();
+    expect("translations" in card).toBe(false);
+  });
+
+  it("stores the filled German fields only, and the Card shows them in German", async () => {
+    render(<App />);
+    openCreate();
+    fillEditor({ Question: "What is depth?", Answer: "The longest path." });
+    typeInto(germanField("Question"), "Was ist Tiefe?");
+
+    submitEditor();
+
+    await screen.findByText("Card saved.");
+    expect((await loadCards())[0].translations).toEqual({ de: { question: "Was ist Tiefe?" } });
+    pickLanguage("de");
+    openCards();
+    await screen.findByText("Was ist Tiefe?");
+    expect(screen.queryByText("What is depth?")).toBeNull();
+  });
+});
+
+describe("the Card editor, suggesting the ID", () => {
+  it("fills the ID from the Question as the Learner types, and from the Text and Statement", () => {
+    render(<App />);
+    openCreate();
+
+    typeInto(field("Question"), "What is depth?");
+    expect(field("ID").value).toBe("what-is-depth");
+
+    choose(field("Type"), "Fill the gap");
+    typeInto(field("Text"), "Depth is the {{longest}} path.");
+    expect(field("ID").value).toBe("depth-is-the-longest-path");
+
+    choose(field("Type"), "True or false");
+    typeInto(field("Statement"), "A leaf has depth 0.");
+    expect(field("ID").value).toBe("a-leaf-has-depth-0");
+  });
+
+  it("adds -2 when a stored Card has the suggested ID", async () => {
+    render(<App />);
+    await uploaded(qa("what-is-depth", 1));
+    openCreate();
+
+    typeInto(field("Question"), "What is depth?");
+
+    expect(field("ID").value).toBe("what-is-depth-2");
+  });
+
+  it("stops following the text once the Learner edits the ID", () => {
+    render(<App />);
+    openCreate();
+    typeInto(field("Question"), "What is depth?");
+
+    typeInto(field("ID"), "my.own-id");
+    typeInto(field("Question"), "What is height?");
+
+    expect(field("ID").value).toBe("my.own-id");
+  });
+
+  it("saves the Card under the suggested ID", async () => {
+    render(<App />);
+    openCreate();
+    fillEditor({ Question: "What is depth?", Answer: "The longest path." }, null);
+
+    submitEditor();
+
+    await screen.findByText("Card saved.");
+    expect((await loadCards()).map((card) => card.id)).toEqual(["what-is-depth"]);
+  });
+});
+
+describe("editing a Card", () => {
+  const withGerman = german(qa("ml.trees.depth", 1), { question: "Was ist Tiefe?" });
+
+  it("opens with the Card's fields, its German fields, a read-only ID and a read-only Type", async () => {
+    render(<App />);
+    await uploaded(withGerman);
+
+    openEdit("ml.trees.depth");
+
+    expect(field("Question").value).toBe("What is ml.trees.depth?");
+    expect(field("Answer").value).toBe("An answer.");
+    expect(field("Lesson").value).toBe("lesson-04");
+    expect(field("Domain tags").value).toBe("Machine Learning");
+    expect(field("Topic tags").value).toBe("Decision Tree");
+    expect(germanField("Question").value).toBe("Was ist Tiefe?");
+    expect(germanField("Answer").value).toBe("");
+    expect(field("ID").value).toBe("ml.trees.depth");
+    expect(field("ID").readOnly || field("ID").disabled).toBe(true);
+    expect(field("Type").disabled).toBe(true);
+    expect(field("Type").selectedOptions[0].text).toBe("Question & answer");
+  });
+
+  it("closes the preview when Edit opens the editor", async () => {
+    render(<App />);
+    await uploaded(qa("a", 1));
+
+    openEdit("a");
+
+    expect(screen.queryByRole("dialog", { name: "Card preview" })).toBeNull();
+  });
+
+  it("keeps the ID when the text changes, instead of following it", async () => {
+    render(<App />);
+    await uploaded(qa("a", 1));
+    openEdit("a");
+
+    typeInto(field("Question"), "A brand new question?");
+
+    expect(field("ID").value).toBe("a");
+  });
+
+  it("raises the version when the content changes, and the list shows the new text", async () => {
+    render(<App />);
+    await uploaded(qa("a", 1));
+    openEdit("a");
+
+    typeInto(field("Question"), "What is a, really?");
+    submitEditor();
+
+    await screen.findByText("What is a, really?");
+    expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByText("What is a?")).toBeNull();
+    expect(await loadCards()).toEqual([
+      { ...qa("a", 2), en: { question: "What is a, really?", answer: "An answer." } },
+    ]);
+  });
+
+  it("raises the version again at every changing save", async () => {
+    render(<App />);
+    await uploaded(qa("a", 4));
+
+    openEdit("a");
+    typeInto(field("Answer"), "Five.");
+    submitEditor();
+    await screen.findByText("Card saved.");
+    openEdit("a");
+    typeInto(field("Answer"), "Six.");
+    submitEditor();
+
+    await waitFor(async () => expect((await loadCards())[0].version).toBe(6));
+  });
+
+  it("keeps the version and the Card when saved unchanged", async () => {
+    render(<App />);
+    await uploaded(withGerman);
+    openEdit("ml.trees.depth");
+
+    submitEditor();
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(await loadCards()).toEqual([withGerman]);
+  });
+
+  it("keeps the sources of the Card", async () => {
+    render(<App />);
+    const card = { ...qa("a", 1), sourceIds: ["lesson-04.md"] };
+    await uploaded(card);
+    openEdit("a");
+
+    typeInto(field("Answer"), "Changed.");
+    submitEditor();
+
+    await waitFor(async () => expect((await loadCards())[0].version).toBe(2));
+    expect((await loadCards())[0].sourceIds).toEqual(["lesson-04.md"]);
+  });
+
+  it("changes the tags, and the lesson, and drops the German text that was emptied", async () => {
+    render(<App />);
+    await uploaded(withGerman);
+    openEdit("ml.trees.depth");
+
+    typeInto(field("Topic tags"), "Pruning, Depth");
+    typeInto(field("Lesson"), "lesson-05");
+    typeInto(germanField("Question"), "");
+    submitEditor();
+
+    await waitFor(async () => expect((await loadCards())[0].version).toBe(2));
+    const [card] = await loadCards();
+    expect(card.tags).toEqual({ domain: ["Machine Learning"], topic: ["Pruning", "Depth"] });
+    expect(card.lesson).toBe("lesson-05");
+    expect("translations" in card).toBe(false);
+  });
+
+  it("edits a cloze Card", async () => {
+    render(<App />);
+    await uploaded(cloze("a", 1));
+    openEdit("a");
+    expect(field("Text").value).toBe("a has a {{gap}}.");
+    expect(field("Type").selectedOptions[0].text).toBe("Fill the gap");
+
+    typeInto(field("Text"), "a has a {{hole}}.");
+    submitEditor();
+
+    await waitFor(async () =>
+      expect(await loadCards()).toEqual([cloze("a", 2, "a has a {{hole}}.")]),
+    );
+  });
+
+  it("edits a true_false Card, answer included", async () => {
+    render(<App />);
+    await uploaded(trueFalse("a", 1, true));
+    openEdit("a");
+    expect(field("Statement").value).toBe("a is true.");
+    expect(field("Answer").selectedOptions[0].text).toBe("True");
+
+    choose(field("Answer"), "False");
+    submitEditor();
+
+    await waitFor(async () => expect(await loadCards()).toEqual([trueFalse("a", 2, false)]));
+  });
+
+  it("shows the field errors and stores nothing when the edit is invalid", async () => {
+    render(<App />);
+    await uploaded(qa("a", 1));
+    openEdit("a");
+
+    typeInto(field("Question"), "");
+    submitEditor();
+
+    expect(isInvalid(field("Question"))).toBe(true);
+    expect(screen.getByRole("dialog", { name: "Edit Card" })).toBeTruthy();
+    expect(await loadCards()).toEqual([qa("a", 1)]);
+  });
+
+  it("does not count the Reviews of the older version any more", async () => {
+    await addReview(review("a", 1, "2026-11-15T10:00:00.000Z"));
+    render(<App />);
+    await uploaded(qa("a", 1));
+    goTo("Statistics");
+    await screen.findByRole("table", { name: "Cards" });
+    expect(overview()).toEqual([
+      ["1", "Cards"],
+      ["1", "Reviews"],
+      ["100%", "Share right"],
+    ]);
+    openEdit("a");
+
+    typeInto(field("Answer"), "A better answer.");
+    submitEditor();
+    await screen.findByText("Card saved.");
+    goTo("Statistics");
+
+    await screen.findByRole("table", { name: "Cards" });
+    expect(overview()).toEqual([
+      ["1", "Cards"],
+      ["0", "Reviews"],
+      ["–", "Share right"],
+    ]);
+  });
 });
