@@ -21,7 +21,12 @@ function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = t
   const onDeleteAll = vi.fn();
   const page = (cards: TCard[]) => (
     <LanguageContext.Provider value={language}>
-      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} />
+      <CardsPage
+        cards={cards}
+        onDelete={onDelete}
+        onDeleteAll={onDeleteAll}
+        onSave={vi.fn().mockResolvedValue(true)}
+      />
     </LanguageContext.Provider>
   );
   const { rerender } = render(page(cards));
@@ -361,6 +366,7 @@ it.each([
       "Machine Learning",
       "Decision Tree",
       "a · version 2",
+      "Edit",
       "Delete",
     ]);
   },
@@ -648,7 +654,12 @@ it.each([
 ])("$case, shows its children right after the Card list panel", ({ cards }) => {
   render(
     <LanguageContext.Provider value="en">
-      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()}>
+      <CardsPage
+        cards={cards}
+        onDelete={vi.fn()}
+        onDeleteAll={vi.fn()}
+        onSave={vi.fn().mockResolvedValue(true)}
+      >
         <aside>Second column</aside>
       </CardsPage>
     </LanguageContext.Provider>,
