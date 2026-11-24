@@ -4,7 +4,7 @@ import { useText } from "./language.context";
 import { PageHeading } from "./PageHeading";
 import { Select } from "./Select";
 
-/** Home's top: the welcome heading, then the Start a Session panel and a link to the Cards page, or, with no Cards, the empty state. App owns Cards and Tag and starts the Session; Upload Deck and the link call onCards, which opens the Cards page and its Files panel; Create Card does too until the Card editor exists. */
+/** Home's top: the welcome heading, then the Start a Session panel and a link to the Cards page, or, with no Cards, the empty state. App owns Cards and Tag and starts the Session; Upload Deck and the link call onCards, which opens the Cards page and its Files panel; Create Card calls onCreateCard, which opens it with the Card editor. */
 export function Home(props: {
   cardCount: number;
   size: number;
@@ -16,6 +16,7 @@ export function Home(props: {
   onStart: () => void;
   onStatistics: () => void;
   onCards: () => void;
+  onCreateCard: () => void;
 }) {
   const text = useText();
 
@@ -30,7 +31,7 @@ export function Home(props: {
               <Upload size={18} aria-hidden="true" />
               {text.uploadDeck}
             </button>
-            <button className="button secondary" onClick={props.onCards}>
+            <button className="button secondary" onClick={props.onCreateCard}>
               <Plus size={18} aria-hidden="true" />
               {text.createCard}
             </button>

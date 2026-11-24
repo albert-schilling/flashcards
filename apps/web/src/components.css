@@ -128,9 +128,27 @@
   box-shadow: var(--focus-ring);
 }
 
-.control:disabled {
+.control:disabled,
+input.control[readonly] {
   background: var(--color-surface-muted);
   color: var(--color-ink-500);
+}
+
+/* The prototype's .field textarea: a control that grows only by hand. */
+textarea.control {
+  height: auto;
+  min-height: var(--textarea-min-height);
+  padding-block: var(--space-3);
+  resize: vertical;
+}
+
+/* The prototype has no field errors (its Save is disabled instead), so these use the danger tokens of its alerts. */
+.control[aria-invalid="true"] {
+  border-color: var(--color-danger-600);
+}
+
+.field .field-error {
+  color: var(--color-danger-700);
 }
 
 /* The native arrow is hidden; ChevronDown stands in for it. */
@@ -867,6 +885,11 @@
 
 .modal-actions-wrap {
   flex-wrap: wrap;
+}
+
+.editor-form {
+  display: grid;
+  gap: var(--space-4);
 }
 
 .card-preview h3 {

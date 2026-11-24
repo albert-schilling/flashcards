@@ -19,6 +19,7 @@ import {
   loadLanguage,
   loadLastDownload,
   loadReviews,
+  saveCards,
   saveLanguage,
   type TReview,
 } from "./storage";
@@ -30,6 +31,8 @@ export function App() {
   const [size, setSize] = useState(20);
   const [tag, setTag] = useState("");
   const [page, setPage] = useState<TPage>("home");
+  // Whether the Cards page opens with the Card editor, as Home's Create Card asks.
+  const [creating, setCreating] = useState(false);
   const [session, setSession] = useState<{ id: number; cards: TCard[] }>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
@@ -132,6 +135,7 @@ export function App() {
   }
 
   function navigate(target: TPage) {
+    setCreating(false);
     if (target === "statistics") void openStatistics();
     else if (target === "session") {
       if (session) setPage("session");
@@ -167,8 +171,10 @@ export function App() {
         {page === "cards" && (
           <CardsPage
             cards={cards}
+            creating={creating}
             onDelete={(id) => change(() => deleteCard(id))}
             onDeleteAll={() => void change(clearCards)}
+            onSave={(card) => change(() => saveCards([card]))}
           >
             <FilesPanel
               report={report}
@@ -205,6 +211,10 @@ export function App() {
             onStart={() => void startSession()}
             onStatistics={() => void openStatistics()}
             onCards={() => navigate("cards")}
+            onCreateCard={() => {
+              navigate("cards");
+              setCreating(true);
+            }}
           />
         )}
       </main>

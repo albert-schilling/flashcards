@@ -241,6 +241,28 @@ async function showTags(page: Page, shot: (name: string) => Promise<void>, text:
   await shot("expanded");
 }
 
+// Fills the open Card editor with the type's fields, the tags and the lesson; the ID stays as suggested.
+async function fillEditor(page: Page, type: string, fields: Record<string, string>): Promise<void> {
+  const text = uiText.en;
+  const dialog = page.getByRole("dialog", { name: text.createCard, exact: true });
+  await dialog.getByLabel(text.type, { exact: true }).selectOption(type);
+  for (const [label, value] of Object.entries(fields)) {
+    await dialog.getByLabel(label, { exact: true }).fill(value);
+  }
+  await dialog.getByLabel(text.domainTags, { exact: true }).fill("Machine Learning");
+  await dialog.getByLabel(text.topicTags, { exact: true }).fill("Decision Tree, Entropy");
+  await dialog.getByLabel(text.lesson, { exact: true }).fill("lesson-04");
+}
+
+// Saves the open Card editor, waits for the saved Card's preview and closes it.
+async function saveEditor(page: Page, button: string): Promise<void> {
+  await page.getByRole("dialog").getByRole("button", { name: button, exact: true }).click();
+  const preview = page.getByRole("dialog", { name: uiText.en.cardPreview, exact: true });
+  await preview.waitFor();
+  await page.keyboard.press("Escape");
+  await preview.waitFor({ state: "detached" });
+}
+
 const flows: Record<string, TFlow> = {
   tags: (page, shot) => showTags(page, shot, uiText.en),
   "tags-german": async (page, shot) => {
@@ -461,6 +483,53 @@ const flows: Record<string, TFlow> = {
     });
     await page.getByText("bulk.card-1000", { exact: true }).waitFor();
     await shot("end");
+  },
+  // From Home's empty state, creates a qa, a cloze and a true_false Card, showing the errors of an empty form first, then edits the qa Card.
+  editor: async (page, shot) => {
+    const text = uiText.en;
+    await page
+      .getByRole("main")
+      .getByRole("button", { name: text.createCard, exact: true })
+      .click();
+    const create = page.getByRole("dialog", { name: text.createCard, exact: true });
+    await create.waitFor();
+    await shot("empty");
+    await create.getByRole("button", { name: text.createCard, exact: true }).click();
+    await create.getByText(text.fieldErrors.required).first().waitFor();
+    await shot("errors");
+    await fillEditor(page, "qa", {
+      [text.question]: "What does entropy measure?",
+      [text.answer]: "How mixed the classes in a node are.",
+      [text.inGerman(text.question)]: "Was misst die Entropie?",
+    });
+    await shot("qa");
+    await saveEditor(page, text.createCard);
+    await shot("saved");
+    const heading = page.locator(".cards-page-heading");
+    await heading.getByRole("button", { name: text.createCard, exact: true }).click();
+    await fillEditor(page, "cloze", { [text.clozeText]: "A leaf is a node with no {{children}}." });
+    await shot("cloze");
+    await saveEditor(page, text.createCard);
+    await heading.getByRole("button", { name: text.createCard, exact: true }).click();
+    await fillEditor(page, "true_false", {
+      [text.statement]: "Deeper trees always generalise better.",
+    });
+    await create.getByLabel(text.answer, { exact: true }).selectOption("false");
+    await shot("true-false");
+    await saveEditor(page, text.createCard);
+    await page.getByText(text.cardCountOf(3, 3), { exact: true }).waitFor();
+    await page.getByRole("button", { name: /What does entropy measure\?/ }).click();
+    await page.getByRole("dialog").getByRole("button", { name: text.edit, exact: true }).click();
+    const edit = page.getByRole("dialog", { name: text.editCard, exact: true });
+    await edit.getByLabel(text.answer, { exact: true }).fill("How mixed the classes are.");
+    await shot("edit");
+    await edit.getByRole("button", { name: text.saveChanges, exact: true }).click();
+    await page
+      .getByText(text.cardIdAndVersion("what-does-entropy-measure", 2), { exact: true })
+      .waitFor();
+    // Opening the row scrolled the page; a full-page shot would paint the sticky header over the list.
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await shot("edited");
   },
   answer: answerEveryCard,
   // The answer flow with the right and wrong answers swapped, so every Card type shows both.
