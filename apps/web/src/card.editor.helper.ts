@@ -149,6 +149,8 @@ export function checkForm(
       if (isEmpty(form, field)) errors[field] = "required";
       else errors[field] = field === "id" ? "idFormat" : "needsGap";
     }
+    // A taken ID shows with the other errors, so the Learner doesn't find it only on the next try.
+    if (!old && !("id" in errors) && storedIds.includes(id)) errors.id = "idTaken";
     return { errors };
   }
   if (!old) {
