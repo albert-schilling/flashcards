@@ -274,7 +274,7 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardCountOf(6, 6), { exact: true }).waitFor();
     await shot("cleared");
   },
-  // The Cards list in German with a long title, a long ID and four tags. Fails when a row's copy is taller than its row button, which fills the row inside its padding, or when a Card type name in either language is wider than the Type select's room for text; jsdom does no layout, so the browser checks it.
+  // The Cards list in German with a long title, a long ID and four tags. Fails when a row's copy is taller than its row button, which fills the row inside its padding, or when a row's Delete is not the --touch-target square, or when a Card type name in either language is wider than the Type select's room for text; jsdom does no layout, so the browser checks it.
   "cards-german": async (page, shot) => {
     const text = uiText.de;
     await goTo(page, uiText.en.settings);
@@ -313,6 +313,25 @@ const flows: Record<string, TFlow> = {
     );
     if (tooTall > 0)
       throw new Error(`cards-german flow: ${tooTall} row buttons are shorter than their copy`);
+    const deletes = await page
+      .locator(".library-card-row > button:last-child")
+      .evaluateAll((buttons) => {
+        const root = getComputedStyle(document.documentElement);
+        const target =
+          parseFloat(root.getPropertyValue("--touch-target")) * parseFloat(root.fontSize);
+        return {
+          count: buttons.length,
+          notSquare: buttons.filter((button) => {
+            const box = button.getBoundingClientRect();
+            return Math.abs(box.width - target) > 1 || Math.abs(box.height - target) > 1;
+          }).length,
+        };
+      });
+    if (deletes.count === 0) throw new Error("cards-german flow: found no row Delete buttons");
+    if (deletes.notSquare > 0)
+      throw new Error(
+        `cards-german flow: ${deletes.notSquare} row Deletes are not a touch-target square`,
+      );
     const select = page.getByLabel(text.type);
     const names = [...Object.values(uiText.en.cardTypes), ...Object.values(text.cardTypes)];
     const tooWide = await select.evaluate((element, labels) => {
@@ -328,6 +347,14 @@ const flows: Record<string, TFlow> = {
       throw new Error(`cards-german flow: the Type select clips ${tooWide.join(", ")}`);
     }
     await shot("list");
+    const firstRow = page.locator(".library-card-row").first();
+    await firstRow.locator(".library-card-open").focus();
+    await page.keyboard.press("Tab");
+    await shot("delete-focus");
+    const deleteButton = firstRow.locator("> button:last-child");
+    await deleteButton.blur();
+    await deleteButton.hover();
+    await shot("delete-hover");
     await select.selectOption("true_false");
     await page.getByText(text.cardCountOf(1, 6), { exact: true }).waitFor();
     await shot("type-select");

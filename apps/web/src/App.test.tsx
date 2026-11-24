@@ -2051,7 +2051,7 @@ it("shows a Deck upload in German: the counts, then on Karten the Card list and 
   goTo("Karten");
   expect(screen.getByText("1 von 1 Karte")).toBeTruthy();
   expect(screen.getByText("Was ist q?")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "q löschen" }).textContent).toBe("Löschen");
+  expect(screen.getByRole("button", { name: "q löschen" }).textContent).toBe("");
   expect(screen.getByRole("button", { name: "Alle Karten löschen" })).toBeTruthy();
 });
 

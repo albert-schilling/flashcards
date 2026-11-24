@@ -1,5 +1,6 @@
 import type { TCard } from "@flashcards/cards";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
+import { Trash2 } from "lucide-react";
 import { useContext, useRef, useState } from "react";
 import { cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
@@ -11,7 +12,7 @@ function rowHeightOf(): number {
   return parseFloat(root.getPropertyValue("--virtual-row-height")) * parseFloat(root.fontSize);
 }
 
-/** The Cards page's list of Cards, windowed with TanStack Virtual: a fixed-height box that scrolls, with one fixed-height row per Card (a button with the type name, the question or name in the current language, ID and every tag, each on one clipped line, which opens the preview, then Delete). Only the rows in view, three on each side and the row holding focus are in the DOM; the list has the height of every row, so the scrollbar covers all Cards. Rows are keyed by Card ID and in list order, so a focused row button or Delete stays focused while the list scrolls and Tab moves to the next row, which the browser scrolls into view. Give it a new key to scroll back to the top. */
+/** The Cards page's list of Cards, windowed with TanStack Virtual: a fixed-height box that scrolls, with one fixed-height row per Card (a button with the type name, the question or name in the current language, ID and every tag, each on one clipped line, which opens the preview, then Delete, a trash icon with its name as a tooltip). Only the rows in view, three on each side and the row holding focus are in the DOM; the list has the height of every row, so the scrollbar covers all Cards. Rows are keyed by Card ID and in list order, so a focused row button or Delete stays focused while the list scrolls and Tab moves to the next row, which the browser scrolls into view. Give it a new key to scroll back to the top. */
 export function CardList(props: {
   cards: TCard[];
   onOpen: (id: string) => void;
@@ -69,11 +70,12 @@ export function CardList(props: {
                 </span>
               </button>
               <button
-                className="button ghost small"
+                className="icon-button"
                 aria-label={text.deleteCard(card.id)}
+                title={text.deleteCard(card.id)}
                 onClick={() => props.onDelete(card.id)}
               >
-                {text.delete}
+                <Trash2 size={17} aria-hidden="true" />
               </button>
             </li>
           );
