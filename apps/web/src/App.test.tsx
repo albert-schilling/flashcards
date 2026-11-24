@@ -3479,3 +3479,17 @@ it("shows a stored ID's error together with the other errors in one submit", asy
   expect(described(field("ID"))).not.toBe("");
   expect(await loadCards()).toEqual([qa("ml.trees.depth", 1)]);
 });
+
+it("Create Card opens an empty, editable editor even when a stored Card has the ID new", async () => {
+  render(<App />);
+  await uploaded(qa("new", 1));
+
+  openCreate();
+
+  expect(editorName()).toBe("Create Card");
+  expect(field("Question").value).toBe("");
+  expect(field("Answer").value).toBe("");
+  expect(field("ID").value).toBe("");
+  expect(field("ID").readOnly).toBe(false);
+  expect(field("Type").disabled).toBe(false);
+});
