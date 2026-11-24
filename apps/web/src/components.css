@@ -645,11 +645,16 @@
   padding-left: var(--space-10);
 }
 
-/* A media query can't use a variable: --breakpoint-desktop. It follows the base rule, so its columns win. The prototype's `minmax(14rem, …)`, `minmax(9rem, …)` and `minmax(10rem, …)` minimums are left out: raw sizes with no token. */
+/* A media query can't use a variable: --breakpoint-desktop. It follows the base rule, so its columns win. Not in the prototype, which has one row: search sits alone on the first row, so the Type select has room for its longest name; Type and Tag share the second. */
 @media (min-width: 48rem) {
   .library-toolbar {
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.7fr) minmax(0, 0.8fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: "search search";
     align-items: end;
+  }
+
+  .search-field {
+    grid-area: search;
   }
 }
 
@@ -719,6 +724,18 @@
 .library-card-copy {
   display: block;
   min-width: var(--space-0);
+  line-height: var(--line-height-tight);
+}
+
+.library-card-copy .type-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-card-copy .row-tags {
+  margin-top: var(--space-1);
 }
 
 .library-card-copy strong {
@@ -1080,7 +1097,7 @@
   background: var(--color-accent-50);
 }
 
-/* Not in the prototype. The .row-tags selectors beat `.row-tags span`, so the Cards list and the preview can add the classes later. */
+/* Not in the prototype. The .row-tags selectors beat `.row-tags span`, so the classes work on the tags in the Cards list and the preview. */
 .tag-domain,
 .row-tags .tag-domain {
   background: var(--color-accent-100);

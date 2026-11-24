@@ -3,6 +3,7 @@ import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { useContext, useRef, useState } from "react";
 import { cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
+import { RowTags } from "./RowTags";
 
 /** The pixel height of one row: the --virtual-row-height token (in rem) times the root font size. */
 function rowHeightOf(): number {
@@ -10,7 +11,7 @@ function rowHeightOf(): number {
   return parseFloat(root.getPropertyValue("--virtual-row-height")) * parseFloat(root.fontSize);
 }
 
-/** The Cards page's list of Cards, windowed with TanStack Virtual: a fixed-height box that scrolls, with one fixed-height row per Card (a button with the question or name in the current language, ID, type and every tag on one clipped line, which opens the preview, then Delete). Only the rows in view, three on each side and the row holding focus are in the DOM; the list has the height of every row, so the scrollbar covers all Cards. Rows are keyed by Card ID and in list order, so a focused row button or Delete stays focused while the list scrolls and Tab moves to the next row, which the browser scrolls into view. Give it a new key to scroll back to the top. */
+/** The Cards page's list of Cards, windowed with TanStack Virtual: a fixed-height box that scrolls, with one fixed-height row per Card (a button with the type name, the question or name in the current language, ID and every tag, each on one clipped line, which opens the preview, then Delete). Only the rows in view, three on each side and the row holding focus are in the DOM; the list has the height of every row, so the scrollbar covers all Cards. Rows are keyed by Card ID and in list order, so a focused row button or Delete stays focused while the list scrolls and Tab moves to the next row, which the browser scrolls into view. Give it a new key to scroll back to the top. */
 export function CardList(props: {
   cards: TCard[];
   onOpen: (id: string) => void;
@@ -61,14 +62,10 @@ export function CardList(props: {
               {/* Not in the prototype: its ArrowRight icon is left out, because it would crowd the row next to Delete at 375 px. */}
               <button className="library-card-open" onClick={() => props.onOpen(card.id)}>
                 <span className="library-card-copy">
+                  <span className="type-label">{text.cardTypes[card.type]}</span>
                   <strong>{cardTitle(card, language)}</strong>
                   <span className="card-id">{card.id}</span>
-                  <span className="row-tags">
-                    <span>{card.type}</span>
-                    {[...card.tags.domain, ...card.tags.topic].map((tag, i) => (
-                      <span key={i}>{tag}</span>
-                    ))}
-                  </span>
+                  <RowTags tags={card.tags} />
                 </span>
               </button>
               <button
