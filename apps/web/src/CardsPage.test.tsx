@@ -350,7 +350,7 @@ it.each([
   { type: "numeric", card: numeric("a", 2, "m"), title: "How much is a?", answer: ["5 m"] },
   { type: "numeric", card: numeric("a", 2), title: "How much is a?", answer: ["5"] },
 ])(
-  "a $type preview shows the type name, question, answer $answer, tags, ID and version, and Delete",
+  "a $type preview shows the type name, question, answer $answer, tags, ID and version, and Delete, and Edit for the types the editor handles",
   ({ card, title, answer }) => {
     renderCardsPage([card]);
 
@@ -366,7 +366,8 @@ it.each([
       "Machine Learning",
       "Decision Tree",
       "a · version 2",
-      "Edit",
+      // The editor handles these three types only, so the others have no Edit.
+      ...(["qa", "cloze", "true_false"].includes(card.type) ? ["Edit"] : []),
       "Delete",
     ]);
   },
