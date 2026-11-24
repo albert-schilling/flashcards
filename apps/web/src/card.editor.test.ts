@@ -61,6 +61,13 @@ describe("cardOf, a new Card", () => {
     });
   });
 
+  it("takes the ID and the lesson without the spaces around them", () => {
+    expect(built(draft({ id: " ml.entropy ", lesson: " lesson-04 " }))).toMatchObject({
+      id: "ml.entropy",
+      lesson: "lesson-04",
+    });
+  });
+
   it("makes a valid cloze Card from the text alone", () => {
     const card = built(draft({ type: "cloze" }));
 

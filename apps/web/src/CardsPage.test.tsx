@@ -1226,3 +1226,12 @@ it("in German, the editor is titled Karte bearbeiten and the notice reads Karte 
 
   expect((await screen.findByRole("status")).textContent).toBe("Karte gespeichert.");
 });
+
+it("the Card editor closes by itself once the Card it edits is gone", () => {
+  const { rerender } = renderCardsPage([qa("a", 1)]);
+  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+
+  rerender([]);
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+});

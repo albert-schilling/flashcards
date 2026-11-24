@@ -208,3 +208,22 @@ it("editing a false true_false Card shows False", () => {
   expect(field("Statement").value).toBe("t is true.");
   expect(field("Answer").value).toBe("false");
 });
+
+it("a suggested ID follows the text of the type picked last", () => {
+  renderEditor();
+  type("Question", "What is entropy?");
+
+  fireEvent.change(field("Type"), { target: { value: "true_false" } });
+  type("Statement", "Entropy is never negative.");
+
+  expect(field("ID").value).toBe("entropy-is-never-negative");
+});
+
+it("Enter in a field saves, as Create Card does", () => {
+  const { onSave } = renderEditor();
+  fillQa();
+
+  fireEvent.submit(field("Lesson").form!);
+
+  expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ id: "ml.entropy" }));
+});
