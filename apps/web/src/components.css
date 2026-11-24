@@ -474,7 +474,8 @@
   margin-bottom: var(--space-6);
 }
 
-.section-heading h2 {
+.section-heading h2,
+.table-panel h2 {
   color: var(--color-ink-950);
   font-size: var(--font-size-xl);
   line-height: var(--line-height-heading);
@@ -1349,5 +1350,134 @@
   .numeric-form {
     grid-template-columns: 1fr auto;
     align-items: end;
+  }
+}
+
+/* Statistics */
+.back-button {
+  margin-bottom: var(--space-6);
+}
+
+.table-sections {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.stat-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.stat-overview div {
+  display: grid;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-line-200);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.stat-overview strong {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.stat-overview span {
+  color: var(--color-ink-600);
+  font-size: var(--font-size-xs);
+}
+
+.table-panel {
+  padding: var(--space-0);
+  overflow: hidden;
+}
+
+.table-panel h2 {
+  padding: var(--space-5);
+  border-bottom: var(--border-width) solid var(--color-line-100);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: var(--table-min-width);
+  border-collapse: collapse;
+  text-align: left;
+}
+
+th,
+td {
+  padding: var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-line-100);
+  vertical-align: middle;
+}
+
+thead th {
+  background: var(--color-surface-muted);
+  color: var(--color-ink-600);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--letter-spacing-eyebrow);
+  text-transform: uppercase;
+}
+
+tbody th {
+  color: var(--color-ink-900);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+tbody td {
+  color: var(--color-ink-600);
+  font-size: var(--font-size-sm);
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.share-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.mini-bar {
+  width: var(--mini-bar-width);
+  height: var(--mini-bar-height);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-line-200);
+}
+
+/* The prototype's `width: var(--share)` is left out: the width is set inline, because styles.test.ts rejects the variable. */
+.mini-bar span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent-600);
+}
+
+/* A media query can't use a variable: --breakpoint-desktop. It follows the base rules, so its values win. */
+@media (min-width: 48rem) {
+  .stat-overview {
+    gap: var(--space-4);
+  }
+
+  .stat-overview div {
+    padding: var(--space-6);
+  }
+
+  .stat-overview strong {
+    font-size: var(--font-size-2xl);
+  }
+
+  /* The prototype's wide .panel padding comes after .table-panel and wins; here .panel's media rule comes first, so this one restores it. */
+  .table-panel {
+    padding: var(--space-6);
   }
 }

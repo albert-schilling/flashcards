@@ -1,6 +1,6 @@
 # Pull requests
 
-- Small pull requests: one issue each, about 300 changed lines at most, not counting lock files and generated files.
+- Small pull requests: one issue each, about 300 changed lines at most, not counting lock files and generated files. Changed lines are added plus deleted lines, as `git diff --shortstat origin/main...` counts them; the pull request says how many of them only move or change whitespace.
 - Every change comes with tests. A tooling or CI change with no code to test is proved instead by red/green runs of `./scripts/validate.sh` shown in the pull request.
 - Test the effect, not that a callback was called: a component test that only checks a mock call adds nothing when an `App` test already covers the real upload, download or save.
 - Commits are labelled `structural:` (tidying that changes no behaviour), `behavioural:` (the change itself) or `harness:` (conventions, checks and the harness log). A pull request may tidy only the code it is about to change, in a structural commit before the behavioural one; anything else it notices is filed as an issue.

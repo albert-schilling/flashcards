@@ -15,10 +15,19 @@ describe("statistics", () => {
       review("a", 1, "2026-11-13T10:00:00.000Z"),
     ];
 
-    expect(statistics([b, a], reviews).cards).toEqual([
+    const { cards, overall } = statistics([b, a], reviews);
+
+    expect(cards).toEqual([
       { card: b, reviews: 0, right: 0 },
       { card: a, reviews: 3, right: 2, lastReviewedAt: "2026-11-15T10:00:00.000Z" },
     ]);
+    expect(overall).toEqual({ cards: 2, reviews: 3, right: 2 });
+  });
+
+  it("totals nothing with no Cards", () => {
+    const reviews = [review("deleted", 1, "2026-11-15T10:00:00.000Z")];
+
+    expect(statistics([], reviews).overall).toEqual({ cards: 0, reviews: 0, right: 0 });
   });
 
   it("totals each domain and topic tag over its Cards, sorted", () => {
@@ -54,6 +63,7 @@ describe("statistics", () => {
     ];
 
     expect(statistics([card], reviews)).toEqual({
+      overall: { cards: 1, reviews: 1, right: 0 },
       cards: [{ card, reviews: 1, right: 0, lastReviewedAt: "2026-11-14T10:00:00.000Z" }],
       domain: [{ tag: "Machine Learning", cards: 1, reviews: 1, right: 0 }],
       topic: [{ tag: "Decision Tree", cards: 1, reviews: 1, right: 0 }],

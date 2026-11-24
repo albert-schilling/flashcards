@@ -1,7 +1,7 @@
 import type { TCard } from "@flashcards/cards";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
-import { Check, CircleCheck, CircleX, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Check, CircleCheck, CircleX, X, type LucideIcon } from "lucide-react";
 import { expect, it, vi } from "vitest";
 import { Alert, type TAlertTone } from "./Alert";
 import { App } from "./App";
@@ -1560,6 +1560,20 @@ function rows(name: string) {
     .map((row) => Array.from(row.querySelectorAll("th, td"), (cell) => cell.textContent));
 }
 
+/** Each figure of the Statistics overview with this name as [value, label]. */
+function overview(name = "Statistics overview") {
+  return Array.from(screen.getByRole("region", { name }).children, (figure) =>
+    Array.from(figure.children, (part) => part.textContent),
+  );
+}
+
+/** The width of each Share right bar in the table with this name, row by row; the bars are decoration. */
+function bars(name: string) {
+  const table = screen.getByRole("table", { name });
+  const spans = table.querySelectorAll<HTMLElement>('.mini-bar[aria-hidden="true"] > span');
+  return Array.from(spans, (bar) => bar.style.width);
+}
+
 it("Statistics shows the figures from the Review log, and Back goes back", async () => {
   const review = { cardId: "a", cardVersion: 2, durationMs: 3000 };
   await addReview({ ...review, answeredAt: "2026-11-13T10:00:00.000Z", right: true });
@@ -1579,6 +1593,24 @@ it("Statistics shows the figures from the Review log, and Back goes back", async
 
   await screen.findByRole("table", { name: "Cards" });
   expect(screen.queryByLabelText("Upload Deck")).toBeNull();
+  expect(levelOneHeadings()).toEqual(["Statistics"]);
+  expect(screen.getByText("Learning history")).toBeTruthy();
+  expect(
+    screen.getByText("A clear view of every Review, from individual Cards to broader Tags."),
+  ).toBeTruthy();
+  expect(showsIcon(screen.getByRole("button", { name: "Back" }), ArrowLeft)).toBe(true);
+  // The Review of the older version is not counted.
+  expect(overview()).toEqual([
+    ["2", "Cards"],
+    ["3", "Reviews"],
+    ["67%", "Share right"],
+  ]);
+  const panels = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+  expect(panels).toEqual(["Cards", "Domain tags", "Topic tags"]);
+  const cardsTable = within(screen.getByRole("table", { name: "Cards" }));
+  expect(cardsTable.getAllByRole("rowheader").map((th) => th.textContent)).toEqual(["a", "b"]);
+  expect(bars("Cards")).toEqual(["67%", "0%"]);
+  expect(bars("Domain tags")).toEqual(["0%", "67%"]);
   expect(rows("Cards")).toEqual([
     ["Card", "Reviews", "Share right", "Last reviewed"],
     ["a", "3", "67%", "11/15/2026"],
@@ -1599,6 +1631,23 @@ it("Statistics shows the figures from the Review log, and Back goes back", async
 
   expect(startButton()).toBeTruthy();
   await expectListed(qa("b", 1));
+});
+
+it("Statistics with no Cards shows 0 Cards, 0 Reviews and no share", async () => {
+  render(<App />);
+
+  // Home shows no Statistics button with no Cards, so this goes through the navigation.
+  goTo("Statistics");
+
+  await screen.findByRole("table", { name: "Cards" });
+  expect(overview()).toEqual([
+    ["0", "Cards"],
+    ["0", "Reviews"],
+    ["–", "Share right"],
+  ]);
+  expect(rows("Cards")).toEqual([["Card", "Reviews", "Share right", "Last reviewed"]]);
+  expect(rows("Domain tags")).toEqual([["Tag", "Cards", "Reviews", "Share right"]]);
+  expect(rows("Topic tags")).toEqual([["Tag", "Cards", "Reviews", "Share right"]]);
 });
 
 it("shows an error when the Review log can't be loaded", async () => {
@@ -2179,6 +2228,13 @@ it("shows Statistics in German, with German dates, and Zurück goes back", async
   fireEvent.click(home().getByRole("button", { name: "Statistik" }));
 
   await screen.findByRole("table", { name: "Karten" });
+  expect(levelOneHeadings()).toEqual(["Statistik"]);
+  expect(screen.getByText("Lernverlauf")).toBeTruthy();
+  expect(overview("Statistik-Übersicht")).toEqual([
+    ["2", "Karten"],
+    ["1", "Wiederholungen"],
+    ["100%", "Anteil richtig"],
+  ]);
   expect(rows("Karten")).toEqual([
     ["Karte", "Wiederholungen", "Anteil richtig", "Zuletzt wiederholt"],
     ["a", "1", "100%", "15.11.2026"],
