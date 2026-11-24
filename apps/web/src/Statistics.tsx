@@ -1,5 +1,6 @@
 import type { TCard } from "@flashcards/cards";
 import { ArrowLeft } from "lucide-react";
+import { useId, type ReactNode } from "react";
 import { PageHeading } from "./PageHeading";
 import { useText } from "./language.context";
 import { statistics, type TTagStatistics } from "./review.statistics";
@@ -9,11 +10,23 @@ function share(reviews: number, right: number): string {
   return reviews === 0 ? "–" : `${Math.round((100 * right) / reviews)}%`;
 }
 
+/** A panel whose h2 names the table inside it; the table scrolls sideways when the panel is narrower. */
+function TablePanel(props: { title: string; children: ReactNode }) {
+  const id = useId();
+  return (
+    <section className="panel table-panel">
+      <h2 id={id}>{props.title}</h2>
+      <div className="table-scroll">
+        <table aria-labelledby={id}>{props.children}</table>
+      </div>
+    </section>
+  );
+}
+
 function TagTable({ name, rows }: { name: string; rows: TTagStatistics[] }) {
   const text = useText();
   return (
-    <table>
-      <caption>{name}</caption>
+    <TablePanel title={name}>
       <thead>
         <tr>
           <th>{text.tag}</th>
@@ -25,14 +38,14 @@ function TagTable({ name, rows }: { name: string; rows: TTagStatistics[] }) {
       <tbody>
         {rows.map((row) => (
           <tr key={row.tag}>
-            <td>{row.tag}</td>
+            <th scope="row">{row.tag}</th>
             <td>{row.cards}</td>
             <td>{row.reviews}</td>
             <td>{share(row.reviews, row.right)}</td>
           </tr>
         ))}
       </tbody>
-    </table>
+    </TablePanel>
   );
 }
 
@@ -65,29 +78,30 @@ export function Statistics(props: { cards: TCard[]; reviews: TReview[]; onBack: 
           <span>{text.shareRight}</span>
         </div>
       </section>
-      <table>
-        <caption>{text.cards}</caption>
-        <thead>
-          <tr>
-            <th>{text.card}</th>
-            <th>{text.reviews}</th>
-            <th>{text.shareRight}</th>
-            <th>{text.lastReviewed}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cards.map((row) => (
-            <tr key={row.card.id}>
-              <td>{row.card.id}</td>
-              <td>{row.reviews}</td>
-              <td>{share(row.reviews, row.right)}</td>
-              <td>{row.lastReviewedAt ? text.date(new Date(row.lastReviewedAt)) : text.never}</td>
+      <div className="table-sections">
+        <TablePanel title={text.cards}>
+          <thead>
+            <tr>
+              <th>{text.card}</th>
+              <th>{text.reviews}</th>
+              <th>{text.shareRight}</th>
+              <th>{text.lastReviewed}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <TagTable name={text.domainTags} rows={domain} />
-      <TagTable name={text.topicTags} rows={topic} />
+          </thead>
+          <tbody>
+            {cards.map((row) => (
+              <tr key={row.card.id}>
+                <th scope="row">{row.card.id}</th>
+                <td>{row.reviews}</td>
+                <td>{share(row.reviews, row.right)}</td>
+                <td>{row.lastReviewedAt ? text.date(new Date(row.lastReviewedAt)) : text.never}</td>
+              </tr>
+            ))}
+          </tbody>
+        </TablePanel>
+        <TagTable name={text.domainTags} rows={domain} />
+        <TagTable name={text.topicTags} rows={topic} />
+      </div>
     </>
   );
 }
