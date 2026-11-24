@@ -49,8 +49,10 @@ export function CardsPage(props: {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   // Which notice shows above the panel; one at a time.
   const [notice, setNotice] = useState<"deleted" | "saved" | null>(null);
-  // "new" is a Card being created; otherwise the ID of the Card being edited.
-  const [editing, setEditing] = useState<string | null>(props.startWithEditor ? "new" : null);
+  // The editor is closed (null), creating a Card ("new") or editing the Card with this ID. An object, so a Card whose ID is "new" can't be mistaken for creating.
+  const [editing, setEditing] = useState<"new" | { id: string } | null>(
+    props.startWithEditor ? "new" : null,
+  );
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [pickedTag, setPickedTag] = useState("");
@@ -61,7 +63,10 @@ export function CardsPage(props: {
 
   const openCard = props.cards.find((card) => card.id === openId);
   const confirmingCard = props.cards.find((card) => card.id === confirmingId);
-  const editingCard = props.cards.find((card) => card.id === editing);
+  const editingCard =
+    editing !== null && editing !== "new"
+      ? props.cards.find((card) => card.id === editing.id)
+      : undefined;
 
   async function deleteOne(id: string) {
     // Close first, so a failure shows in the page's error and not behind the modal.
@@ -172,14 +177,14 @@ export function CardsPage(props: {
           onClose={() => setOpenId(null)}
           onEdit={() => {
             setOpenId(null);
-            setEditing(openCard.id);
+            setEditing({ id: openCard.id });
           }}
           onDelete={() => void deleteOne(openCard.id)}
         />
       )}
       {(editing === "new" || editingCard) && (
         <CardEditor
-          key={editing}
+          key={editing === "new" ? "new" : editing?.id}
           card={editingCard}
           storedIds={props.cards.map((card) => card.id)}
           onSave={save}
