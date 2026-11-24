@@ -1501,6 +1501,7 @@ textarea.control {
   font-weight: var(--font-weight-semibold);
 }
 
-.control[aria-invalid="true"] {
+/* `:not(:disabled)` outweighs the hover rule, so a wrong field stays red under the pointer. */
+.control[aria-invalid="true"]:not(:disabled) {
   border-color: var(--color-danger-600);
 }
