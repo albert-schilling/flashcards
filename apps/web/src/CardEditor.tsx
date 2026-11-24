@@ -124,7 +124,10 @@ export function CardEditor(props: {
           : isChoice
             ? ""
             : current.answer;
-      return { ...current, type, answer };
+      const next = { ...current, type, answer };
+      // The suggested ID follows the new type's text field.
+      const follows = !editing && !idEdited;
+      return follows ? { ...next, id: suggestId(next[idSource[type]], props.storedIds) } : next;
     });
   }
 
