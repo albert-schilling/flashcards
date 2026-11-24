@@ -3299,3 +3299,117 @@ describe("editing a Card", () => {
     ]);
   });
 });
+
+describe("the Card editor, changing the Type", () => {
+  it('keeps the Question text, and drops the "true" or "false" Answer, when the Learner goes through true_false and back', () => {
+    render(<App />);
+    openCreate();
+    typeInto(field("Question"), "What is depth?");
+    typeInto(field("Answer"), "The longest path.");
+
+    choose(field("Type"), "True or false");
+    choose(field("Type"), "Question & answer");
+
+    expect(field("Question").value).toBe("What is depth?");
+    expect(field("Answer").value).toBe("");
+  });
+
+  it("starts the true_false Answer at True, also after the Type changed away and back", () => {
+    render(<App />);
+    openCreate();
+    choose(field("Type"), "True or false");
+    expect(field("Answer").value).toBe("true");
+    choose(field("Answer"), "False");
+
+    choose(field("Type"), "Fill the gap");
+    choose(field("Type"), "True or false");
+
+    expect(field("Answer").value).toBe("true");
+  });
+
+  it("clears the field errors when the Type changes", () => {
+    render(<App />);
+    openCreate();
+    submitEditor();
+    expect(isInvalid(field("Question"))).toBe(true);
+
+    choose(field("Type"), "Fill the gap");
+
+    expect(isInvalid(field("Text"))).toBe(false);
+    expect(isInvalid(field("Lesson"))).toBe(false);
+  });
+});
+
+it("a field's error goes away when the Learner types into that field, and the others stay", () => {
+  render(<App />);
+  openCreate();
+  submitEditor();
+
+  typeInto(field("Question"), "What is depth?");
+
+  expect(isInvalid(field("Question"))).toBe(false);
+  expect(described(field("Question"))).toBe("");
+  expect(isInvalid(field("Answer"))).toBe(true);
+  expect(isInvalid(field("Lesson"))).toBe(true);
+});
+
+it("the Learner can fix a rejected form and save it, with a stored ID's error gone once the ID changes", async () => {
+  render(<App />);
+  await uploaded(qa("ml.trees.depth", 1));
+  openCreate();
+  fillEditor({ Question: "What is depth?", Answer: "The longest path." });
+  submitEditor();
+  expect(isInvalid(field("ID"))).toBe(true);
+
+  typeInto(field("ID"), "ml.trees.depth-2");
+  expect(isInvalid(field("ID"))).toBe(false);
+  submitEditor();
+
+  await screen.findByText("Card saved.");
+  expect((await loadCards()).map((card) => card.id).sort()).toEqual([
+    "ml.trees.depth",
+    "ml.trees.depth-2",
+  ]);
+});
+
+it("trims the ID, the Lesson and the Tags a Learner typed with spaces", async () => {
+  render(<App />);
+  openCreate();
+  fillEditor(
+    { Question: "What is depth?", Answer: "The longest path.", Lesson: " lesson-04 " },
+    "  ml.trees.depth  ",
+  );
+
+  submitEditor();
+
+  await screen.findByText("Card saved.");
+  const [card] = await loadCards();
+  expect(card.id).toBe("ml.trees.depth");
+  expect(card.tags.domain).toEqual(["Machine Learning", "Statistics"]);
+});
+
+it("Cancel on an edit closes the editor and keeps the Card as it was", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1));
+  openEdit("a");
+  typeInto(field("Answer"), "Something else.");
+
+  fireEvent.click(within(editorDialog("Edit Card")).getByRole("button", { name: "Cancel" }));
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByText("Card saved.")).toBeNull();
+  expect(await loadCards()).toEqual([qa("a", 1)]);
+});
+
+it("a second Create Card opens an empty editor, not the last one's text", async () => {
+  render(<App />);
+  openCreate();
+  fillEditor({ Question: "What is depth?", Answer: "The longest path." });
+  submitEditor();
+  await screen.findByText("Card saved.");
+
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+
+  expect(field("Question").value).toBe("");
+  expect(field("ID").value).toBe("");
+});

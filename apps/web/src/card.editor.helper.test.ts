@@ -134,6 +134,21 @@ describe("checkForm, creating", () => {
     expect(errorsOf(clozeForm({ text: "" }))).toEqual({ text: "required" });
   });
 
+  it("treats whitespace-only text as empty, in English and in German", () => {
+    expect(errorsOf(qaForm({ question: "   ", lesson: "\t" }))).toEqual({
+      question: "required",
+      lesson: "required",
+    });
+    expect(
+      cardOf(qaForm({ de: { question: "  ", answer: " ", text: "", statement: "" } })),
+    ).not.toHaveProperty("translations");
+  });
+
+  it("trims the ID the Learner typed", () => {
+    expect(cardOf(qaForm({ id: "  ml.trees.depth " })).id).toBe("ml.trees.depth");
+    expect(errorsOf(qaForm({ id: " other " }), ["other"])).toEqual({ id: "idTaken" });
+  });
+
   it("asks for a statement in a true_false Card", () => {
     expect(errorsOf(trueFalseForm({ statement: "" }))).toEqual({ statement: "required" });
   });
@@ -338,6 +353,10 @@ describe("suggestId", () => {
     expect(suggestId("the quick brown fox jumps over the lazy dog again", [])).toBe(
       "the-quick-brown-fox-jumps-over-the-lazy",
     );
+  });
+
+  it("cuts a single long word at 40 characters", () => {
+    expect(suggestId("a".repeat(60), [])).toBe("a".repeat(40));
   });
 
   it("adds -2, -3 while a stored ID has it", () => {
