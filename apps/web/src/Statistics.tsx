@@ -1,4 +1,6 @@
 import type { TCard } from "@flashcards/cards";
+import { ArrowLeft } from "lucide-react";
+import { PageHeading } from "./PageHeading";
 import { useText } from "./language.context";
 import { statistics, type TTagStatistics } from "./review.statistics";
 import type { TReview } from "./storage";
@@ -37,12 +39,32 @@ function TagTable({ name, rows }: { name: string; rows: TTagStatistics[] }) {
 /** Shows the Statistics of the stored Cards; `onBack` leaves it. */
 export function Statistics(props: { cards: TCard[]; reviews: TReview[]; onBack: () => void }) {
   const text = useText();
-  const { cards, domain, topic } = statistics(props.cards, props.reviews);
+  const { overall, cards, domain, topic } = statistics(props.cards, props.reviews);
   return (
     <>
-      <button className="button ghost" onClick={props.onBack}>
+      <button className="button ghost back-button" onClick={props.onBack}>
+        <ArrowLeft size={18} aria-hidden="true" />
         {text.back}
       </button>
+      <PageHeading
+        eyebrow={text.learningHistory}
+        title={text.statistics}
+        intro={text.statisticsIntro}
+      />
+      <section className="stat-overview" aria-label={text.statisticsOverview}>
+        <div>
+          <strong>{overall.cards}</strong>
+          <span>{text.cards}</span>
+        </div>
+        <div>
+          <strong>{overall.reviews}</strong>
+          <span>{text.reviews}</span>
+        </div>
+        <div>
+          <strong>{share(overall.reviews, overall.right)}</strong>
+          <span>{text.shareRight}</span>
+        </div>
+      </section>
       <table>
         <caption>{text.cards}</caption>
         <thead>
