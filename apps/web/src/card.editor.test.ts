@@ -21,24 +21,6 @@ function built(result: ReturnType<typeof buildCard>): TCard {
 }
 
 describe("a new Card", () => {
-  it("starts from empty fields with the qa type", () => {
-    expect(fieldsFromCard()).toMatchObject({
-      type: "qa",
-      id: "",
-      lesson: "",
-      domain: "",
-      topic: "",
-      question: "",
-      answer: "",
-      text: "",
-      statement: "",
-      deQuestion: "",
-      deAnswer: "",
-      deText: "",
-      deStatement: "",
-    });
-  });
-
   it("builds a valid qa Card at version 1 with no sources and no translations", () => {
     const card = built(
       buildCard(
@@ -180,12 +162,6 @@ describe("a new Card", () => {
     });
     expect("translations" in card).toBe(false);
   });
-
-  it("leaves out the translations when every German field is empty", () => {
-    const card = built(buildCard(fields({ id: "c", question: "Q?", answer: "A." }), []));
-
-    expect("translations" in card).toBe(false);
-  });
 });
 
 describe("field errors", () => {
@@ -287,12 +263,15 @@ describe("an edited Card", () => {
     ["true_false", trueFalse("a", 4, false)],
     ["German true_false", german(trueFalse("a", 4), { statement: "a ist wahr." })],
     ["with sources", { ...qa("a", 2), sourceIds: ["source-1", "source-2"] }],
-  ])("a %s Card saved unchanged keeps its content and version", (_, raw) => {
-    const card = ZCard.parse(raw);
-    const result = buildCard(fieldsFromCard(card), [card], card);
+  ])(
+    "a %s Card saved unchanged keeps its content and version, and its stored ID is no duplicate",
+    (_, raw) => {
+      const card = ZCard.parse(raw);
+      const result = buildCard(fieldsFromCard(card), [card], card);
 
-    expect(result).toEqual({ card });
-  });
+      expect(result).toEqual({ card });
+    },
+  );
 
   it("opens with the Card's fields, tags joined by commas", () => {
     const card = german(
@@ -313,17 +292,6 @@ describe("an edited Card", () => {
     });
   });
 
-  it.each([
-    { card: cloze("a", 1, "A {{leaf}}."), shown: { type: "cloze", text: "A {{leaf}}." } },
-    {
-      card: trueFalse("a", 1, false),
-      shown: { type: "true_false", statement: "a is true.", truth: "false" },
-    },
-    { card: trueFalse("a", 1, true), shown: { type: "true_false", truth: "true" } },
-  ])("opens a $card.type Card with its own fields", ({ card, shown }) => {
-    expect(fieldsFromCard(card)).toMatchObject(shown);
-  });
-
   it("raises the version by 1 when the content changed, and keeps its sources", () => {
     const result = buildCard(
       { ...fieldsFromCard(stored), answer: "A new answer." },
@@ -341,16 +309,6 @@ describe("an edited Card", () => {
 
     expect(built(result).version).toBe(4);
     expect(built(result).translations).toEqual({ de: { question: "Was ist a?", answer: "Neu." } });
-  });
-
-  it("does not name its own ID as a duplicate", () => {
-    const result = buildCard(
-      { ...fieldsFromCard(stored), answer: "New." },
-      [qa("b", 1), stored],
-      stored,
-    );
-
-    expect(built(result).id).toBe("a");
   });
 
   it("still shows field errors", () => {

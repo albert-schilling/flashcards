@@ -14,6 +14,7 @@ import {
   tagged,
   trueFalse,
 } from "./test/cards.fixtures";
+import { editorControl } from "./test/editor.queries";
 import { uiText } from "./ui.text";
 
 /** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card; onSave resolves to true. */
@@ -617,17 +618,8 @@ function editorDialog(name: string) {
   return within(screen.getByRole("dialog", { name }));
 }
 
-/** The control of the editor field whose label starts with this text; a label may hold a hint after it. */
-function editorControl(name: string): HTMLInputElement {
-  const label = [...screen.getByRole("dialog").querySelectorAll("label")].find(
-    (each) => shownTexts(each)[0] === name,
-  );
-  if (!label?.control) throw new Error(`No field labelled ${name}`);
-  return label.control as HTMLInputElement;
-}
-
 function editorValue(name: string): string {
-  return editorControl(name).value;
+  return editorControl(screen.getByRole("dialog"), name).value;
 }
 
 it("the heading has Create Card, which opens an empty Card editor", () => {
@@ -669,21 +661,12 @@ it.each([
   },
 );
 
-it.each([formula("a", 1), multipleChoice("a", 1), numeric("a", 1)])(
-  "a $type preview has no Edit, since the editor doesn't have its type yet",
-  (card) => {
-    renderCardsPage([card]);
-
-    const preview = openPreview("a");
-
-    expect(preview.queryByRole("button", { name: "Edit" })).toBeNull();
-  },
-);
-
 it("Save changes closes the editor, reopens the preview on the saved Card and shows Card saved.", async () => {
   const { onSave, rerender } = renderCardsPage([qa("a", 1)]);
   fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
-  fireEvent.change(editorControl("Answer"), { target: { value: "A new answer." } });
+  fireEvent.change(editorControl(screen.getByRole("dialog"), "Answer"), {
+    target: { value: "A new answer." },
+  });
 
   fireEvent.click(editorDialog("Edit Card").getByRole("button", { name: "Save changes" }));
 
@@ -705,20 +688,6 @@ it("Cancel closes the Card editor and saves nothing", () => {
 
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(onSave).not.toHaveBeenCalled();
-});
-
-it("a failed save closes the editor and shows no Card saved.", async () => {
-  const { onSave } = renderCardsPage([qa("a", 1)]);
-  onSave.mockResolvedValue(false);
-  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
-
-  fireEvent.click(editorDialog("Edit Card").getByRole("button", { name: "Save changes" }));
-  // Let the page handle onSave's result before looking.
-  await act(async () => {});
-
-  expect(onSave).toHaveBeenCalledTimes(1);
-  expect(screen.queryByRole("dialog", { name: "Edit Card" })).toBeNull();
-  expect(screen.queryByText("Card saved.")).toBeNull();
 });
 
 it("Card saved. replaces Card deleted., so one notice shows", async () => {

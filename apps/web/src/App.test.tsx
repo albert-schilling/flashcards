@@ -17,6 +17,7 @@ import {
   tagged,
   trueFalse,
 } from "./test/cards.fixtures";
+import { editorControl } from "./test/editor.queries";
 
 function upload(...cards: TCard[]) {
   pick(
@@ -1704,22 +1705,6 @@ function openEditor(): HTMLElement {
   openCards();
   fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
   return screen.getByRole("dialog", { name: "Create Card" });
-}
-
-/** The control of the editor field whose label starts with this text; a label may hold a hint after it. */
-function editorControl(editor: HTMLElement, name: string): HTMLInputElement {
-  const label = [...editor.querySelectorAll("label")].find((each) => firstText(each) === name);
-  if (!label?.control) throw new Error(`No field labelled ${name}`);
-  return label.control as HTMLInputElement;
-}
-
-function firstText(element: Element): string | undefined {
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  while (walker.nextNode()) {
-    const text = walker.currentNode.textContent!.trim();
-    if (text) return text;
-  }
-  return undefined;
 }
 
 /** Sets the editor's fields by label, in order. */

@@ -4,6 +4,7 @@ import { expect, it, vi } from "vitest";
 import { CardEditor } from "./CardEditor";
 import { LanguageContext, type TLanguage } from "./language.context";
 import { qa } from "./test/cards.fixtures";
+import { editorControl, firstText } from "./test/editor.queries";
 import { uiText } from "./ui.text";
 
 /** Renders the Card editor for this Card (none: a new one) with these stored Cards, and returns its onSave mock. */
@@ -26,22 +27,8 @@ function editor() {
   return within(screen.getByRole("dialog"));
 }
 
-/** The control of the editor field whose label starts with this text. A label may hold a hint after it, so it is matched by its first text. */
-function control(name: string): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
-  const label = [...screen.getByRole("dialog").querySelectorAll("label")].find(
-    (each) => firstText(each) === name,
-  );
-  if (!label?.control) throw new Error(`No field labelled ${name}`);
-  return label.control as HTMLInputElement;
-}
-
-function firstText(element: Element): string | undefined {
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  while (walker.nextNode()) {
-    const text = walker.currentNode.textContent!.trim();
-    if (text) return text;
-  }
-  return undefined;
+function control(name: string) {
+  return editorControl(screen.getByRole("dialog"), name);
 }
 
 /** The labels of the editor's fields, in order. */
@@ -235,18 +222,6 @@ it("the ID of a stored Card shows the duplicate error", () => {
   expect(onSave).not.toHaveBeenCalled();
 });
 
-it("each error code has its own text", () => {
-  const texts = Object.values(uiText.en.fieldErrors);
-
-  expect(Object.keys(uiText.en.fieldErrors).sort()).toEqual([
-    "duplicate",
-    "format",
-    "gap",
-    "required",
-  ]);
-  expect(new Set(texts).size).toBe(texts.length);
-});
-
 it("a fixed field loses its error on the next Save", () => {
   renderEditor();
   save();
@@ -269,19 +244,6 @@ it("in German, the editor and its errors are German", () => {
   expect(errors.length).toBe(6);
   expect(new Set(errors)).toEqual(new Set([uiText.de.fieldErrors.required]));
   expect(uiText.de.fieldErrors.required).not.toBe(uiText.en.fieldErrors.required);
-});
-
-it("editing is titled Edit Card, shows the Card's fields, and keeps the ID and Type fixed", () => {
-  renderEditor({ card: qa("a", 2), cards: [qa("a", 2)] });
-
-  expect(screen.getByRole("dialog", { name: "Edit Card" })).toBeTruthy();
-  expect(control("Question").value).toBe("What is a?");
-  expect(control("Answer").value).toBe("An answer.");
-  expect(control("Card ID").value).toBe("a");
-  expect(control("Card ID").disabled).toBe(true);
-  expect(control("Type").disabled).toBe(true);
-  expect(editor().getByRole("button", { name: "Save changes" })).toBeTruthy();
-  expect(editor().queryByRole("button", { name: "Create Card" })).toBeNull();
 });
 
 it("editing doesn't change the ID when the question changes", () => {

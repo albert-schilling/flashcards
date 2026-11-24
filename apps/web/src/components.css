@@ -1501,7 +1501,7 @@ textarea.control {
   font-weight: var(--font-weight-semibold);
 }
 
-/* `:not(:disabled)` outweighs the hover rule, so a wrong field stays red under the pointer. */
+/* `:not(:disabled)` matches the hover rule's weight and this rule comes later, so a wrong field stays red under the pointer. */
 .control[aria-invalid="true"]:not(:disabled) {
   border-color: var(--color-danger-600);
 }
