@@ -29,6 +29,9 @@ export type TCardDraft = {
   germanStatement: string;
 };
 
+/** A draft field that holds text as typed. */
+export type TDraftText = Exclude<keyof TCardDraft, "type" | "isTrue">;
+
 /** What is wrong with one field. */
 export type TFieldError = "required" | "noGap" | "idFormat" | "idTaken";
 export type TDraftErrors = Partial<Record<keyof TCardDraft, TFieldError>>;
@@ -112,41 +115,36 @@ function tagList(tags: string): string[] {
     .filter(Boolean);
 }
 
+// Each type's Card texts: the draft field of the English text, named as in the Card, and of the German one.
+const cardTexts = {
+  qa: [
+    ["question", "germanQuestion"],
+    ["answer", "germanAnswer"],
+  ],
+  cloze: [["text", "germanText"]],
+  true_false: [["statement", "germanStatement"]],
+} as const satisfies Record<TEditorType, readonly (readonly [TDraftText, TDraftText])[]>;
+
 // The type's English and German texts, trimmed, keyed as in the Card; an empty German text is left out.
 function texts(draft: TCardDraft) {
-  const pairs = {
-    qa: {
-      question: [draft.question, draft.germanQuestion],
-      answer: [draft.answer, draft.germanAnswer],
-    },
-    cloze: { text: [draft.text, draft.germanText] },
-    true_false: { statement: [draft.statement, draft.germanStatement] },
-  }[draft.type];
   const en: Record<string, string> = {};
   const de: Record<string, string> = {};
-  for (const [key, [english, german]] of Object.entries(pairs)) {
-    en[key] = english.trim();
-    if (german.trim()) de[key] = german.trim();
+  for (const [key, germanKey] of cardTexts[draft.type]) {
+    en[key] = draft[key].trim();
+    if (draft[germanKey].trim()) de[key] = draft[germanKey].trim();
   }
   return { en, de };
 }
 
-// The draft field that holds each Card text, in English and in German.
-const textFields: Record<string, { en: keyof TCardDraft; de: keyof TCardDraft }> = {
-  question: { en: "question", de: "germanQuestion" },
-  answer: { en: "answer", de: "germanAnswer" },
-  text: { en: "text", de: "germanText" },
-  statement: { en: "statement", de: "germanStatement" },
-};
-
 function errorsOf(draft: TCardDraft, takenIds: string[], edited?: TCard): TDraftErrors {
   const errors: TDraftErrors = {};
-  const { en, de } = texts(draft);
-  for (const [key, value] of Object.entries(en)) {
-    if (!value) errors[textFields[key].en] = "required";
-    else if (key === "text" && !gap.test(value)) errors.text = "noGap";
+  for (const [key, germanKey] of cardTexts[draft.type]) {
+    const english = draft[key].trim();
+    const german = draft[germanKey].trim();
+    if (!english) errors[key] = "required";
+    else if (key === "text" && !gap.test(english)) errors[key] = "noGap";
+    if (key === "text" && german && !gap.test(german)) errors[germanKey] = "noGap";
   }
-  if (de.text !== undefined && !gap.test(de.text)) errors.germanText = "noGap";
 
   const id = draft.id.trim();
   if (!id) errors.id = "required";

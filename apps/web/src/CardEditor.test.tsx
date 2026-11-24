@@ -198,7 +198,7 @@ it("editing opens the Card's fields with its ID read-only, and Save changes rais
   });
 });
 
-it("editing a cloze or true_false Card opens its own fields", () => {
+it("editing a cloze Card opens its text", () => {
   renderEditor({ card: cloze("c", 1, "A {{gap}} here.") });
   expect(field("Text").value).toBe("A {{gap}} here.");
 });

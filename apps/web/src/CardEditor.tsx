@@ -7,6 +7,7 @@ import {
   emptyDraft,
   suggestId,
   type TCardDraft,
+  type TDraftText,
   type TEditableCard,
   type TEditorType,
 } from "./card.editor";
@@ -81,7 +82,7 @@ export function CardEditor(props: {
     if (result.ok) props.onSave(result.card);
   }
 
-  function textField(key: keyof TCardDraft, label: string, hint?: string) {
+  function textField(key: TDraftText, label: string, hint?: string) {
     return (
       <Field
         key={key}
@@ -92,7 +93,7 @@ export function CardEditor(props: {
           <textarea
             {...attributes}
             className="control"
-            value={draft[key] as string}
+            value={draft[key]}
             onChange={(event) => change({ [key]: event.target.value })}
           />
         )}
@@ -100,7 +101,7 @@ export function CardEditor(props: {
     );
   }
 
-  function lineField(key: keyof TCardDraft, label: string, hint?: string, placeholder?: string) {
+  function lineField(key: TDraftText, label: string, hint?: string, placeholder?: string) {
     return (
       <Field
         label={label}
@@ -110,7 +111,7 @@ export function CardEditor(props: {
           <input
             {...attributes}
             className="control"
-            value={draft[key] as string}
+            value={draft[key]}
             placeholder={placeholder}
             readOnly={key === "id" && props.card !== undefined}
             onChange={(event) => {
