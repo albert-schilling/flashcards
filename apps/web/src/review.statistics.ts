@@ -13,6 +13,8 @@ export type TCardStatistics = {
 export type TTagStatistics = { tag: string; cards: number; reviews: number; right: number };
 
 export type TStatistics = {
+  /** Totals over all given Cards, from the Reviews of their current versions. */
+  overall: Omit<TTagStatistics, "tag">;
   cards: TCardStatistics[];
   domain: TTagStatistics[];
   topic: TTagStatistics[];
@@ -52,6 +54,11 @@ export function statistics(cards: TCard[], reviews: TReview[]): TStatistics {
     };
   });
   return {
+    overall: {
+      cards: perCard.length,
+      reviews: perCard.reduce((sum, card) => sum + card.reviews, 0),
+      right: perCard.reduce((sum, card) => sum + card.right, 0),
+    },
     cards: perCard,
     domain: totals(perCard, (card) => card.tags.domain),
     topic: totals(perCard, (card) => card.tags.topic),
