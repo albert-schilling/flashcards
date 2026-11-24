@@ -92,10 +92,11 @@ export function CardEditor(props: {
   const [saving, setSaving] = useState(false);
   // Counts failed checks, so the first invalid field gets focus after each one.
   const [failures, setFailures] = useState(0);
-  const body = useRef<HTMLFormElement>(null);
+  const formElement = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (failures > 0) body.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+    if (failures > 0)
+      formElement.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
   }, [failures]);
 
   const editing = props.card !== undefined;
@@ -168,7 +169,7 @@ export function CardEditor(props: {
   return (
     <Modal title={editing ? text.editCard : text.createCard} onClose={props.onClose}>
       <form
-        ref={body}
+        ref={formElement}
         noValidate
         onSubmit={(event) => {
           event.preventDefault();

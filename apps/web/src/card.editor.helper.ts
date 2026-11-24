@@ -43,8 +43,13 @@ export function emptyForm(type: TEditorForm["type"] = "qa"): TEditorForm {
   };
 }
 
+/** Whether the editor can edit the Card: only the types of `TEditorForm`. */
+export function isEditable(card: TCard): card is Extract<TCard, { type: TEditorForm["type"] }> {
+  return card.type === "qa" || card.type === "cloze" || card.type === "true_false";
+}
+
 export function formFromCard(card: TCard): TEditorForm {
-  if (card.type !== "qa" && card.type !== "cloze" && card.type !== "true_false") {
+  if (!isEditable(card)) {
     throw new Error(`The editor can't edit a ${card.type} Card.`);
   }
   const form: TEditorForm = {
@@ -141,21 +146,19 @@ export function checkForm(
 ): { card: TCard } | { errors: Partial<Record<TEditorField, TEditorError>> } {
   const id = old ? old.id : form.id.trim();
   const result = ZCard.safeParse(draft(form, id, old?.version ?? 1, old?.sourceIds ?? []));
+  const errors: Partial<Record<TEditorField, TEditorError>> = {};
   if (!result.success) {
-    const errors: Partial<Record<TEditorField, TEditorError>> = {};
     for (const issue of result.error.issues) {
       const field = fieldOf(issue.path);
       if (!field || field in errors) continue;
       if (isEmpty(form, field)) errors[field] = "required";
       else errors[field] = field === "id" ? "idFormat" : "needsGap";
     }
-    // A taken ID shows with the other errors, so the Learner doesn't find it only on the next try.
-    if (!old && !("id" in errors) && storedIds.includes(id)) errors.id = "idTaken";
-    return { errors };
   }
-  if (!old) {
-    return storedIds.includes(id) ? { errors: { id: "idTaken" } } : { card: result.data };
-  }
+  // A taken ID shows with the other errors, so the Learner doesn't find it only on the next try.
+  if (!old && !("id" in errors) && storedIds.includes(id)) errors.id = "idTaken";
+  if (!result.success || "id" in errors) return { errors };
+  if (!old) return { card: result.data };
   // Both sides are schema output, so their keys come in the same order and a JSON compare is valid.
   const same = JSON.stringify(result.data) === JSON.stringify(ZCard.parse(old));
   return { card: same ? old : { ...result.data, version: old.version + 1 } };

@@ -1,6 +1,7 @@
 import type { TCard } from "@flashcards/cards";
 import { Pencil, Trash2 } from "lucide-react";
 import { useContext } from "react";
+import { isEditable } from "./card.editor.helper";
 import { cardAnswer, cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
 import { Modal } from "./Modal";
@@ -16,8 +17,6 @@ export function CardPreview(props: {
   const text = useText();
   const language = useContext(LanguageContext);
   const { card } = props;
-  // The editor only knows these types, so no other Card has Edit.
-  const editable = card.type === "qa" || card.type === "cloze" || card.type === "true_false";
   return (
     <Modal title={text.cardPreview} onClose={props.onClose}>
       <div className="modal-body card-preview">
@@ -33,7 +32,7 @@ export function CardPreview(props: {
         <p className="preview-id">{text.cardIdAndVersion(card.id, card.version)}</p>
       </div>
       <div className="modal-actions modal-actions-wrap">
-        {editable && (
+        {isEditable(card) && (
           <button className="button secondary" onClick={props.onEdit}>
             <Pencil size={17} aria-hidden="true" />
             {text.edit}
