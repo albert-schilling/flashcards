@@ -95,9 +95,9 @@ export function App() {
   }
 
   // Whether the change was saved and the Cards reloaded; a failure shows the error and gives false.
-  async function remove(change: () => Promise<void>): Promise<boolean> {
+  async function change(save: () => Promise<void>): Promise<boolean> {
     try {
-      await change();
+      await save();
       setCards(await loadCards());
       setError(undefined);
       return true;
@@ -167,8 +167,8 @@ export function App() {
         {page === "cards" && (
           <CardsPage
             cards={cards}
-            onDelete={(id) => remove(() => deleteCard(id))}
-            onDeleteAll={() => void remove(clearCards)}
+            onDelete={(id) => change(() => deleteCard(id))}
+            onDeleteAll={() => void change(clearCards)}
           >
             <FilesPanel
               report={report}
