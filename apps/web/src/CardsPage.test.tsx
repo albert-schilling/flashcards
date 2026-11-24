@@ -1154,3 +1154,12 @@ it("a failed save closes the editor and shows no Card saved.", async () => {
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.queryByText("Card saved.")).toBeNull();
 });
+
+it("Create Card opens an empty editor even when a Card has the ID new", () => {
+  renderCardsPage([qa("new", 1)]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+
+  expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
+  expect(screen.getByLabelText<HTMLTextAreaElement>("Question", { exact: true }).value).toBe("");
+});

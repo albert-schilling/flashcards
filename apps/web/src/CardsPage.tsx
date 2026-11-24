@@ -48,8 +48,8 @@ export function CardsPage(props: {
   // IDs, not Cards: a modal closes by itself once its Card is gone.
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  // The ID of the Card being edited, "new" while creating one.
-  const [editorId, setEditorId] = useState<string | null>(props.creating ? "new" : null);
+  // The open Card editor: with the ID of the Card being edited, or without one while creating; null when closed.
+  const [editor, setEditor] = useState<{ id?: string } | null>(props.creating ? {} : null);
   const [notice, setNotice] = useState<"deleted" | "saved" | null>(null);
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
@@ -61,7 +61,7 @@ export function CardsPage(props: {
 
   const openCard = props.cards.find((card) => card.id === openId);
   const confirmingCard = props.cards.find((card) => card.id === confirmingId);
-  const editedCard = props.cards.find((card) => card.id === editorId);
+  const editedCard = props.cards.find((card) => card.id === editor?.id);
   // Only qa, cloze and true_false Cards have an editor yet.
   const editable = editedCard && isEditable(editedCard) ? editedCard : undefined;
 
@@ -75,7 +75,7 @@ export function CardsPage(props: {
 
   async function save(card: TCard) {
     // Close first, so a failure shows in the page's error and not behind the modal.
-    setEditorId(null);
+    setEditor(null);
     const saved = await props.onSave(card);
     setNotice(saved ? "saved" : null);
     if (saved) setOpenId(card.id);
@@ -91,7 +91,7 @@ export function CardsPage(props: {
     <>
       <div className="cards-page-heading">
         <PageHeading eyebrow={text.library} title={text.cards} intro={text.cardsIntro} />
-        <button className="button primary" onClick={() => setEditorId("new")}>
+        <button className="button primary" onClick={() => setEditor({})}>
           <Plus size={18} aria-hidden="true" />
           {text.createCard}
         </button>
@@ -178,18 +178,18 @@ export function CardsPage(props: {
             isEditable(openCard)
               ? () => {
                   setOpenId(null);
-                  setEditorId(openCard.id);
+                  setEditor({ id: openCard.id });
                 }
               : undefined
           }
         />
       )}
-      {(editorId === "new" || editable) && (
+      {editor && (editor.id === undefined || editable) && (
         <CardEditor
           card={editable}
           takenIds={props.cards.map((card) => card.id)}
           onSave={(card) => void save(card)}
-          onClose={() => setEditorId(null)}
+          onClose={() => setEditor(null)}
         />
       )}
       {confirmingCard && (
