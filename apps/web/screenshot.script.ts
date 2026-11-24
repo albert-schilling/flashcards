@@ -412,7 +412,7 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardDeleted, { exact: true }).waitFor();
     await shot("deleted");
   },
-  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the cloze Card and shoots the preview with its notice.
+  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the true_false Card and shoots the preview with its notice.
   editor: async (page, shot) => {
     const text = uiText.en;
     await goTo(page, text.cards);
