@@ -721,7 +721,7 @@
   text-align: left;
 }
 
-/* The icon alone no longer stops the button from shrinking below the touch target. */
+/* With only an icon inside, a long title beside it would shrink Delete below the touch target. */
 .library-card-row .icon-button {
   flex: none;
 }
