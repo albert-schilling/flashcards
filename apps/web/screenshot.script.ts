@@ -105,7 +105,7 @@ async function openStatistics(page: Page, text: TUiText): Promise<void> {
   await page.getByRole("table", { name: text.cards, exact: true }).waitFor();
 }
 
-// Fails when an overview figure is wider than its box; throws when it finds no figure. jsdom does no layout, so the browser checks it.
+// Fails when an overview figure is wider than its box, when the page scrolls sideways, or when a table wider than its panel can't scroll inside it; throws when it finds no figure or table. A scrollable table is left scrolled to its end. jsdom does no layout, so the browser checks it.
 async function checkStatisticsFits(page: Page, flow: string): Promise<void> {
   const found = await page.evaluate(() => {
     const figures = Array.from(document.querySelectorAll(".stat-overview div"));
@@ -114,11 +114,24 @@ async function checkStatisticsFits(page: Page, flow: string): Promise<void> {
       figures: figures.length,
       tables: tables.length,
       overflowing: figures.filter((figure) => figure.scrollWidth > figure.clientWidth).length,
+      pageScrolls: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      stuck: tables.filter((table) => {
+        if (table.scrollWidth <= table.clientWidth) return false;
+        table.scrollLeft = table.scrollWidth;
+        return table.scrollLeft === 0;
+      }).length,
     };
   });
   if (found.figures === 0) throw new Error(`${flow} flow: found no overview figures`);
+  if (found.tables === 0) throw new Error(`${flow} flow: found no tables`);
   if (found.overflowing > 0) {
     throw new Error(`${flow} flow: ${found.overflowing} overview figures are wider than their box`);
+  }
+  if (found.pageScrolls) throw new Error(`${flow} flow: the page scrolls sideways`);
+  if (found.stuck > 0) {
+    throw new Error(
+      `${flow} flow: ${found.stuck} tables are wider than their panel and can't scroll`,
+    );
   }
 }
 
@@ -479,6 +492,7 @@ const flows: Record<string, TFlow> = {
     await openStatistics(page, uiText.en);
     await shot("statistics");
     await checkStatisticsFits(page, "statistics");
+    await shot("scrolled");
   },
 };
 
