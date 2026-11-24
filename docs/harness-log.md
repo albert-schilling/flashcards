@@ -54,7 +54,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #102 | Planned ~232 lines, came out at 290: tests 158 against 100, even with a per-test estimate.                                         | albert-schilling/skills#38 (comment with this data).                                             |
 | #102 | The implementer wrote `background: transparent`; the token check passed it and the standards review caught it.                     | #101 (the check rejects named colours).                                                          |
 | #106 | The `cards-german` fit check measured the padded row, so overflow passed; the spec review caught it by undoing the rule it guards. | `pull-requests.md`: a new flow check is shown failing once before it is trusted.                 |
-| #111 | The first square check selected only the new markup, so it found nothing on the old and passed; the red run caught it.             | `pull-requests.md`: a flow check throws when it finds nothing to check.                          |
+| #111 | The first touch-target check matched only new markup, found nothing on the old and passed; the implementer's red run caught it.    | `pull-requests.md`: a flow check throws when it finds nothing to check.                          |
 | #111 | Research didn't ask for the colours behind hover states; the planner found the hovered row hides the icon button's hover.          | albert-schilling/skills#41 (research asks for state colours).                                    |
 
 ## Factory runs
