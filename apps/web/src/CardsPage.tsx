@@ -1,9 +1,11 @@
 import { ZCard, type TCard } from "@flashcards/cards";
-import { Search, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import { useContext, useState, type ReactNode } from "react";
 import { Alert } from "./Alert";
+import { CardEditor } from "./CardEditor";
 import { CardList } from "./CardList";
 import { CardPreview } from "./CardPreview";
+import { isEditable, type TEditableCard } from "./card.editor.helper";
 import { cardTitle } from "./CardView";
 import { EmptyState } from "./EmptyState";
 import { LanguageContext, useText, type TLanguage } from "./language.context";
@@ -31,11 +33,13 @@ function matches(
   );
 }
 
-/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, the windowed Card list (see CardList) and Delete all, which asks in a modal first and closes it before deleting. A row opens the Card preview (see CardPreview); a row's Delete asks in a modal first. A deleted Card shows a dismissible "Card deleted." notice above the panel until the Learner leaves the page; a failed delete hides it. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting. */
+/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, the windowed Card list (see CardList) and Delete all, which asks in a modal first and closes it before deleting. A row opens the Card preview (see CardPreview); a row's Delete asks in a modal first. Create Card in the heading, and Edit in the preview for the editable types, open the Card editor (see CardEditor); a saved Card closes it, shows its preview and a "Card saved." notice. A deleted Card shows a dismissible "Card deleted." notice above the panel until the Learner leaves the page; the two notices share one slot, and a failed delete or save hides it. `startCreating` opens the editor for a new Card on first render. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting and saving. */
 export function CardsPage(props: {
   cards: TCard[];
   onDelete: (id: string) => Promise<boolean>;
   onDeleteAll: () => void;
+  onSave: (card: TCard) => Promise<boolean>;
+  startCreating?: boolean;
   children?: ReactNode;
 }) {
   const text = useText();
@@ -44,7 +48,11 @@ export function CardsPage(props: {
   // IDs, not Cards: a modal closes by itself once its Card is gone.
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [deleted, setDeleted] = useState(false);
+  const [notice, setNotice] = useState<"deleted" | "saved" | null>(null);
+  // The Card editor, open for a new Card (no `card`) or for this one.
+  const [editor, setEditor] = useState<{ card?: TEditableCard } | null>(
+    props.startCreating ? {} : null,
+  );
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [pickedTag, setPickedTag] = useState("");
@@ -61,7 +69,15 @@ export function CardsPage(props: {
     setOpenId(null);
     setConfirmingId(null);
     // A failure hides an earlier notice, so only the error shows.
-    setDeleted(await props.onDelete(id));
+    setNotice((await props.onDelete(id)) ? "deleted" : null);
+  }
+
+  async function saveOne(card: TCard) {
+    // Close first, so a failure shows in the page's error and not behind the modal.
+    setEditor(null);
+    const saved = await props.onSave(card);
+    setNotice(saved ? "saved" : null);
+    if (saved) setOpenId(card.id);
   }
 
   function deleteAll() {
@@ -74,15 +90,19 @@ export function CardsPage(props: {
     <>
       <div className="cards-page-heading">
         <PageHeading eyebrow={text.library} title={text.cards} intro={text.cardsIntro} />
+        <button className="button primary" onClick={() => setEditor({})}>
+          <Plus size={18} aria-hidden="true" />
+          {text.createCard}
+        </button>
       </div>
-      {deleted && (
+      {notice && (
         <Alert
           tone="success"
           role="status"
           className="library-notice"
-          onDismiss={() => setDeleted(false)}
+          onDismiss={() => setNotice(null)}
         >
-          <strong>{text.cardDeleted}</strong>
+          <strong>{notice === "deleted" ? text.cardDeleted : text.cardSaved}</strong>
         </Alert>
       )}
       <div className="cards-layout">
@@ -153,6 +173,24 @@ export function CardsPage(props: {
           card={openCard}
           onClose={() => setOpenId(null)}
           onDelete={() => void deleteOne(openCard.id)}
+          onEdit={
+            isEditable(openCard)
+              ? () => {
+                  setOpenId(null);
+                  setEditor({ card: openCard });
+                }
+              : undefined
+          }
+        />
+      )}
+      {editor && (
+        <CardEditor
+          // A new editor for each Card, so Create Card after an Edit starts empty.
+          key={editor.card?.id ?? ""}
+          card={editor.card}
+          takenIds={props.cards.map((card) => card.id)}
+          onSave={(card) => void saveOne(card)}
+          onClose={() => setEditor(null)}
         />
       )}
       {confirmingCard && (

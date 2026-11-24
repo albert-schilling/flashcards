@@ -412,6 +412,58 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardDeleted, { exact: true }).waitFor();
     await shot("deleted");
   },
+  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the true_false Card and shoots the preview with its notice.
+  editor: async (page, shot) => {
+    const text = uiText.en;
+    await goTo(page, text.cards);
+    await page.getByRole("button", { name: text.createCard, exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: text.createCard, exact: true });
+    await dialog.waitFor();
+    await shot("empty");
+    await dialog.getByRole("button", { name: text.createCard, exact: true }).click();
+    await dialog.getByText(text.fieldEmpty).first().waitFor();
+    await shot("errors");
+    const fillShared = async () => {
+      await dialog
+        .getByLabel(text.domainTags, { exact: true })
+        .fill("Machine Learning, Statistics");
+      await dialog.getByLabel(text.topicTags, { exact: true }).fill("Decision Tree");
+      await dialog.getByLabel(text.lesson, { exact: true }).fill("lesson-04");
+    };
+    await dialog.getByLabel(text.type, { exact: true }).selectOption("cloze");
+    await dialog.getByLabel(text.text, { exact: true }).fill("A leaf predicts the {{mean}}.");
+    await dialog
+      .getByLabel(text.inGerman(text.text), { exact: true })
+      .fill("Ein Blatt sagt den {{Mittelwert}} voraus.");
+    await fillShared();
+    await shot("cloze");
+    await dialog.getByRole("button", { name: text.createCard, exact: true }).click();
+    await page.getByText(text.cardSaved, { exact: true }).waitFor();
+    await shot("saved");
+    await page.getByRole("button", { name: text.close, exact: true }).click();
+    await page.getByRole("button", { name: text.createCard, exact: true }).click();
+    await dialog.getByLabel(text.type, { exact: true }).selectOption("true_false");
+    await dialog.getByLabel(text.statement, { exact: true }).fill("A leaf is a node.");
+    await dialog.getByLabel(text.answer, { exact: true }).selectOption("false");
+    await fillShared();
+    await shot("true-false");
+    await dialog.getByRole("button", { name: text.createCard, exact: true }).click();
+    await page.getByRole("button", { name: text.close, exact: true }).click();
+    await page.getByText(text.cardCountOf(2, 2), { exact: true }).waitFor();
+    await page.getByRole("listitem").first().locator(".library-card-open").click();
+    await page
+      .getByRole("dialog", { name: text.cardPreview, exact: true })
+      .getByRole("button", { name: text.edit, exact: true })
+      .click();
+    const edit = page.getByRole("dialog", { name: text.editCard, exact: true });
+    await edit.waitFor();
+    await shot("edit");
+    await edit.getByLabel(text.statement, { exact: true }).fill("A leaf is not a node.");
+    await edit.getByRole("button", { name: text.saveChanges, exact: true }).click();
+    await page.getByText(text.cardSaved, { exact: true }).waitFor();
+    await page.getByText(text.cardIdAndVersion("a-leaf-is-a-node", 2)).waitFor();
+    await shot("edited");
+  },
   // Uploads 1,000 Cards, checks that only a few rows are in the DOM, then shoots the top, the middle, Tab through rows and the end.
   windowed: async (page, shot) => {
     const text = uiText.en;

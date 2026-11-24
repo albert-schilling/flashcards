@@ -19,6 +19,7 @@ import {
   loadLanguage,
   loadLastDownload,
   loadReviews,
+  saveCards,
   saveLanguage,
   type TReview,
 } from "./storage";
@@ -33,6 +34,8 @@ export function App() {
   const [session, setSession] = useState<{ id: number; cards: TCard[] }>();
   const [reviews, setReviews] = useState<TReview[]>();
   const [lastDownload, setLastDownload] = useState<string>();
+  // Set by Home's Create Card, so the Cards page opens with the Card editor; any navigation clears it.
+  const [startCreating, setStartCreating] = useState(false);
   const [language, setLanguage] = useState<TLanguage>(browserLanguage);
   // Counts uploads, so a slower earlier upload can't overwrite a newer one's report or error.
   const uploads = useRef(0);
@@ -95,9 +98,9 @@ export function App() {
   }
 
   // Whether the change was saved and the Cards reloaded; a failure shows the error and gives false.
-  async function remove(change: () => Promise<void>): Promise<boolean> {
+  async function change(save: () => Promise<void>): Promise<boolean> {
     try {
-      await change();
+      await save();
       setCards(await loadCards());
       setError(undefined);
       return true;
@@ -132,6 +135,7 @@ export function App() {
   }
 
   function navigate(target: TPage) {
+    setStartCreating(false);
     if (target === "statistics") void openStatistics();
     else if (target === "session") {
       if (session) setPage("session");
@@ -167,8 +171,10 @@ export function App() {
         {page === "cards" && (
           <CardsPage
             cards={cards}
-            onDelete={(id) => remove(() => deleteCard(id))}
-            onDeleteAll={() => void remove(clearCards)}
+            onDelete={(id) => change(() => deleteCard(id))}
+            onDeleteAll={() => void change(clearCards)}
+            onSave={(card) => change(() => saveCards([card]))}
+            startCreating={startCreating}
           >
             <FilesPanel
               report={report}
@@ -205,6 +211,10 @@ export function App() {
             onStart={() => void startSession()}
             onStatistics={() => void openStatistics()}
             onCards={() => navigate("cards")}
+            onCreate={() => {
+              navigate("cards");
+              setStartCreating(true);
+            }}
           />
         )}
       </main>
