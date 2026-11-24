@@ -3430,3 +3430,52 @@ it.each([
     expect(preview.queryByRole("button", { name: "Edit" })).toBeNull();
   },
 );
+
+describe("the Card editor, suggesting the ID when the Type changes", () => {
+  it("makes the ID follow the text field of the new Type", () => {
+    render(<App />);
+    openCreate();
+    typeInto(field("Question"), "What is depth?");
+    expect(field("ID").value).toBe("what-is-depth");
+
+    choose(field("Type"), "True or false");
+    expect(field("ID").value).toBe("");
+    typeInto(field("Statement"), "A leaf has depth 0.");
+    expect(field("ID").value).toBe("a-leaf-has-depth-0");
+
+    choose(field("Type"), "Fill the gap");
+    expect(field("ID").value).toBe("");
+    typeInto(field("Text"), "Depth is the {{longest}} path.");
+    expect(field("ID").value).toBe("depth-is-the-longest-path");
+
+    // The Question is still there, so its ID comes back.
+    choose(field("Type"), "Question & answer");
+    expect(field("ID").value).toBe("what-is-depth");
+  });
+
+  it("leaves an ID the Learner edited alone when the Type changes", () => {
+    render(<App />);
+    openCreate();
+    typeInto(field("Question"), "What is depth?");
+    typeInto(field("ID"), "my.own.id");
+
+    choose(field("Type"), "Fill the gap");
+    typeInto(field("Text"), "Depth is the {{longest}} path.");
+
+    expect(field("ID").value).toBe("my.own.id");
+  });
+});
+
+it("shows a stored ID's error together with the other errors in one submit", async () => {
+  render(<App />);
+  await uploaded(qa("ml.trees.depth", 1));
+  openCreate();
+  fillEditor({ Question: "What is depth?", Answer: "The longest path.", Lesson: "" });
+
+  submitEditor();
+
+  expect(isInvalid(field("ID"))).toBe(true);
+  expect(isInvalid(field("Lesson"))).toBe(true);
+  expect(described(field("ID"))).not.toBe("");
+  expect(await loadCards()).toEqual([qa("ml.trees.depth", 1)]);
+});

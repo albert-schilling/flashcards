@@ -129,6 +129,20 @@ describe("checkForm, creating", () => {
     expect(cardOf(qaForm(), ["other"]).id).toBe("ml.trees.depth");
   });
 
+  it("reports a stored ID together with the other errors", () => {
+    expect(errorsOf(qaForm({ lesson: "" }), ["ml.trees.depth"])).toEqual({
+      id: "idTaken",
+      lesson: "required",
+    });
+  });
+
+  it("reports a malformed ID as idFormat, not idTaken, when other fields are wrong too", () => {
+    expect(errorsOf(qaForm({ id: "Not Valid", lesson: "" }), ["Not Valid"])).toEqual({
+      id: "idFormat",
+      lesson: "required",
+    });
+  });
+
   it("asks for a gap in the cloze text", () => {
     expect(errorsOf(clozeForm({ text: "No gap here." }))).toEqual({ text: "needsGap" });
     expect(errorsOf(clozeForm({ text: "" }))).toEqual({ text: "required" });
