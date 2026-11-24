@@ -494,7 +494,6 @@ const flows: Record<string, TFlow> = {
     await shot("statistics");
     await checkStatisticsFits(page, "german");
   },
-  // Answers every Card without shots, then opens Statistics.
   // Creates a cloze and a true_false Card from Home's empty state and the Cards page, shows the field errors, then edits one.
   editor: async (page, shot) => {
     const text = uiText.en;
@@ -542,6 +541,7 @@ const flows: Record<string, TFlow> = {
     await preview.getByText(/version 2$/).waitFor();
     await shot("edit-saved");
   },
+  // Answers every Card without shots, then opens Statistics.
   statistics: async (page, shot) => {
     await answerEveryCard(page, async () => {});
     await page.getByRole("button", { name: uiText.en.done, exact: true }).click();
