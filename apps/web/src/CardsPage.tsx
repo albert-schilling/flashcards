@@ -44,7 +44,7 @@ export function CardsPage(props: {
   // IDs, not Cards: a modal closes by itself once its Card is gone.
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [deleted, setDeleted] = useState(false);
+  const [notice, setNotice] = useState<"deleted" | "saved" | null>(null);
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
   const [pickedTag, setPickedTag] = useState("");
@@ -61,7 +61,7 @@ export function CardsPage(props: {
     setOpenId(null);
     setConfirmingId(null);
     // A failure hides an earlier notice, so only the error shows.
-    setDeleted(await props.onDelete(id));
+    setNotice((await props.onDelete(id)) ? "deleted" : null);
   }
 
   function deleteAll() {
@@ -75,12 +75,12 @@ export function CardsPage(props: {
       <div className="cards-page-heading">
         <PageHeading eyebrow={text.library} title={text.cards} intro={text.cardsIntro} />
       </div>
-      {deleted && (
+      {notice === "deleted" && (
         <Alert
           tone="success"
           role="status"
           className="library-notice"
-          onDismiss={() => setDeleted(false)}
+          onDismiss={() => setNotice(null)}
         >
           <strong>{text.cardDeleted}</strong>
         </Alert>
