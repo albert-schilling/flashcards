@@ -58,6 +58,9 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #111 | Research didn't ask for the colours behind hover states; the planner found the hovered row hides the icon button's hover.          | albert-schilling/skills#41 (research asks for state colours).                                    |
 | #114 | The planner couldn't tell whether deleted or re-indented lines count toward the 300-line limit.                                    | `pull-requests.md`: added plus deleted; the PR says how many only move or change whitespace.     |
 | #114 | Planned ~53 test lines, came out at 70: mostly the formatter putting each expected `[value, label]` pair on its own line.          | albert-schilling/skills#38 (comment with this data).                                             |
+| #123 | The first tests missed `CardsPage.test.tsx` (preview texts, a new required prop), so the implementer stopped.                      | albert-schilling/skills#36 (planner lists every test that renders a changed component).          |
+| #123 | The plan didn't say what Edit does for Card types the editor can't open; it crashed the app (found in test pass 2).                | None: the plan should say what a new control does for every Card type.                           |
+| #123 | One pull request of 1,915 changed lines (1,246 tests), kept whole because the unattended run was told to.                          | #19 (size warning).                                                                              |
 
 ## Factory runs
 
