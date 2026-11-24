@@ -345,7 +345,9 @@ const flows: Record<string, TFlow> = {
     await firstRow.locator(".library-card-open").focus();
     await page.keyboard.press("Tab");
     await shot("delete-focus");
-    await firstRow.locator("> button:last-child").hover();
+    const deleteButton = firstRow.locator("> button:last-child");
+    await deleteButton.blur();
+    await deleteButton.hover();
     await shot("delete-hover");
     await select.selectOption("true_false");
     await page.getByText(text.cardCountOf(1, 6), { exact: true }).waitFor();
