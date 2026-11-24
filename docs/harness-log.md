@@ -56,7 +56,7 @@ Entries for each pull request, added in that pull request: what the coding agent
 | #106 | The `cards-german` fit check measured the padded row, so overflow passed; the spec review caught it by undoing the rule it guards. | `pull-requests.md`: a new flow check is shown failing once before it is trusted.                 |
 | #111 | The first touch-target check matched only new markup, found nothing on the old and passed; the implementer's red run caught it.    | `pull-requests.md`: a flow check throws when it finds nothing to check.                          |
 | #111 | Research didn't ask for the colours behind hover states; the planner found the hovered row hides the icon button's hover.          | albert-schilling/skills#41 (research asks for state colours).                                    |
-| #114 | The planner couldn't tell whether deleted or re-indented lines count toward the 300-line limit.                                    | `pull-requests.md`: added plus deleted lines; the PR says how many only move.                    |
+| #114 | The planner couldn't tell whether deleted or re-indented lines count toward the 300-line limit.                                    | `pull-requests.md`: added plus deleted; the PR says how many only move or change whitespace.     |
 | #114 | Planned ~53 test lines, came out at 70: mostly the formatter putting each expected `[value, label]` pair on its own line.          | albert-schilling/skills#38 (comment with this data).                                             |
 
 ## Factory runs
