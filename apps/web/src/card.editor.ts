@@ -131,6 +131,10 @@ function fieldOf(path: PropertyKey[]): keyof TEditorFields | undefined {
   if (first === "id" || first === "lesson") return first;
   if (first === "tags" && (second === "domain" || second === "topic")) return second;
   if (first === "en" && typeof second === "string") return second as keyof TEditorFields;
+  const third = path[2];
+  if (first === "translations" && second === "de" && typeof third === "string") {
+    return `de${third[0]?.toUpperCase()}${third.slice(1)}` as keyof TEditorFields;
+  }
   if (first === "answer") return "truth";
   return undefined;
 }
@@ -166,7 +170,7 @@ export function buildCard(
       if (field === undefined || errors[field]) continue;
       if (isEmpty(fields, field)) errors[field] = "required";
       else if (field === "id") errors[field] = "format";
-      else if (field === "text") errors[field] = "gap";
+      else if (field === "text" || field === "deText") errors[field] = "gap";
     }
     return { errors };
   }

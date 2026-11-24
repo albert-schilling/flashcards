@@ -246,6 +246,20 @@ describe("field errors", () => {
     ).toEqual({ errors: { text: "gap" } });
   });
 
+  it("names a German cloze text without a {{gap}} as missing its gap", () => {
+    expect(
+      buildCard(
+        fields({
+          type: "cloze",
+          id: "c",
+          text: "A {{leaf}} holds the mean.",
+          deText: "Ein Blatt hält den Mittelwert.",
+        }),
+        [],
+      ),
+    ).toEqual({ errors: { deText: "gap" } });
+  });
+
   it("names the ID of a stored Card as a duplicate on create", () => {
     const stored = [qa("what-is-a-leaf", 1)];
 
