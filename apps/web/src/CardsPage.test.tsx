@@ -1,5 +1,6 @@
 import type { TCard } from "@flashcards/cards";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { Trash2 } from "lucide-react";
 import { expect, it, vi } from "vitest";
 import { CardsPage } from "./CardsPage";
 import { LanguageContext, type TLanguage } from "./language.context";
@@ -141,7 +142,7 @@ it.each([
   { type: "true_false", card: trueFalse("a", 1), title: "a is true." },
   { type: "cloze", card: cloze("a", 1), title: "a has a ____." },
 ])(
-  "a $type row shows the type name, the question or name, the ID, the tags and Delete",
+  "a $type row shows the type name, the question or name, the ID and the tags, and Delete shows no word",
   ({ card, title }) => {
     renderCardsPage([card]);
 
@@ -151,7 +152,6 @@ it.each([
       "a",
       "Machine Learning",
       "Decision Tree",
-      "Delete",
     ]);
   },
 );
@@ -169,7 +169,6 @@ it("a row shows every domain tag, then every topic tag, even a tag in both", () 
     "Machine Learning",
     "Regression",
     "Statistics",
-    "Delete",
   ]);
 });
 
@@ -189,7 +188,9 @@ it("in German, a row shows the German question, and English where there is no Ge
   expect(within(rows()[0]).queryByText("What is q?")).toBeNull();
   expect(within(rows()[1]).getByText("What is e?")).toBeTruthy();
   expect(within(rows()[2]).getByText("c has a ____.")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "q löschen" }).textContent).toBe("Löschen");
+  const deleteQ = screen.getByRole("button", { name: "q löschen" });
+  expect(deleteQ.textContent).toBe("");
+  expect(deleteQ.getAttribute("title")).toBe("q löschen");
 });
 
 it.each([
@@ -275,6 +276,19 @@ it("a row holds two buttons side by side: the row button with the Card's copy, t
     "Decision Tree",
   ]);
   expect(buttons[0].querySelector("button")).toBeNull();
+});
+
+it("a row's Delete shows only the preview's trash icon, hidden from screen readers, with its name as a tooltip", () => {
+  renderCardsPage([qa("a", 1)]);
+  const { container, unmount } = render(<Trash2 />);
+  const trash = container.querySelector("svg")!.innerHTML;
+  unmount();
+
+  const icon = deleteButton("a").querySelector("svg");
+  expect(deleteButton("a").textContent).toBe("");
+  expect(icon?.innerHTML).toBe(trash);
+  expect(icon?.getAttribute("aria-hidden")).toBe("true");
+  expect(deleteButton("a").getAttribute("title")).toBe("Delete a");
 });
 
 it("a row button opens the Card preview of its Card", () => {
