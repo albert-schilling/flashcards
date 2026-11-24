@@ -14,18 +14,20 @@ import {
   tagged,
   trueFalse,
 } from "./test/cards.fixtures";
+import { uiText } from "./ui.text";
 
-/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card. */
+/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card; onSave resolves to true. */
 function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
   const onDelete = vi.fn().mockResolvedValue(deletes);
   const onDeleteAll = vi.fn();
+  const onSave = vi.fn().mockResolvedValue(true);
   const page = (cards: TCard[]) => (
     <LanguageContext.Provider value={language}>
-      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} />
+      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} onSave={onSave} />
     </LanguageContext.Provider>
   );
   const { rerender } = render(page(cards));
-  return { onDelete, onDeleteAll, rerender: (cards: TCard[]) => rerender(page(cards)) };
+  return { onDelete, onDeleteAll, onSave, rerender: (cards: TCard[]) => rerender(page(cards)) };
 }
 
 function rows() {
@@ -345,7 +347,7 @@ it.each([
   { type: "numeric", card: numeric("a", 2, "m"), title: "How much is a?", answer: ["5 m"] },
   { type: "numeric", card: numeric("a", 2), title: "How much is a?", answer: ["5"] },
 ])(
-  "a $type preview shows the type name, question, answer $answer, tags, ID and version, and Delete",
+  "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, and Edit if the editor has the type",
   ({ card, title, answer }) => {
     renderCardsPage([card]);
 
@@ -362,6 +364,8 @@ it.each([
       "Decision Tree",
       "a · version 2",
       "Delete",
+      // Only the Card editor's types can be edited.
+      ...(["qa", "cloze", "true_false"].includes(card.type) ? ["Edit"] : []),
     ]);
   },
 );
@@ -606,6 +610,145 @@ it("in German, the Delete modal asks Diese Karte löschen?, and the notice reads
   const notice = await screen.findByRole("status");
   expect(notice.textContent).toBe("Karte gelöscht.");
   expect(within(notice).getByRole("button", { name: "Ausblenden" })).toBeTruthy();
+});
+
+function editorDialog(name: string) {
+  return within(screen.getByRole("dialog", { name }));
+}
+
+/** The control of the editor field whose label starts with this text; a label may hold a hint after it. */
+function editorControl(name: string): HTMLInputElement {
+  const label = [...screen.getByRole("dialog").querySelectorAll("label")].find(
+    (each) => shownTexts(each)[0] === name,
+  );
+  if (!label?.control) throw new Error(`No field labelled ${name}`);
+  return label.control as HTMLInputElement;
+}
+
+function editorValue(name: string): string {
+  return editorControl(name).value;
+}
+
+it("the heading has Create Card, which opens an empty Card editor", () => {
+  renderCardsPage([qa("a", 1)]);
+
+  const create = screen.getByRole("button", { name: "Create Card" });
+  expect(create.closest(".cards-page-heading")).not.toBeNull();
+  fireEvent.click(create);
+
+  editorDialog("Create Card");
+  expect(editorValue("Question")).toBe("");
+  expect(editorValue("Card ID")).toBe("");
+});
+
+it("Create Card opens the editor with no Cards yet too", () => {
+  renderCardsPage([]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+
+  editorDialog("Create Card");
+});
+
+it.each([
+  { card: qa("a", 1), field: "Question", value: "What is a?" },
+  { card: cloze("a", 1, "A {{leaf}}."), field: "Text", value: "A {{leaf}}." },
+  { card: trueFalse("a", 1, false), field: "Statement", value: "a is true." },
+  { card: trueFalse("a", 1, false), field: "Answer", value: "false" },
+])(
+  "Edit in a $card.type preview closes it and opens the Card editor with its $field",
+  ({ card, field, value }) => {
+    renderCardsPage([card]);
+
+    fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    editorDialog("Edit Card");
+    expect(editorValue(field)).toBe(value);
+    expect(editorValue("Card ID")).toBe("a");
+  },
+);
+
+it.each([formula("a", 1), multipleChoice("a", 1), numeric("a", 1)])(
+  "a $type preview has no Edit, since the editor doesn't have its type yet",
+  (card) => {
+    renderCardsPage([card]);
+
+    const preview = openPreview("a");
+
+    expect(preview.queryByRole("button", { name: "Edit" })).toBeNull();
+  },
+);
+
+it("Save changes closes the editor, reopens the preview on the saved Card and shows Card saved.", async () => {
+  const { onSave, rerender } = renderCardsPage([qa("a", 1)]);
+  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+  fireEvent.change(editorControl("Answer"), { target: { value: "A new answer." } });
+
+  fireEvent.click(editorDialog("Edit Card").getByRole("button", { name: "Save changes" }));
+
+  expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+  const saved = qa("a", 2, "A new answer.");
+  expect(onSave).toHaveBeenCalledWith(saved);
+  // App reloads the Cards after a save.
+  rerender([saved]);
+  expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  expect(within(previewDialog()).getByText("a · version 2")).toBeTruthy();
+  expect(within(previewDialog()).getByText("A new answer.")).toBeTruthy();
+});
+
+it("Cancel closes the Card editor and saves nothing", () => {
+  const { onSave } = renderCardsPage([qa("a", 1)]);
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+
+  fireEvent.click(editorDialog("Create Card").getByRole("button", { name: "Cancel" }));
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(onSave).not.toHaveBeenCalled();
+});
+
+it("a failed save closes the editor and shows no Card saved.", async () => {
+  const { onSave } = renderCardsPage([qa("a", 1)]);
+  onSave.mockResolvedValue(false);
+  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+
+  fireEvent.click(editorDialog("Edit Card").getByRole("button", { name: "Save changes" }));
+  // Let the page handle onSave's result before looking.
+  await act(async () => {});
+
+  expect(onSave).toHaveBeenCalledTimes(1);
+  expect(screen.queryByRole("dialog", { name: "Edit Card" })).toBeNull();
+  expect(screen.queryByText("Card saved.")).toBeNull();
+});
+
+it("Card saved. replaces Card deleted., so one notice shows", async () => {
+  renderCardsPage([qa("a", 1), qa("b", 1)]);
+  confirmDelete("b");
+  await screen.findByText("Card deleted.");
+
+  fireEvent.click(openPreview("a").getByRole("button", { name: "Edit" }));
+  fireEvent.click(editorDialog("Edit Card").getByRole("button", { name: "Save changes" }));
+  await screen.findByText("Card saved.");
+
+  expect(screen.getAllByRole("status").map((status) => status.textContent)).toEqual([
+    "Card saved.",
+  ]);
+});
+
+it("in German, Create Card, Edit, Save changes and Card saved. are German", async () => {
+  const de = uiText.de;
+  renderCardsPage([qa("a", 1)], "de");
+  expect(screen.getByRole("button", { name: "Karte erstellen" })).toBeTruthy();
+
+  fireEvent.click(openPreview("a").getByRole("button", { name: de.edit }));
+  fireEvent.click(editorDialog(de.editCard).getByRole("button", { name: de.saveChanges }));
+
+  expect((await screen.findByRole("status")).textContent).toBe(de.cardSaved);
+  const en = uiText.en;
+  expect([de.edit, de.editCard, de.saveChanges, de.cardSaved]).not.toContain(undefined);
+  expect(de.edit).not.toBe(en.edit);
+  expect(de.editCard).not.toBe(en.editCard);
+  expect(de.saveChanges).not.toBe(en.saveChanges);
+  expect(de.cardSaved).not.toBe(en.cardSaved);
 });
 
 it("Delete all Cards asks in a modal first, and its Delete all Cards closes the modal and deletes", () => {

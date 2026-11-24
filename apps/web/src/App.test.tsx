@@ -5,7 +5,7 @@ import { ArrowLeft, Check, CircleCheck, CircleX, X, type LucideIcon } from "luci
 import { expect, it, vi } from "vitest";
 import { Alert, type TAlertTone } from "./Alert";
 import { App } from "./App";
-import { addReview, loadLanguage, loadReviews } from "./storage";
+import { addReview, loadCards, loadLanguage, loadReviews } from "./storage";
 import {
   cloze,
   formula,
@@ -1697,6 +1697,209 @@ it("downloads the Cards as a Deck that uploads again unchanged", async () => {
   expect(file.name).toBe("deck.json");
   pick(file, "Upload Deck");
   await screen.findByText(/0 added, 0 updated, 2 unchanged/);
+});
+
+/** Opens the Cards page, then the Card editor from Create Card in its heading, and returns the editor. */
+function openEditor(): HTMLElement {
+  openCards();
+  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
+  return screen.getByRole("dialog", { name: "Create Card" });
+}
+
+/** The control of the editor field whose label starts with this text; a label may hold a hint after it. */
+function editorControl(editor: HTMLElement, name: string): HTMLInputElement {
+  const label = [...editor.querySelectorAll("label")].find((each) => firstText(each) === name);
+  if (!label?.control) throw new Error(`No field labelled ${name}`);
+  return label.control as HTMLInputElement;
+}
+
+function firstText(element: Element): string | undefined {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const text = walker.currentNode.textContent!.trim();
+    if (text) return text;
+  }
+  return undefined;
+}
+
+/** Sets the editor's fields by label, in order. */
+function fillEditor(editor: HTMLElement, values: Record<string, string>) {
+  for (const [name, value] of Object.entries(values)) {
+    fireEvent.change(editorControl(editor, name), { target: { value } });
+  }
+}
+
+/** On the Cards page, opens this Card's preview from its row button, the row's button beside Delete. */
+function openPreviewOf(id: string) {
+  const remove = screen.getByRole("button", { name: `Delete ${id}` });
+  const others = within(remove.closest("li")!)
+    .getAllByRole("button")
+    .filter((button) => button !== remove);
+  fireEvent.click(others[0]);
+  return screen.getByRole("dialog", { name: "Card preview" });
+}
+
+const editorTags = {
+  Lesson: "lesson-04",
+  "Domain tags": "Machine Learning",
+  "Topic tags": "Decision Tree, Leaf",
+};
+
+const createdShared = {
+  version: 1,
+  tags: { domain: ["Machine Learning"], topic: ["Decision Tree", "Leaf"] },
+  sourceIds: [],
+  lesson: "lesson-04",
+};
+
+it.each<{ type: string; values: Record<string, string>; card: TCard }>([
+  {
+    type: "qa",
+    values: {
+      Question: "What is a leaf?",
+      Answer: "An end node.",
+      "Question (German, optional)": "Was ist ein Blatt?",
+    },
+    card: {
+      id: "what-is-a-leaf",
+      ...createdShared,
+      type: "qa",
+      en: { question: "What is a leaf?", answer: "An end node." },
+      translations: { de: { question: "Was ist ein Blatt?" } },
+    },
+  },
+  {
+    type: "cloze",
+    values: { Text: "A {{leaf}} holds the mean." },
+    card: {
+      id: "a-leaf-holds-the-mean",
+      ...createdShared,
+      type: "cloze",
+      en: { text: "A {{leaf}} holds the mean." },
+    },
+  },
+  {
+    type: "true_false",
+    values: { Statement: "Trees overfit easily.", Answer: "false" },
+    card: {
+      id: "trees-overfit-easily",
+      ...createdShared,
+      type: "true_false",
+      en: { statement: "Trees overfit easily." },
+      answer: false,
+    },
+  },
+])(
+  "Create Card makes a $type Card that is listed, stored, downloaded and uploads into an empty browser",
+  async ({ type, values, card }) => {
+    const { unmount } = render(<App />);
+    const editor = openEditor();
+    fireEvent.change(editorControl(editor, "Type"), { target: { value: type } });
+    fillEditor(editor, { ...values, ...editorTags });
+
+    fireEvent.click(within(editor).getByRole("button", { name: "Create Card" }));
+
+    expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+    await screen.findByText(card.id);
+    const preview = screen.getByRole("dialog", { name: "Card preview" });
+    expect(within(preview).getByText(`${card.id} · version 1`)).toBeTruthy();
+    expect(await loadCards()).toEqual([card]);
+    fireEvent.click(within(preview).getByRole("button", { name: "Close" }));
+
+    const file = await download("Download Cards");
+    expect(JSON.parse(await file.text())).toEqual({ cards: [card] });
+    unmount();
+    globalThis.indexedDB = new IDBFactory();
+    render(<App />);
+    pick(file, "Upload Deck");
+    await screen.findByText(/1 added, 0 updated, 0 unchanged/);
+    expect(await loadCards()).toEqual([card]);
+  },
+);
+
+it("Edit opens the Card's fields, and Save changes raises its version", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  openCards();
+
+  fireEvent.click(within(openPreviewOf("a")).getByRole("button", { name: "Edit" }));
+
+  const editor = screen.getByRole("dialog", { name: "Edit Card" });
+  const shown = (name: string) => editorControl(editor, name);
+  expect(shown("Type").value).toBe("qa");
+  expect(shown("Type").disabled).toBe(true);
+  expect(shown("Card ID").value).toBe("a");
+  expect(shown("Card ID").disabled).toBe(true);
+  expect(shown("Question").value).toBe("What is a?");
+  expect(shown("Answer").value).toBe("An answer.");
+  expect(shown("Lesson").value).toBe("lesson-04");
+  expect(shown("Domain tags").value).toBe("Machine Learning");
+  expect(shown("Topic tags").value).toBe("Decision Tree");
+
+  fillEditor(editor, { Answer: "A new answer." });
+  fireEvent.click(within(editor).getByRole("button", { name: "Save changes" }));
+
+  expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
+  const preview = await screen.findByRole("dialog", { name: "Card preview" });
+  await within(preview).findByText("a · version 2");
+  expect(within(preview).getByText("A new answer.")).toBeTruthy();
+  expect(await loadCards()).toEqual([qa("a", 2, "A new answer."), qa("b", 1)]);
+});
+
+it("Save changes without a change keeps the version, so the Card's Reviews still count", async () => {
+  render(<App />);
+  await uploaded(qa("a", 3));
+  openCards();
+  fireEvent.click(within(openPreviewOf("a")).getByRole("button", { name: "Edit" }));
+
+  const editor = screen.getByRole("dialog", { name: "Edit Card" });
+  fireEvent.click(within(editor).getByRole("button", { name: "Save changes" }));
+
+  await screen.findByText("Card saved.");
+  expect(
+    within(screen.getByRole("dialog", { name: "Card preview" })).getByText("a · version 3"),
+  ).toBeTruthy();
+  expect(await loadCards()).toEqual([qa("a", 3)]);
+});
+
+it("a Card ID taken by a stored Card shows a field error and stores nothing", async () => {
+  render(<App />);
+  await uploaded(qa("what-is-a-leaf", 1));
+  const editor = openEditor();
+  fillEditor(editor, { Question: "What is a leaf?", Answer: "An end node.", ...editorTags });
+
+  fireEvent.click(within(editor).getByRole("button", { name: "Create Card" }));
+
+  expect(editorControl(editor, "Card ID").getAttribute("aria-invalid")).toBe("true");
+  expect(screen.queryByText("Card saved.")).toBeNull();
+  expect(await loadCards()).toEqual([qa("what-is-a-leaf", 1)]);
+});
+
+it("a failed save closes the editor and shows the error, not Card saved.", async () => {
+  render(<App />);
+  const editor = openEditor();
+  fillEditor(editor, { Question: "What is a leaf?", Answer: "An end node.", ...editorTags });
+  blockStorage();
+
+  fireEvent.click(within(editor).getByRole("button", { name: "Create Card" }));
+
+  expect((await screen.findByRole("alert")).textContent).toContain("Storage is blocked.");
+  expect(screen.queryByRole("dialog", { name: "Create Card" })).toBeNull();
+  expect(screen.queryByText("Card saved.")).toBeNull();
+});
+
+it("Home's Create Card opens the Cards page with the Card editor open, once", () => {
+  render(<App />);
+
+  fireEvent.click(home().getByRole("button", { name: "Create Card" }));
+
+  expect(levelOneHeadings()).toEqual(["Cards"]);
+  const editor = screen.getByRole("dialog", { name: "Create Card" });
+  fireEvent.click(within(editor).getByRole("button", { name: "Cancel" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  goHome();
+  openCards();
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 it("downloads every Review, and the file restores them in an empty browser", async () => {
