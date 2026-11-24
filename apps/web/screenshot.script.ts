@@ -241,6 +241,15 @@ async function showTags(page: Page, shot: (name: string) => Promise<void>, text:
   await shot("expanded");
 }
 
+// The control of the Card editor field with this label. A field's label holds its hint and error too, so it is found by its label text, matched exactly.
+function editorControl(page: Page, label: string): Locator {
+  return page
+    .getByRole("dialog")
+    .locator("label.field")
+    .filter({ has: page.getByText(label, { exact: true }) })
+    .locator("input, textarea, select");
+}
+
 const flows: Record<string, TFlow> = {
   tags: (page, shot) => showTags(page, shot, uiText.en),
   "tags-german": async (page, shot) => {
@@ -486,6 +495,53 @@ const flows: Record<string, TFlow> = {
     await checkStatisticsFits(page, "german");
   },
   // Answers every Card without shots, then opens Statistics.
+  // Creates a cloze and a true_false Card from Home's empty state and the Cards page, shows the field errors, then edits one.
+  editor: async (page, shot) => {
+    const text = uiText.en;
+    const dialog = page.getByRole("dialog");
+    const preview = page.getByRole("dialog", { name: text.cardPreview, exact: true });
+    const tags = async () => {
+      await editorControl(page, text.lesson).fill("lesson-04");
+      await editorControl(page, text.domainTags).fill("Machine Learning");
+      await editorControl(page, text.topicTags).fill("Decision Tree, Leaf");
+    };
+    await page.getByRole("button", { name: text.createCard, exact: true }).click();
+    await dialog.getByRole("heading", { name: text.createCard, exact: true }).waitFor();
+    await shot("empty");
+    await dialog.getByRole("button", { name: text.createCard, exact: true }).click();
+    await page.locator(".field-error").first().waitFor();
+    await shot("errors");
+    await editorControl(page, text.type).selectOption("cloze");
+    await editorControl(page, text.text).fill("A {{leaf}} holds the mean of its samples.");
+    await tags();
+    await shot("cloze-filled");
+    await dialog.getByRole("button", { name: text.createCard, exact: true }).click();
+    await page.getByText(text.cardSaved, { exact: true }).waitFor();
+    await preview.waitFor();
+    await shot("saved");
+    await page.keyboard.press("Escape");
+    await page
+      .locator(".cards-page-heading")
+      .getByRole("button", { name: text.createCard, exact: true })
+      .click();
+    await editorControl(page, text.type).selectOption("true_false");
+    await editorControl(page, text.statement).fill("A decision tree can overfit.");
+    await editorControl(page, text.answer).selectOption("true");
+    await tags();
+    await shot("true-false-filled");
+    await dialog.getByRole("button", { name: text.createCard, exact: true }).click();
+    await preview.waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByText(text.cardCountOf(2, 2), { exact: true }).waitFor();
+    await page.locator(".library-card-open").first().click();
+    await preview.getByRole("button", { name: text.edit, exact: true }).click();
+    await dialog.getByRole("heading", { name: text.editCard, exact: true }).waitFor();
+    await shot("edit");
+    await editorControl(page, text.answer).selectOption("false");
+    await dialog.getByRole("button", { name: text.saveChanges, exact: true }).click();
+    await preview.getByText(/version 2$/).waitFor();
+    await shot("edit-saved");
+  },
   statistics: async (page, shot) => {
     await answerEveryCard(page, async () => {});
     await page.getByRole("button", { name: uiText.en.done, exact: true }).click();

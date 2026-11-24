@@ -1,5 +1,6 @@
 // Every UI text in English and German. The screenshot script runs this file in Node, which only strips types, so it imports types only.
 import type { TCard } from "@flashcards/cards";
+import type { TFieldError } from "./card.editor";
 import type { TLanguage } from "./language.context";
 
 const en = {
@@ -60,6 +61,24 @@ const en = {
   deleteCard: (id: string) => `Delete ${id}`,
   cardPreview: "Card preview",
   cardDeleted: "Card deleted.",
+  cardSaved: "Card saved.",
+  editCard: "Edit Card",
+  edit: "Edit",
+  saveChanges: "Save changes",
+  question: "Question",
+  text: "Text",
+  statement: "Statement",
+  cardId: "Card ID",
+  lesson: "Lesson",
+  tagsHint: "Separate Tags with commas.",
+  gapHint: "Put the gap in double braces, like {{this}}.",
+  inGerman: (label: string) => `${label} (German, optional)`,
+  fieldErrors: {
+    required: "This field is required.",
+    format: "Use lowercase words joined by dots or hyphens.",
+    gap: "The text needs a {{gap}}.",
+    duplicate: "A Card with this ID already exists.",
+  } satisfies Record<TFieldError, string>,
   dismiss: "Dismiss",
   cardIdAndVersion: (id: string, version: number) => `${id} · version ${version}`,
   deleteCardTitle: "Delete this Card?",
@@ -172,6 +191,24 @@ const de: TUiText = {
   deleteCard: (id) => `${id} löschen`,
   cardPreview: "Kartenvorschau",
   cardDeleted: "Karte gelöscht.",
+  cardSaved: "Karte gespeichert.",
+  editCard: "Karte bearbeiten",
+  edit: "Bearbeiten",
+  saveChanges: "Änderungen speichern",
+  question: "Frage",
+  text: "Text",
+  statement: "Aussage",
+  cardId: "Karten-ID",
+  lesson: "Lektion",
+  tagsHint: "Tags durch Kommas trennen.",
+  gapHint: "Die Lücke in doppelte Klammern setzen, etwa {{so}}.",
+  inGerman: (label: string) => `${label} (Deutsch, optional)`,
+  fieldErrors: {
+    required: "Dieses Feld ist erforderlich.",
+    format: "Kleingeschriebene Wörter, mit Punkten oder Bindestrichen verbunden.",
+    gap: "Der Text braucht eine {{Lücke}}.",
+    duplicate: "Eine Karte mit dieser ID gibt es schon.",
+  },
   dismiss: "Ausblenden",
   cardIdAndVersion: (id, version) => `${id} · Version ${version}`,
   deleteCardTitle: "Diese Karte löschen?",

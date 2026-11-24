@@ -1481,3 +1481,26 @@ tbody tr:last-child td {
     padding: var(--space-6);
   }
 }
+
+/* Card editor */
+.editor-form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+/* The prototype styles `.field textarea`; ours has the `control` class. */
+textarea.control {
+  height: auto;
+  min-height: var(--textarea-min-height);
+  padding-block: var(--space-3);
+  resize: vertical;
+}
+
+.field .field-error {
+  color: var(--color-danger-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+.control[aria-invalid="true"] {
+  border-color: var(--color-danger-600);
+}
