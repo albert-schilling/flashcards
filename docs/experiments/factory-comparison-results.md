@@ -26,7 +26,23 @@ From `scripts/session-usage.mjs`. Cost is at API prices.
 | 4     | 34 min     | $9.47  | 11         | 258           | 302        |
 | 4b    | 12 min     | $4.09  | 0          | 86            | 100        |
 
-Setup 2 cost the most because Sonnet re-read far more context: about 47 million cached tokens, against about 12 million for setup 1.
+Setup 2 cost the most because of the Stop hook, not because of the model. Its orchestrator started the phase agents in the background, though the adapter says to start them in the foreground, and ended its turn while it waited. Each turn end ran the Stop hook against the worktree, where the first-pass tests were still red. The hook passed on the whole `validate` output, about 242,000 characters, 17 times. Re-reading that context cost about $10 of the $13.56; without it the run would have cost about $3 to $4. Fix: [skills#47](https://github.com/albert-schilling/skills/issues/47).
+
+### Where the cost of setup 1 goes
+
+From the sub-agents' own transcripts:
+
+| Part                            | Model  | Cost  | Time   |
+| ------------------------------- | ------ | ----- | ------ |
+| Orchestrator (main session)     | Opus   | $2.46 | ~8 min |
+| Review, 3 rounds of 2 reviewers | Opus   | $2.84 | 10 min |
+| Tests, first pass               | Opus   | $1.59 | 6 min  |
+| Planner                         | Opus   | $0.89 | 5 min  |
+| Tests, second pass              | Opus   | $0.65 | 2 min  |
+| Implementer                     | Sonnet | $0.58 | 3 min  |
+| Researcher                      | Sonnet | $0.34 | 1 min  |
+
+Review rounds 2 and 3 cost $1.43 and about 5 minutes, and produced one structural commit. In setup 4, round 1 fixed behaviour (the gap error on a German cloze text, a red border lost under the pointer) and round 2 changed only tests.
 
 ## Objective checks
 
@@ -62,7 +78,8 @@ The reviewers agreed on the top and the bottom, but not in between: setup 4 was 
 
 - **The Factory on Opus wrote the best change**, ranked first by two of three reviewers, with no must-fix. It cost about twice as much as a single agent and took two to three times as long.
 - **A plain Opus agent came second**, with no must-fix, for 44% of the cost and 36% of the time of setup 1.
-- **The Factory on Sonnet only was worst on every count**: lowest score, a confirmed bug, and the highest cost. Cheaper models don't make the Factory cheaper.
+- **The plan made the difference, not the reviews.** Both Factory runs on Opus researched first, and their Alignment Documents named the code to reuse: the schema (`ZCard`) to check input, and `sameContent` to keep the version when nothing changed. The reviewers praised exactly that. The single-agent setups 3 and 4b copied the schema's ID and gap rules by hand, and setup 3 raised the version on an unchanged save. Setup 2's plan didn't name `sameContent`.
+- **The Factory on Sonnet only was worst on quality**: lowest score and a confirmed bug. Its high cost came from the Stop hook (above), not from the model.
 - **Following the phases without sub-agents didn't help.** Setup 3 cost about as much as the plain agent, scored lower, and had a confirmed bug.
 - **Two Factory runs on Opus differed** (setups 1 and 4: ranks 1.3 and 3.0). One run per setup can't separate a setup's effect from run-to-run noise.
 - **Left alone, Opus picks the Factory.** The repository's instructions point to it, and a plain prompt was enough to start it.
@@ -76,6 +93,10 @@ The reviewers agreed on the top and the bottom, but not in between: setup 4 was 
 
 ## Next
 
-- Don't run the Factory with Sonnet in every phase.
+- Don't run the Factory with Sonnet in every phase. Keep research on Sonnet and planning on Opus: the plan is where the quality came from, for about $1.20.
+- Cut the Stop hook's output to a summary: [skills#47](https://github.com/albert-schilling/skills/issues/47).
+- Run the spec and standards reviewers in parallel, read-only, with one agent fixing, and run another round only after a behavioural fix: [skills#48](https://github.com/albert-schilling/skills/issues/48). In setup 1 that would save about $1.40 and 5 minutes.
+- Smaller tests and smaller issues: the first test pass is the most expensive agent, and all five pull requests were over 1,000 lines. A test budget in the plan: [skills#38](https://github.com/albert-schilling/skills/issues/38).
+- Estimate, not measured: with #47 and #48, a run like setup 1 costs about $7 and takes 25 to 28 minutes.
 - To decide between the Factory and a plain agent, run a second and third issue with setups 1 and 4b only. Prefer issues small enough for one pull request.
-- Close PRs #120 to #125 except the one to merge, and clean up the issue copies, branches and worktrees. Setup 1's PR #124 is the best candidate to merge after a person reads it.
+- Done: #124 merged; the other experiment pull requests, issue copies, branches and worktrees are closed or removed.
