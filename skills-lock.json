@@ -23,8 +23,8 @@
       "source": "albert-schilling/skills",
       "sourceType": "github",
       "skillPath": "skills/factory/SKILL.md",
-      "computedHash": "a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0",
-      "commit": "4eff03492724499f3002a2514976f5bd5fafd808"
+      "computedHash": "d6832c40d67b633419163f1c12332e1f7750c3437645761f9b019136506e9cef",
+      "commit": "3edd737c7173fb7a0e0254eb9f32f84cab17e78b"
     },
     "factory-pull-request": {
       "source": "albert-schilling/skills",
@@ -44,8 +44,8 @@
       "source": "albert-schilling/skills",
       "sourceType": "github",
       "skillPath": "skills/factory-setup/SKILL.md",
-      "computedHash": "c0359a8c5c293b8395d051422ab3e58edc909c73142667fbf01d5a0b30c20469",
-      "commit": "4eff03492724499f3002a2514976f5bd5fafd808"
+      "computedHash": "980f4e88c56ec5e179c8723c396ab7cc04bdb02d43a7dd851d1e4d6f9a386556",
+      "commit": "3edd737c7173fb7a0e0254eb9f32f84cab17e78b"
     },
     "grill-me": {
       "source": "mattpocock/skills",

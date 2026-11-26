@@ -1,6 +1,6 @@
 ---
 # Rendered from .claude/skills/factory/agents/factory-implementer.md; /factory-setup copies it here. Change the source, not this file.
-# Installed by factory-setup from Factory version a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0
+# Installed by factory-setup from Factory version d6832c40d67b633419163f1c12332e1f7750c3437645761f9b019136506e9cef
 name: factory-implementer
 description: "The Factory's implementation phase. Writes the code that makes the test-writer's tests pass, following the Alignment Document. It can't change test files; when it thinks a test is wrong, it stops and says so."
 model: sonnet
@@ -28,3 +28,5 @@ Your final message is a result in the `factory-result` format. If that skill isn
 - Tidy only the code you are about to change, in a commit labelled `structural:` before the behavioural one. Label the change itself `behavioural:`.
 
 **Artifact**: what you changed, file by file, in a line each; the commits; and the output of the final `validate` run, shortened to its summary.
+
+In a worktree, run git and other file-changing shell commands one at a time: Claude Code's worktree guard refuses chained commands (`&&`, `;`, heredocs, process substitution), and a refused command is wasted. Edit files with Edit and Write, not with shell redirects or heredocs.

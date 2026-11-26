@@ -1,6 +1,6 @@
 ---
 # Rendered from .claude/skills/factory/agents/factory-planner.md; /factory-setup copies it here. Change the source, not this file.
-# Installed by factory-setup from Factory version a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0
+# Installed by factory-setup from Factory version d6832c40d67b633419163f1c12332e1f7750c3437645761f9b019136506e9cef
 name: factory-planner
 description: "The Factory's planning phase. Writes the Alignment Document for one issue from the issue and the research summary; a person reviews it before any test or code is written. Also proposes a split when the issue is too big for one pull request."
 model: opus
@@ -32,3 +32,5 @@ Return `blocked` instead when:
 - the issue contradicts a decision record or the code: say which, with a reference.
 
 Keep it short; the person reviewing reads every line. Use the glossary's terms.
+
+In a worktree, run git and other shell commands one at a time: Claude Code's worktree guard refuses chained commands (`&&`, `;`, heredocs, process substitution), and a refused command is wasted.

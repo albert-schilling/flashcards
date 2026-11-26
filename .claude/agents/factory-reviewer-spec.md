@@ -1,6 +1,6 @@
 ---
 # Rendered from .claude/skills/factory/agents/factory-reviewer-spec.md; /factory-setup copies it here. Change the source, not this file.
-# Installed by factory-setup from Factory version a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0
+# Installed by factory-setup from Factory version d6832c40d67b633419163f1c12332e1f7750c3437645761f9b019136506e9cef
 name: factory-reviewer-spec
 description: "The Factory's spec reviewer, run in a fresh context after implementation. Checks that the change does what the issue and the Alignment Document say, and nothing more, and fixes what falls short within the pull request's scope."
 model: opus
@@ -21,3 +21,5 @@ Read the diff from the base. For each acceptance criterion and each item of the 
 - When the right answer is unclear (the issue is ambiguous, or the plan and the issue disagree), return `blocked` rather than choosing.
 
 **Artifact**: the findings, numbered, each with its location, what is wrong, and either the commit that fixes it or why it stays; then the findings in untouched code; then one line saying whether the change meets its spec.
+
+In a worktree, run git and other file-changing shell commands one at a time: Claude Code's worktree guard refuses chained commands (`&&`, `;`, heredocs, process substitution), and a refused command is wasted. Edit files with Edit and Write, not with shell redirects or heredocs.
