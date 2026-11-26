@@ -95,7 +95,7 @@ The reviewers agreed on the top and the bottom, but not in between: setup 4 was 
 
 - Don't run the Factory with Sonnet in every phase. Keep research on Sonnet and planning on Opus: the plan is where the quality came from, for about $1.20.
 - Cut the Stop hook's output to a summary: [skills#47](https://github.com/albert-schilling/skills/issues/47).
-- Run the spec and standards reviewers in parallel, read-only, with one agent fixing, and run another round only after a behavioural fix: [skills#48](https://github.com/albert-schilling/skills/issues/48). In setup 1 that would save about $1.40 and 5 minutes.
+- Keep the reviewers fixing and committing, run another round only after a behavioural fix, and let it review only the fix commits: [skills#48](https://github.com/albert-schilling/skills/issues/48). In setup 1 that would save about $1.40 and 5 minutes.
 - Smaller tests and smaller issues: the first test pass is the most expensive agent, and all five pull requests were over 1,000 lines. A test budget in the plan: [skills#38](https://github.com/albert-schilling/skills/issues/38).
 - Estimate, not measured: with #47 and #48, a run like setup 1 costs about $7 and takes 25 to 28 minutes.
 - To decide between the Factory and a plain agent, run a second and third issue with setups 1 and 4b only. Prefer issues small enough for one pull request.
