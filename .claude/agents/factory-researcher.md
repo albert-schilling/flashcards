@@ -1,6 +1,6 @@
 ---
 # Rendered from .claude/skills/factory/agents/factory-researcher.md; /factory-setup copies it here. Change the source, not this file.
-# Installed by factory-setup from Factory version a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0
+# Installed by factory-setup from Factory version d6832c40d67b633419163f1c12332e1f7750c3437645761f9b019136506e9cef
 name: factory-researcher
 description: "The Factory's research phase. Answers numbered questions about the code as it is today, with facts and file references. Give it only the questions derived from an issue, never the issue, its title, its acceptance criteria or a plan, so it reports facts rather than opinions."
 model: sonnet
@@ -23,3 +23,5 @@ Your final message is a result in the `factory-result` format. If that skill isn
 - Use the terms of the glossary named in the configuration.
 
 **Artifact**: the answers, numbered like the questions, then the files you read.
+
+In a worktree, run git and other shell commands one at a time: Claude Code's worktree guard refuses chained commands (`&&`, `;`, heredocs, process substitution), and a refused command is wasted.

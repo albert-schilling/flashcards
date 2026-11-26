@@ -16,12 +16,13 @@
     "preExisting": "pre-existing"
   },
   "installed": {
-    "version": "a7bb9f00c1ac9cf7185b173c3d603394d67d3cceeae147b541d480d68522f8e0",
-    "setupVersion": "c0359a8c5c293b8395d051422ab3e58edc909c73142667fbf01d5a0b30c20469",
+    "version": "d6832c40d67b633419163f1c12332e1f7750c3437645761f9b019136506e9cef",
+    "setupVersion": "980f4e88c56ec5e179c8723c396ab7cc04bdb02d43a7dd851d1e4d6f9a386556",
     "files": [
       ".claude/agents/factory-implementer.md",
       ".claude/agents/factory-planner.md",
       ".claude/agents/factory-researcher.md",
+      ".claude/agents/factory-retro.md",
       ".claude/agents/factory-reviewer-security.md",
       ".claude/agents/factory-reviewer-spec.md",
       ".claude/agents/factory-reviewer-standards.md",
