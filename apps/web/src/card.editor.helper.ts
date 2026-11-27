@@ -177,7 +177,7 @@ function fieldOf(path: PropertyKey[]): TFormField | undefined {
   const [first, second, third] = path;
   if (first === "id" || first === "lesson") return first;
   if (first === "tags" && (second === "domain" || second === "topic")) return `tags.${second}`;
-  if (typeof first === "string" && first in noBoth) return first as TBothKey;
+  if (typeof first === "string" && Object.hasOwn(noBoth, first)) return first as TBothKey;
   if (first === "en" && typeof second === "string") return `en.${second as TTextKey}`;
   if (first === "translations" && second === "de" && typeof third === "string") {
     return `de.${third as TTextKey}`;
