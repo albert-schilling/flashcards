@@ -55,7 +55,7 @@ function Field(props: {
   );
 }
 
-/** The Card editor: a Modal titled Create Card or Edit Card, with Type, the type's fields, optional German fields, Domain and Topic tags, Lesson and ID (suggested from the text while the Learner hasn't typed one; disabled when editing). Save checks the form with cardFromForm: errors show under their fields from then on, and a valid Card goes to onSave. Cancel, Close and Escape call onClose. */
+/** The Card editor: a Modal titled Create Card or Edit Card, with Type, the type's fields (the ones with one value for both languages after the English ones), optional German fields, Domain and Topic tags, Lesson and ID (suggested from the text while the Learner hasn't typed one; disabled when editing). Save checks the form with cardFromForm: errors show under their fields from then on, and a valid Card goes to onSave. Cancel, Close and Escape call onClose. */
 export function CardEditor(props: {
   card?: TEditableCard;
   takenIds: string[];
@@ -79,9 +79,14 @@ export function CardEditor(props: {
     answer: text.answer,
     text: text.text,
     statement: text.statement,
+    name: text.name,
+    wordFormula: text.wordFormula,
+    readAloud: text.readAloud,
+    example: text.exampleLabel,
     formula: text.formula,
     latex: text.latex,
   };
+  const optionalKeys: string[] = ["readAloud", "example", "latex"];
 
   function setBoth(key: keyof TCardForm["both"], value: string) {
     setTyped({ ...typed, both: { ...typed.both, [key]: value } });
@@ -121,7 +126,13 @@ export function CardEditor(props: {
           <TextField
             key={key}
             label={labels[key]}
-            hint={key === "text" ? text.clozeHint : undefined}
+            hint={
+              key === "text"
+                ? text.clozeHint
+                : optionalKeys.includes(key)
+                  ? text.optionalHint
+                  : undefined
+            }
             problem={errors[`en.${key}`]}
             value={typed.en[key]}
             onChange={(value) => setTexts("en", key, value)}
@@ -146,6 +157,7 @@ export function CardEditor(props: {
           <TextField
             key={key}
             label={labels[key]}
+            hint={optionalKeys.includes(key) ? text.optionalHint : undefined}
             problem={errors[key]}
             value={typed.both[key]}
             onChange={(value) => setBoth(key, value)}
