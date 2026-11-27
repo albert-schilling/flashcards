@@ -1,4 +1,4 @@
-// Reads the Statistics page: its tables, overview and bars.
+// Reads the Statistics page: its main region, tables and overview.
 import { screen, within } from "@testing-library/react";
 
 // The navigation has a Statistics button too, so a click on Home's looks inside main only.
