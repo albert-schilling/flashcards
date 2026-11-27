@@ -129,10 +129,10 @@ function bothOf(card: TEditableCard): TBothTexts {
 }
 
 /** The text keys of `texts` only; a multiple_choice Card's `options` stay out of the form's texts. */
-function textsOf(texts?: object): TTexts {
+function textsOf(texts?: Record<string, unknown>): TTexts {
   const picked = { ...noTexts };
   for (const key of Object.keys(noTexts) as TTextKey[]) {
-    const value = (texts as Partial<Record<TTextKey, unknown>> | undefined)?.[key];
+    const value = texts?.[key];
     if (typeof value === "string") picked[key] = value;
   }
   return picked;
