@@ -97,7 +97,8 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.field small {
+.field small,
+.option-rows > small {
   color: var(--color-ink-500);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-regular);
@@ -312,6 +313,12 @@
 .icon-button:hover,
 .alert-close:hover {
   background: var(--color-surface-muted);
+}
+
+/* Muted with no hover, like the other disabled buttons. */
+.icon-button:disabled {
+  background: var(--color-transparent);
+  color: var(--color-ink-500);
 }
 
 .main-nav {
@@ -1508,12 +1515,6 @@ textarea.control {
   color: var(--color-ink-700);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-}
-
-.option-rows > small {
-  color: var(--color-ink-500);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-regular);
 }
 
 .option-rows > .button {
