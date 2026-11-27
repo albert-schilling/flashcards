@@ -1,4 +1,4 @@
-// Renders the Cards page alone, with mock callbacks, and finds its rows, filters, preview and editor.
+// Renders the Cards page alone, with mock callbacks, and finds its rows, filters, Delete buttons, preview and editor.
 import type { TCard } from "@flashcards/cards";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, vi, type Mock } from "vitest";
