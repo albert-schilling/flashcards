@@ -1082,18 +1082,16 @@ function showsIcon(element: Element | null, Icon: LucideIcon) {
 
 /** Each option's mark: its letter, or "correct check" or "incorrect x" once answered. */
 function optionMarks(article: HTMLElement) {
-  return within(article)
-    .getAllByRole("button")
-    .map((option) => {
-      const marker = option.querySelector(".option-marker");
-      const status = ["correct", "incorrect"].find((name) => option.classList.contains(name));
-      const shown = showsIcon(marker, Check)
-        ? "check"
-        : showsIcon(marker, X)
-          ? "x"
-          : marker?.textContent;
-      return status ? `${status} ${shown}` : shown;
-    });
+  return [...article.querySelectorAll(".option-button")].map((option) => {
+    const marker = option.querySelector(".option-marker");
+    const status = ["correct", "incorrect"].find((name) => option.classList.contains(name));
+    const shown = showsIcon(marker, Check)
+      ? "check"
+      : showsIcon(marker, X)
+        ? "x"
+        : marker?.textContent;
+    return status ? `${status} ${shown}` : shown;
+  });
 }
 
 /** Checks the feedback shows the word and its own hidden icon, and returns it. */
