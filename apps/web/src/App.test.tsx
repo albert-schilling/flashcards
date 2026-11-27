@@ -2660,6 +2660,139 @@ it("a finished Session keeps its summary until Done, so the Session link shows i
   expect(screen.queryByRole("button", { name: "Reveal" })).toBeNull();
 });
 
+/** Opens the Cards page, then this Card's preview, and presses the button with this name there. */
+function fromPreview(id: string, name: string) {
+  openCards();
+  fireEvent.click(openPreview(id).getByRole("button", { name }));
+}
+
+/** Whether this Card's preview on the Cards page has Add to current Session disabled; closes the preview again. */
+function addDisabled(id: string) {
+  openCards();
+  const preview = openPreview(id);
+  const add = preview.getByRole<HTMLButtonElement>("button", { name: "Add to current Session" });
+  const disabled = add.disabled;
+  fireEvent.click(preview.getByRole("button", { name: "Close" }));
+  return disabled;
+}
+
+/** Uploads Card a, with a tag only it has, and these Cards. */
+async function uploadedWithA(...others: TCard[]) {
+  render(<App />);
+  await uploaded(tagged(qa("a", 1), ["Statistics"], ["Regression"]), ...others);
+}
+
+/** On Home, starts a Session of only Card a, picked by its tag. */
+async function startSessionOfA() {
+  goHome();
+  fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "Regression" } });
+  startSession();
+  await screen.findByText("What is a?");
+}
+
+it("Add to current Session is disabled with no Session; added to a running Session, the Card closes the preview, shows its notice, counts in the progress and records its Review", async () => {
+  await uploadedWithA(qa("b", 2));
+  expect(addDisabled("b")).toBe(true);
+  await startSessionOfA();
+
+  fromPreview("b", "Add to current Session");
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect((await screen.findByRole("status")).textContent).toBe("Added to the current Session.");
+  expect(isCurrent("Cards")).toBe(true);
+  goTo("Session");
+  expect(screen.getByText("1 / 2")).toBeTruthy();
+  await answer();
+  await screen.findByText("What is b?");
+  expect(screen.getByText("2 / 2")).toBeTruthy();
+  await answer();
+  await screen.findByText("2 answered, 2 right");
+  await waitFor(async () =>
+    expect((await loadReviews()).map((each) => [each.cardId, each.cardVersion])).toEqual([
+      ["a", 1],
+      ["b", 2],
+    ]),
+  );
+});
+
+it("New Session replaces the running Session with one of only this Card, and records its Review", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 3));
+  startSession();
+  await answer();
+  await screen.findByText("2 / 2");
+
+  fromPreview("b", "New Session");
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect((await screen.findByRole("status")).textContent).toBe(
+    "New Session created with this Card.",
+  );
+  expect(isCurrent("Cards")).toBe(true);
+  goTo("Session");
+  expect(screen.getByText("1 / 1")).toBeTruthy();
+  expect(screen.getByText("What is b?")).toBeTruthy();
+  await answer();
+  await screen.findByText("1 answered, 1 right");
+  await waitFor(async () => {
+    const log = await loadReviews();
+    expect(log).toHaveLength(2);
+    expect([log[1].cardId, log[1].cardVersion]).toEqual(["b", 3]);
+  });
+});
+
+it("Add on the summary asks the added Card; after Done Add is disabled", async () => {
+  await uploadedWithA(qa("b", 1), qa("c", 1));
+  await startSessionOfA();
+  await answer();
+  await screen.findByRole("button", { name: "Done" });
+
+  fromPreview("b", "Add to current Session");
+  goTo("Session");
+
+  expect(screen.getByText("2 / 2")).toBeTruthy();
+  expect(screen.getByText("What is b?")).toBeTruthy();
+  await answer();
+  await screen.findByText("2 answered, 2 right");
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  expect(addDisabled("c")).toBe(true);
+});
+
+it("Add to current Session is disabled for a Card already in the running Session, picked or added", async () => {
+  await uploadedWithA(qa("b", 1), qa("c", 1));
+  await startSessionOfA();
+
+  expect(addDisabled("a")).toBe(true);
+  expect(addDisabled("c")).toBe(false);
+  fromPreview("b", "Add to current Session");
+  await screen.findByRole("status");
+
+  expect(addDisabled("b")).toBe(true);
+  expect(addDisabled("c")).toBe(false);
+});
+
+it("a Card answered wrong comes back once, also when a Card is added after it", async () => {
+  render(<App />);
+  await uploaded(qa("a", 1), qa("b", 1));
+  const asked = async () => (await screen.findByText(/^What is [ab]\?$/)).textContent;
+  fromPreview("a", "New Session");
+  goTo("Session");
+
+  expect(await asked()).toBe("What is a?");
+  await answer(false);
+  fromPreview("b", "Add to current Session");
+  goTo("Session");
+  expect(screen.getByText("2 / 3")).toBeTruthy();
+  expect(await asked()).toBe("What is a?");
+  await answer(false);
+  expect(await asked()).toBe("What is b?");
+  await answer(false);
+  expect(await asked()).toBe("What is b?");
+  await answer();
+
+  await screen.findByText("4 answered, 1 right");
+});
+
 function editor(title = "Create Card") {
   return within(screen.getByRole("dialog", { name: title }));
 }
