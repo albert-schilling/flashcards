@@ -12,8 +12,10 @@ export function isEditable(card: TCard): card is TEditableCard {
 
 type TTexts = { question: string; answer: string; text: string; statement: string };
 type TTextKey = keyof TTexts;
+type TBothTexts = { formula: string; latex: string };
+type TBothKey = keyof TBothTexts;
 
-/** The editor's input: every text field of every editable type, so switching type keeps what was typed. Tags are comma-separated. */
+/** The editor's input: every field of every editable type, so switching type keeps what was typed. `en` and `de` hold the texts per language, `both` the fields with one value for both languages. Tags are comma-separated. */
 export type TCardForm = {
   type: TEditableType;
   id: string;
@@ -22,6 +24,7 @@ export type TCardForm = {
   topicTags: string;
   en: TTexts;
   de: TTexts;
+  both: TBothTexts;
   answer: boolean;
 };
 
@@ -31,7 +34,8 @@ export type TFormField =
   | "tags.domain"
   | "tags.topic"
   | `en.${TTextKey}`
-  | `de.${TTextKey}`;
+  | `de.${TTextKey}`
+  | TBothKey;
 export type TFieldProblem = "empty" | "noGap" | "idFormat" | "idTaken";
 export type TFieldErrors = Partial<Record<TFormField, TFieldProblem>>;
 
@@ -42,7 +46,22 @@ export const textFields: Record<TEditableType, TTextKey[]> = {
   true_false: ["statement"],
 };
 
+/** The fields of each editable type that hold one value for both languages, in the order the editor shows them; they sit at the Card's top level. */
+export const bothFields: Record<TEditableType, TBothKey[]> = {
+  qa: [],
+  cloze: [],
+  true_false: [],
+};
+
+/** The text field a new Card's ID is suggested from, per editable type. */
+export const idSource: Record<TEditableType, TTextKey> = {
+  qa: "question",
+  cloze: "text",
+  true_false: "statement",
+};
+
 const noTexts: TTexts = { question: "", answer: "", text: "", statement: "" };
+const noBoth: TBothTexts = { formula: "", latex: "" };
 
 /** The form for a Card, or an empty qa form when there is none. */
 export function formFromCard(card?: TEditableCard): TCardForm {
@@ -55,6 +74,7 @@ export function formFromCard(card?: TEditableCard): TCardForm {
       topicTags: "",
       en: { ...noTexts },
       de: { ...noTexts },
+      both: { ...noBoth },
       answer: true,
     };
   }
@@ -66,6 +86,7 @@ export function formFromCard(card?: TEditableCard): TCardForm {
     topicTags: card.tags.topic.join(", "),
     en: { ...noTexts, ...card.en },
     de: { ...noTexts, ...card.translations?.de },
+    both: { ...noBoth },
     answer: card.type === "true_false" ? card.answer : true,
   };
 }
@@ -126,6 +147,7 @@ function fieldOf(path: PropertyKey[]): TFormField | undefined {
   const [first, second, third] = path;
   if (first === "id" || first === "lesson") return first;
   if (first === "tags" && (second === "domain" || second === "topic")) return `tags.${second}`;
+  if (typeof first === "string" && first in noBoth) return first as TBothKey;
   if (first === "en" && typeof second === "string") return `en.${second as TTextKey}`;
   if (first === "translations" && second === "de" && typeof third === "string") {
     return `de.${third as TTextKey}`;
