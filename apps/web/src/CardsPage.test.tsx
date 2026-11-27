@@ -354,7 +354,14 @@ it.each([
 ])(
   "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, and Edit for the editable types",
   ({ card, title, answer }) => {
-    const editable = ["qa", "cloze", "true_false", "formula", "numeric"].includes(card.type);
+    const editable = [
+      "qa",
+      "cloze",
+      "true_false",
+      "formula",
+      "numeric",
+      "multiple_choice",
+    ].includes(card.type);
     renderCardsPage([card]);
 
     const preview = openPreview("a");
@@ -1125,15 +1132,6 @@ it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1), numeric(
   },
 );
 
-it.each([multipleChoice("a", 1)])(
-  "a $type preview has no Edit until the editor has its fields",
-  (card) => {
-    renderCardsPage([card]);
-
-    expect(openPreview("a").queryByRole("button", { name: "Edit" })).toBeNull();
-  },
-);
-
 it.each([
   {
     card: german(cloze("a", 1), { text: "a hat eine {{Lücke}}." }),
@@ -1170,6 +1168,24 @@ it.each([
       "Question (German)": "Wie viel ist a?",
     },
   },
+  {
+    card: german(multipleChoice("a", 1), {
+      question: "Welches ist a?",
+      options: ["Dies", "Das"],
+      explanation: "Dieses.",
+    }),
+    fields: {
+      Type: "multiple_choice",
+      Question: "Which is a?",
+      Explanation: "This one.",
+      "Option 1": "This",
+      "Option 1 (German)": "Dies",
+      "Option 2": "That",
+      "Option 2 (German)": "Das",
+      "Question (German)": "Welches ist a?",
+      "Explanation (German)": "Dieses.",
+    },
+  },
 ])("Edit in a $card.type preview opens the editor with the Card's fields", ({ card, fields }) => {
   renderCardsPage([card]);
 
@@ -1182,6 +1198,10 @@ it.each([
   if (card.type === "true_false") {
     const answer = editor.getByLabelText<HTMLSelectElement>("Answer");
     expect(answer.selectedOptions[0].textContent).toBe("False");
+  }
+  if (card.type === "multiple_choice") {
+    expect(editor.getByLabelText<HTMLInputElement>("Option 1 is right").checked).toBe(true);
+    expect(editor.getByLabelText<HTMLInputElement>("Option 2 is right").checked).toBe(false);
   }
   expect(editor.getByRole("button", { name: "Save changes" })).toBeTruthy();
 });

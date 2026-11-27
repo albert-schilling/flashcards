@@ -2821,6 +2821,28 @@ const created = [
     },
     answer: "5 m",
   },
+  {
+    type: "multiple_choice",
+    fillType: (dialog: TQueries) => {
+      pickCardType(dialog, "multiple_choice");
+      fill(dialog, "Question", "Which node predicts?");
+      fill(dialog, "Explanation", "A leaf predicts the mean.");
+      fill(dialog, "Option 1", "The root");
+      fill(dialog, "Option 2", "A leaf");
+      fireEvent.click(dialog.getByLabelText("Option 2 is right"));
+    },
+    card: {
+      id: "which-node-predicts",
+      type: "multiple_choice",
+      en: {
+        question: "Which node predicts?",
+        options: ["The root", "A leaf"],
+        explanation: "A leaf predicts the mean.",
+      },
+      answerIndex: 1,
+    },
+    answer: "A leaf",
+  },
 ];
 
 it.each(created)(
@@ -2964,6 +2986,78 @@ it.each([
   },
 );
 
+it("a multiple_choice Card created with Option 2 marked right marks it right in a Session", async () => {
+  render(<App />);
+  const dialog = openEditor();
+  created[5].fillType(dialog);
+  fillShared(dialog);
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+  await expectSaved();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  goHome();
+  startSession();
+  const article = await screen.findByRole("article");
+
+  clickOption(article, "A leaf");
+
+  expect(optionMarks(article)).toEqual(["A", "correct check"]);
+  expectFeedback(article, "Right.", true);
+});
+
+it("a multiple_choice Card made with three options in English and German, the third marked right and the first removed, has the other two in Download Cards with the third still right", async () => {
+  render(<App />);
+  const dialog = openEditor();
+  pickCardType(dialog, "multiple_choice");
+  fill(dialog, "Question", "Which node predicts?");
+  fill(dialog, "Explanation", "A leaf predicts the mean.");
+  fill(dialog, "Question (German)", "Welcher Knoten sagt voraus?");
+  fill(dialog, "Explanation (German)", "Ein Blatt sagt den Mittelwert voraus.");
+  fill(dialog, "Option 1", "The root");
+  fill(dialog, "Option 1 (German)", "Die Wurzel");
+  fill(dialog, "Option 2", "A split");
+  fill(dialog, "Option 2 (German)", "Ein Split");
+  fireEvent.click(dialog.getByRole("button", { name: "Add option" }));
+  fill(dialog, "Option 3", "A leaf");
+  fill(dialog, "Option 3 (German)", "Ein Blatt");
+  fireEvent.click(dialog.getByLabelText("Option 3 is right"));
+
+  fireEvent.click(dialog.getByRole("button", { name: "Remove option 1" }));
+
+  expect(dialog.queryByLabelText("Option 3")).toBeNull();
+  expect(fieldValue(dialog, "Option 1")).toBe("A split");
+  expect(fieldValue(dialog, "Option 2")).toBe("A leaf");
+  expect(fieldValue(dialog, "Option 2 (German)")).toBe("Ein Blatt");
+  expect(dialog.getByLabelText<HTMLInputElement>("Option 2 is right").checked).toBe(true);
+  fillShared(dialog);
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+  await expectSaved();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  const file = await download("Download Cards");
+  expect(JSON.parse(await file.text()).cards).toEqual([
+    {
+      id: "which-node-predicts",
+      version: 1,
+      tags: { domain: ["Machine Learning", "Statistics"], topic: ["Decision Tree"] },
+      sourceIds: [],
+      lesson: "lesson-04",
+      type: "multiple_choice",
+      en: {
+        question: "Which node predicts?",
+        options: ["A split", "A leaf"],
+        explanation: "A leaf predicts the mean.",
+      },
+      translations: {
+        de: {
+          question: "Welcher Knoten sagt voraus?",
+          options: ["Ein Split", "Ein Blatt"],
+          explanation: "Ein Blatt sagt den Mittelwert voraus.",
+        },
+      },
+      answerIndex: 1,
+    },
+  ]);
+});
+
 it("the editor shows the picked type's fields, then its German fields, tags, Lesson and ID, and keeps what was typed across types", () => {
   render(<App />);
   const dialog = openEditor();
@@ -2976,6 +3070,7 @@ it("the editor shows the picked type's fields, then its German fields, tags, Les
     "true_false",
     "formula",
     "numeric",
+    "multiple_choice",
   ]);
   expect(select.value).toBe("qa");
   expect(fieldLabels(element)).toEqual([
@@ -3028,6 +3123,20 @@ it("the editor shows the picked type's fields, then its German fields, tags, Les
     ...shared,
   ]);
   fill(dialog, "Answer", "9.81");
+  pickCardType(dialog, "multiple_choice");
+  expect(fieldLabels(element)).toEqual([
+    "Type",
+    "Question",
+    "Explanation",
+    "Option 1",
+    "Option 1 (German)",
+    "Option 2",
+    "Option 2 (German)",
+    "Question (German)",
+    "Explanation (German)",
+    ...shared,
+  ]);
+  expect(fieldValue(dialog, "Question")).toBe("What is the leaf mean?");
   pickCardType(dialog, "qa");
 
   expect(fieldValue(dialog, "Question")).toBe("What is the leaf mean?");
@@ -3157,6 +3266,33 @@ it("Create Card for a numeric Card marks a blank Answer as empty and a negative 
   expect(fieldError(dialog.getByLabelText("Allowed error"))).toBe(
     "The allowed error can't be negative.",
   );
+  expect(screen.getByText("0 of 0 Cards")).toBeTruthy();
+});
+
+it("Create Card for a multiple_choice Card marks blank options as empty, and blank German options once one is filled", () => {
+  render(<App />);
+  const dialog = openEditor();
+  const element = screen.getByRole("dialog", { name: "Create Card" });
+  pickCardType(dialog, "multiple_choice");
+  fill(dialog, "Option 1 (German)", "Die Wurzel");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+
+  expect(invalidFields(element)).toEqual([
+    "Question",
+    "Explanation",
+    "Option 1",
+    "Option 2",
+    "Option 2 (German)",
+    "Domain tags",
+    "Topic tags",
+    "Lesson",
+    "ID",
+  ]);
+  for (const field of ["Option 1", "Option 2", "Option 2 (German)"]) {
+    expect(fieldError(dialog.getByLabelText(field))).toBe("This field can't be empty.");
+  }
+  expect(fieldError(dialog.getByLabelText("Option 1 (German)"))).toBeNull();
   expect(screen.getByText("0 of 0 Cards")).toBeTruthy();
 });
 
@@ -3308,6 +3444,32 @@ it("Edit on a numeric Card changes its Answer; Save changes raises the version a
   const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
   expect(preview.getByText("n · version 2")).toBeTruthy();
   expect(preview.getByText("7 cm")).toBeTruthy();
+});
+
+it("Edit on a multiple_choice Card with two options disables Remove until Add option; a third option marked right is saved as a new version", async () => {
+  render(<App />);
+  await uploaded(multipleChoice("mc", 1));
+  const dialog = openEdit("mc");
+  const removeButtons = () =>
+    [1, 2].map(
+      (n) => dialog.getByRole<HTMLButtonElement>("button", { name: `Remove option ${n}` }).disabled,
+    );
+  expect(fieldValue(dialog, "Option 1")).toBe("This");
+  expect(fieldValue(dialog, "Option 2")).toBe("That");
+  expect(removeButtons()).toEqual([true, true]);
+
+  fireEvent.click(dialog.getByRole("button", { name: "Add option" }));
+
+  expect(removeButtons()).toEqual([false, false]);
+  expect(fieldValue(dialog, "Option 3")).toBe("");
+  fill(dialog, "Option 3", "Neither");
+  fireEvent.click(dialog.getByLabelText("Option 3 is right"));
+  fireEvent.click(dialog.getByRole("button", { name: "Save changes" }));
+
+  await expectSaved();
+  const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
+  expect(preview.getByText("mc · version 2")).toBeTruthy();
+  expect(preview.getByText("Neither")).toBeTruthy();
 });
 
 it("after an edit, Statistics no longer count the Reviews of the Card's older version", async () => {
