@@ -1,4 +1,4 @@
-// Usage: pnpm screenshot <flow> <folder> [width]. Writes <folder>/<flow>-<shot>.png; width defaults to 1280, use 375 for mobile.
+// Usage: pnpm screenshot <flow> <folder> [width]. Writes <folder>/<flow>-<shot>.png and prints each path; width defaults to 1280, use 375 for mobile.
 // pnpm runs the script from the repo root, so a relative <folder> is taken from there.
 import { mkdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -602,11 +602,10 @@ try {
   await requireInter(page);
   await flow(page, async (name) => {
     // Buttons fade between states; a shot taken mid-fade shows a colour no state has.
-    await page.screenshot({
-      path: resolve(folder, `${flowName}-${name}.png`),
-      fullPage: true,
-      animations: "disabled",
-    });
+    const path = resolve(folder, `${flowName}-${name}.png`);
+    await page.screenshot({ path, fullPage: true, animations: "disabled" });
+    // Says which files to open, so each shot gets looked at.
+    console.log(path);
   });
 } finally {
   await browser.close();

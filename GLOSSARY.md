@@ -16,6 +16,10 @@ _Avoid_: Kind, format
 A number on a Card that goes up when its content changes, so Reviews of older versions no longer count.
 _Avoid_: Revision
 
+**Read aloud**:
+How a formula Card's formula is said in words, for example "Norm of a equals the square root of a dot a." Optional. German label: "Gesprochen".
+_Avoid_: Pronunciation
+
 **Deck**:
 A set of Cards in one file, uploaded to or downloaded from the app.
 _Avoid_: Question set, collection
