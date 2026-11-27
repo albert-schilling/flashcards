@@ -1,6 +1,6 @@
 # Code and config
 
-- A comment says what the code can't show: why, or a constraint or rule that isn't obvious, in one or two sentences. It doesn't list what a component renders or does step by step, which the code and tests already show; drop a comment that only restates the name. Comments never cite a decision by number alone ("Q38"), which a later reader can't look up; name the document if a source is needed.
+- A comment says what the code can't show: why, or a constraint or rule that isn't obvious, in one or two sentences. It doesn't list what a component renders or does step by step, which the code and tests already show; drop a comment that only restates the name or a one-line body. Keep what callers rely on but can't see, such as an order or "must only grow". Comments never cite a decision by number alone ("Q38"), which a later reader can't look up; name the document if a source is needed.
 - Config files stay close to tool defaults; each deviation gets a one-line comment saying why.
 - Zod schemas are PascalCase with a `Z` prefix, types and interfaces with a `T` prefix, most general word first: `ZCardQA` and `TCardQA`, `ZDeck` and `TDeck`. No lint rule enforces it (oxlint has none); review does.
 - File names: React components are `PascalCase.tsx` (`Session.tsx`); other modules are lowercase with a dot suffix for their purpose (`session.helper.ts`, `card.schemas.ts`, `review.storage.ts`). A test file adds `.test` before the extension (`session.helper.test.ts`) and sits next to the code it tests.
