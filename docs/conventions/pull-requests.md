@@ -1,6 +1,7 @@
 # Pull requests
 
-- Small pull requests: one issue each, about 300 changed lines at most, not counting lock files and generated files. Changed lines are added plus deleted lines, as `git diff --shortstat origin/main...` counts them; the pull request says how many of them only move or change whitespace.
+- Small pull requests: one issue each, about 300 changed lines at most, not counting lock files and generated files. Changed lines are added plus deleted lines, as `git diff --shortstat origin/main...` counts them; the pull request says how many of them only move or change whitespace. A plan compares its estimate with past overruns applied (the harness log's recent factors), not the raw estimate, against this limit.
+- A change that widens or alters what a term in [`GLOSSARY.md`](../../GLOSSARY.md) means updates the glossary in the same pull request.
 - Every change comes with tests. A tooling or CI change with no code to test is proved instead by red/green runs of `./scripts/validate.sh` shown in the pull request.
 - Test the effect, not that a callback was called: a component test that only checks a mock call adds nothing when an `App` test already covers the real upload, download or save.
 - A test helper that counts or indexes elements of one kind selects them by their own class or role, not every button in a container: a button nearby (a tag's "+1 more") then shifts the result.
