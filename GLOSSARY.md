@@ -37,7 +37,7 @@ Figures computed from the Review log, such as how often a Card was answered righ
 _Avoid_: Results, score
 
 **Session**:
-One sitting in which the Learner answers a chosen number of Cards, optionally filtered by tag.
+One sitting in which the Learner answers Cards: a chosen number, optionally filtered by tag, or one Card started from its preview. Cards can be added while it runs.
 _Avoid_: Round, quiz, practice
 
 **Learner**:
