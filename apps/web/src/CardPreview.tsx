@@ -1,17 +1,19 @@
 import type { TCard } from "@flashcards/cards";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Play, Plus, Trash2 } from "lucide-react";
 import { useContext } from "react";
 import { cardAnswer, cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
 import { Modal } from "./Modal";
 import { RowTags } from "./RowTags";
 
-/** The Card preview: a Modal with the Card's type name, its question and answer in the current language (see cardTitle and cardAnswer), its tags, its ID and version, and Delete, which deletes without asking, and, when `onEdit` is given, Edit after it. The Session buttons come later. */
+/** The Card preview: a Modal with the Card's type name, its question and answer in the current language (see cardTitle and cardAnswer), its tags, its ID and version, and Delete, which deletes without asking, and, when `onEdit` is given, Edit after it, then Add to current Session, disabled without `onAddToSession`, and New Session. */
 export function CardPreview(props: {
   card: TCard;
   onClose: () => void;
   onDelete: () => void;
   onEdit?: () => void;
+  onAddToSession?: () => void;
+  onNewSession: () => void;
 }) {
   const text = useText();
   const language = useContext(LanguageContext);
@@ -41,6 +43,18 @@ export function CardPreview(props: {
             {text.edit}
           </button>
         )}
+        <button
+          className="button secondary"
+          disabled={!props.onAddToSession}
+          onClick={props.onAddToSession}
+        >
+          <Play size={17} aria-hidden="true" />
+          {text.addToSession}
+        </button>
+        <button className="button primary" onClick={props.onNewSession}>
+          <Plus size={17} aria-hidden="true" />
+          {text.newSession}
+        </button>
       </div>
     </Modal>
   );

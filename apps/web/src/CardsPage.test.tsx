@@ -1,5 +1,5 @@
 import type { TCard } from "@flashcards/cards";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Trash2 } from "lucide-react";
 import { expect, it, vi } from "vitest";
 import { CardsPage } from "./CardsPage";
@@ -16,14 +16,23 @@ import {
   trueFalse,
 } from "./test/cards.fixtures";
 
-/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card; onSave resolves to true unless a test changes it. */
+/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card; onSave resolves to true unless a test changes it. A Session runs, with none of the Cards in it. */
 function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
   const onDelete = vi.fn().mockResolvedValue(deletes);
   const onDeleteAll = vi.fn();
   const onSave = vi.fn().mockResolvedValue(true);
+  const onAddToSession = vi.fn();
+  const onNewSession = vi.fn();
   const page = (cards: TCard[]) => (
     <LanguageContext.Provider value={language}>
-      <CardsPage cards={cards} onDelete={onDelete} onDeleteAll={onDeleteAll} onSave={onSave} />
+      <CardsPage
+        cards={cards}
+        onDelete={onDelete}
+        onDeleteAll={onDeleteAll}
+        onSave={onSave}
+        onAddToSession={onAddToSession}
+        onNewSession={onNewSession}
+      />
     </LanguageContext.Provider>
   );
   const { rerender } = render(page(cards));
@@ -352,7 +361,7 @@ it.each([
   { type: "numeric", card: numeric("a", 2, "m"), title: "How much is a?", answer: ["5 m"] },
   { type: "numeric", card: numeric("a", 2), title: "How much is a?", answer: ["5"] },
 ])(
-  "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, and Edit for the editable types",
+  "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, Edit for the editable types, Add to current Session and New Session",
   ({ card, title, answer }) => {
     const editable = [
       "qa",
@@ -378,6 +387,8 @@ it.each([
       "a · version 2",
       "Delete",
       ...(editable ? ["Edit"] : []),
+      "Add to current Session",
+      "New Session",
     ]);
   },
 );
@@ -664,7 +675,13 @@ it.each([
 ])("$case, shows its children right after the Card list panel", ({ cards }) => {
   render(
     <LanguageContext.Provider value="en">
-      <CardsPage cards={cards} onDelete={vi.fn()} onDeleteAll={vi.fn()} onSave={vi.fn()}>
+      <CardsPage
+        cards={cards}
+        onDelete={vi.fn()}
+        onDeleteAll={vi.fn()}
+        onSave={vi.fn()}
+        onNewSession={vi.fn()}
+      >
         <aside>Second column</aside>
       </CardsPage>
     </LanguageContext.Provider>,
@@ -1120,15 +1137,65 @@ it("the heading holds Create Card with a hidden plus icon, which opens the Card 
   expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
 });
 
-it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1), numeric("a", 1)])(
-  "a $type preview has Edit, with a hidden icon, after Delete",
+it.each([
+  qa("a", 1),
+  cloze("a", 1),
+  trueFalse("a", 1),
+  formula("a", 1),
+  numeric("a", 1),
+  multipleChoice("a", 1),
+])(
+  "a $type preview ends with Delete, Edit, Add to current Session and New Session, each with a hidden icon",
   (card) => {
     renderCardsPage([card]);
 
-    const buttons = openPreview("a").getAllByRole("button");
+    const buttons = openPreview("a").getAllByRole("button").slice(-4);
 
-    expect(buttons.slice(-2).map((button) => button.textContent)).toEqual(["Delete", "Edit"]);
-    expect(buttons.at(-1)!.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "Delete",
+      "Edit",
+      "Add to current Session",
+      "New Session",
+    ]);
+    for (const button of buttons) {
+      expect(button.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
+    }
+  },
+);
+
+it.each([
+  {
+    language: "en" as const,
+    add: "Add to current Session",
+    added: "Added to the current Session.",
+    create: "New Session",
+    created: "New Session created with this Card.",
+  },
+  {
+    language: "de" as const,
+    add: "Zur aktuellen Sitzung hinzufügen",
+    added: "Zur aktuellen Sitzung hinzugefügt.",
+    create: "Neue Sitzung",
+    created: "Neue Sitzung mit dieser Karte erstellt.",
+  },
+])(
+  "in $language, the preview's Add to current Session and New Session close it and show their notice",
+  async ({ language, add, added, create, created }) => {
+    renderCardsPage([qa("a", 1), qa("b", 1)], language);
+    const preview = () =>
+      within(screen.getByRole("dialog", { name: /^(Card preview|Kartenvorschau)$/ }));
+
+    fireEvent.click(rowButton("a"));
+    fireEvent.click(preview().getByRole("button", { name: add }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect((await screen.findByRole("status")).textContent).toBe(added);
+
+    fireEvent.click(rowButton("b"));
+    fireEvent.click(preview().getByRole("button", { name: create }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe(created));
   },
 );
 

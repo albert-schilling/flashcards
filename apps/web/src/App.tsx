@@ -134,6 +134,16 @@ export function App() {
     }, showError);
   }
 
+  // Appends the Card to the running Session; the same id keeps its place and answers.
+  function addToSession(card: TCard) {
+    setSession((current) => current && { ...current, cards: [...current.cards, card] });
+  }
+
+  // Replaces any running Session with one of only this Card.
+  function newSession(card: TCard) {
+    setSession({ id: (session?.id ?? 0) + 1, cards: [card] });
+  }
+
   function navigate(target: TPage) {
     setStartCreating(false);
     if (target === "statistics") void openStatistics();
@@ -174,6 +184,9 @@ export function App() {
             onDelete={(id) => change(() => deleteCard(id))}
             onDeleteAll={() => void change(clearCards)}
             onSave={(card) => change(() => saveCards([card]))}
+            onAddToSession={session && addToSession}
+            sessionCardIds={session?.cards.map((card) => card.id)}
+            onNewSession={newSession}
             startCreating={startCreating}
           >
             <FilesPanel

@@ -33,12 +33,15 @@ function matches(
   );
 }
 
-/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, the windowed Card list (see CardList) and Delete all, which asks in a modal first and closes it before deleting. A row opens the Card preview (see CardPreview); a row's Delete asks in a modal first. Create Card in the heading, and Edit in the preview for the editable types, open the Card editor (see CardEditor); a saved Card closes it, shows its preview and a "Card saved." notice. A deleted Card shows a dismissible "Card deleted." notice above the panel until the Learner leaves the page; the two notices share one slot, and a failed delete or save hides it. `startCreating` opens the editor for a new Card on first render. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting and saving. */
+/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, the windowed Card list (see CardList) and Delete all, which asks in a modal first and closes it before deleting. A row opens the Card preview (see CardPreview); a row's Delete asks in a modal first. Create Card in the heading, and Edit in the preview for the editable types, open the Card editor (see CardEditor); a saved Card closes it, shows its preview and a "Card saved." notice. A deleted Card shows a dismissible "Card deleted." notice above the panel until the Learner leaves the page; the two notices share one slot, and a failed delete or save hides it. The preview's Add to current Session, disabled with no running Session or when the Card is already in it, and New Session close it and show "Added to the current Session." or "New Session created with this Card." in the same notice slot; App owns the Session. `startCreating` opens the editor for a new Card on first render. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting and saving. */
 export function CardsPage(props: {
   cards: TCard[];
   onDelete: (id: string) => Promise<boolean>;
   onDeleteAll: () => void;
   onSave: (card: TCard) => Promise<boolean>;
+  onAddToSession?: (card: TCard) => void; // absent with no running Session
+  sessionCardIds?: string[]; // the IDs of the running Session's Cards; absent means none
+  onNewSession: (card: TCard) => void;
   startCreating?: boolean;
   children?: ReactNode;
 }) {
@@ -48,7 +51,9 @@ export function CardsPage(props: {
   // IDs, not Cards: a modal closes by itself once its Card is gone.
   const [openId, setOpenId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<"deleted" | "saved" | null>(null);
+  const [notice, setNotice] = useState<
+    "cardDeleted" | "cardSaved" | "addedToSession" | "sessionCreated" | null
+  >(null);
   // The Card editor, open for a new Card (no `card`) or for this one.
   const [editor, setEditor] = useState<{ card?: TEditableCard } | null>(
     props.startCreating ? {} : null,
@@ -69,14 +74,14 @@ export function CardsPage(props: {
     setOpenId(null);
     setConfirmingId(null);
     // A failure hides an earlier notice, so only the error shows.
-    setNotice((await props.onDelete(id)) ? "deleted" : null);
+    setNotice((await props.onDelete(id)) ? "cardDeleted" : null);
   }
 
   async function saveOne(card: TCard) {
     // Close first, so a failure shows in the page's error and not behind the modal.
     setEditor(null);
     const saved = await props.onSave(card);
-    setNotice(saved ? "saved" : null);
+    setNotice(saved ? "cardSaved" : null);
     if (saved) setOpenId(card.id);
   }
 
@@ -102,7 +107,7 @@ export function CardsPage(props: {
           className="library-notice"
           onDismiss={() => setNotice(null)}
         >
-          <strong>{notice === "deleted" ? text.cardDeleted : text.cardSaved}</strong>
+          <strong>{text[notice]}</strong>
         </Alert>
       )}
       <div className="cards-layout">
@@ -181,6 +186,20 @@ export function CardsPage(props: {
                 }
               : undefined
           }
+          onAddToSession={
+            props.onAddToSession && !props.sessionCardIds?.includes(openCard.id)
+              ? () => {
+                  setOpenId(null);
+                  props.onAddToSession?.(openCard);
+                  setNotice("addedToSession");
+                }
+              : undefined
+          }
+          onNewSession={() => {
+            setOpenId(null);
+            props.onNewSession(openCard);
+            setNotice("sessionCreated");
+          }}
         />
       )}
       {editor && (
