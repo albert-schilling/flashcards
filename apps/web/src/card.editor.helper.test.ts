@@ -477,6 +477,24 @@ describe("formFromCard", () => {
     });
   });
 
+  it("holds a multiple_choice Card's options as rows of both languages, and its right option, outside the texts", () => {
+    const card = german(multipleChoice("m", 1), {
+      question: "Welches ist m?",
+      options: ["Dies", "Das"],
+      explanation: "Dieses.",
+    });
+
+    const { en, de, options, answerIndex } = formFromCard({ ...card, answerIndex: 1 });
+
+    expect(en).toEqual({ ...noTexts, question: "Which is m?", explanation: "This one." });
+    expect(de).toEqual({ ...noTexts, question: "Welches ist m?", explanation: "Dieses." });
+    expect(options).toEqual([
+      { en: "This", de: "Dies" },
+      { en: "That", de: "Das" },
+    ]);
+    expect(answerIndex).toBe(1);
+  });
+
   it.each([
     ZCard.parse(german(cloze("c", 1), { text: "c hat eine {{Lücke}}." })) as TEditableCard,
     ZCard.parse(german(trueFalse("t", 1, false), { statement: "t ist wahr." })) as TEditableCard,
