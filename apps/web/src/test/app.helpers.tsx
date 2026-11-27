@@ -1,4 +1,4 @@
-// Drives the whole App: navigation, Deck upload and download, Sessions and deleting Cards.
+// Drives the whole App: navigation, Deck upload and download, Sessions and deleting Cards; reads its headings and alert icons.
 import type { TCard } from "@flashcards/cards";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, vi } from "vitest";

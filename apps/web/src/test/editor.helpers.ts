@@ -1,4 +1,4 @@
-// Opens the Card editor in the App, fills its fields and reads their errors.
+// Opens the Card editor and a Card's preview in the App, fills and reads the editor's fields, and lists the Cards it creates.
 import {
   fireEvent,
   screen,
