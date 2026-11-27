@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { Trash2 } from "lucide-react";
 import { expect, it, vi } from "vitest";
 import { CardsPage } from "./CardsPage";
-import { LanguageContext, type TLanguage } from "./language.context";
+import { LanguageContext } from "./language.context";
 import {
   cloze,
   formula,
@@ -15,53 +15,28 @@ import {
   tagged,
   trueFalse,
 } from "./test/cards.fixtures";
-
-/** Renders the Cards page with these Cards in this language and returns its callback mocks, and `rerender` to show other Cards on the same page. `deletes` is what onDelete resolves to: whether App deleted the Card; onSave resolves to true unless a test changes it. A Session runs, with none of the Cards in it. */
-function renderCardsPage(cards: TCard[], language: TLanguage = "en", deletes = true) {
-  const onDelete = vi.fn().mockResolvedValue(deletes);
-  const onDeleteAll = vi.fn();
-  const onSave = vi.fn().mockResolvedValue(true);
-  const onAddToSession = vi.fn();
-  const onNewSession = vi.fn();
-  const page = (cards: TCard[]) => (
-    <LanguageContext.Provider value={language}>
-      <CardsPage
-        cards={cards}
-        onDelete={onDelete}
-        onDeleteAll={onDeleteAll}
-        onSave={onSave}
-        onAddToSession={onAddToSession}
-        onNewSession={onNewSession}
-      />
-    </LanguageContext.Provider>
-  );
-  const { rerender } = render(page(cards));
-  return {
-    onDelete,
-    onDeleteAll,
-    onSave,
-    rerender: (cards: TCard[]) => rerender(page(cards)),
-  };
-}
-
-function rows() {
-  return screen.getAllByRole("listitem");
-}
-
-/** The IDs of the listed Cards, in order; none when no list shows. A row shows its type name, title, then ID. */
-function listedIds(): string[] {
-  return screen.queryAllByRole("listitem").map((row) => shownTexts(row)[2]);
-}
-
-/** Each Card type's name in English and German, in the Type select's order. */
-const typeNames: Record<TCard["type"], { en: string; de: string }> = {
-  qa: { en: "Question & answer", de: "Frage & Antwort" },
-  multiple_choice: { en: "Multiple choice", de: "Multiple Choice" },
-  formula: { en: "Formula", de: "Formel" },
-  numeric: { en: "Numeric", de: "Numerisch" },
-  cloze: { en: "Fill the gap", de: "Lückentext" },
-  true_false: { en: "True or false", de: "Wahr oder falsch" },
-};
+import {
+  confirmDelete,
+  deleteAllButton,
+  deleteButton,
+  described,
+  editorDialog,
+  fillField,
+  listedIds,
+  openCreate,
+  openPreview,
+  pickTag,
+  pickType,
+  previewDialog,
+  renderCardsPage,
+  rowButton,
+  rows,
+  search,
+  shownTexts,
+  tagSelect,
+  typeNames,
+  typeSelect,
+} from "./test/cards.page.helpers";
 
 const cardTypes = Object.keys(typeNames) as TCard["type"][];
 
@@ -81,44 +56,9 @@ function styledTags(element: HTMLElement): string[][] {
   ]);
 }
 
-function search(query: string, label = "Search Cards") {
-  fireEvent.change(screen.getByRole("searchbox", { name: label }), { target: { value: query } });
-}
-
-function typeSelect(label = "Type") {
-  return screen.getByLabelText<HTMLSelectElement>(label);
-}
-
-function tagSelect() {
-  return screen.getByLabelText<HTMLSelectElement>("Tag");
-}
-
-function pickType(type: string) {
-  fireEvent.change(typeSelect(), { target: { value: type } });
-}
-
-function pickTag(tag: string) {
-  fireEvent.change(tagSelect(), { target: { value: tag } });
-}
-
 /** The option texts of this select, in order. */
 function optionTexts(select: HTMLSelectElement): string[] {
   return [...select.options].map((option) => option.textContent!);
-}
-
-/** The texts a reader sees in this element, in order, one entry per text node. */
-function shownTexts(element: HTMLElement): string[] {
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  const texts: string[] = [];
-  while (walker.nextNode()) {
-    const text = walker.currentNode.textContent!.trim();
-    if (text) texts.push(text);
-  }
-  return texts;
-}
-
-function deleteAllButton() {
-  return screen.getByRole<HTMLButtonElement>("button", { name: "Delete all Cards" });
 }
 
 it("shows the Library heading, with Cards as its only level-1 heading", () => {
@@ -246,36 +186,6 @@ it("a cloze row blanks every gap", () => {
 
   expect(shownTexts(rows()[0])[1]).toBe("____ tree splits on ____.");
 });
-
-/** The button of this Card's row that opens its preview: the row's other button, beside Delete. Fails while the row has no such button. */
-function rowButton(id: string): HTMLButtonElement {
-  // The row's Delete, named in English or German.
-  const remove = screen.getByRole("button", {
-    name: (name) => name === `Delete ${id}` || name === `${id} löschen`,
-  });
-  const others = within(remove.closest("li")!)
-    .getAllByRole<HTMLButtonElement>("button")
-    .filter((button) => button !== remove);
-  expect(others).toHaveLength(1);
-  return others[0];
-}
-
-function previewDialog() {
-  return screen.getByRole("dialog", { name: "Card preview" });
-}
-
-/** Opens this Card's preview from its row and returns queries inside it. */
-function openPreview(id: string) {
-  fireEvent.click(rowButton(id));
-  return within(previewDialog());
-}
-
-/** Presses this Card's row Delete, then Delete in the modal that asks first. */
-function confirmDelete(id: string) {
-  fireEvent.click(deleteButton(id));
-  const modal = within(screen.getByRole("dialog", { name: "Delete this Card?" }));
-  fireEvent.click(modal.getByRole("button", { name: "Delete" }));
-}
 
 it("a row holds two buttons side by side: the row button with the Card's copy, then Delete", () => {
   renderCardsPage([qa("a", 1)]);
@@ -1005,10 +915,6 @@ function scrollToEnd(count: number) {
   scrollListTo(count * ROW_HEIGHT - 468);
 }
 
-function deleteButton(id: string) {
-  return screen.getByRole<HTMLButtonElement>("button", { name: `Delete ${id}` });
-}
-
 it("with 1,000 Cards, lists only the rows in view and three more: card-1 to card-8", () => {
   renderCardsPage(thousand);
 
@@ -1272,26 +1178,6 @@ it.each([
   }
   expect(editor.getByRole("button", { name: "Save changes" })).toBeTruthy();
 });
-
-function editorDialog(title = "Create Card") {
-  return screen.getByRole("dialog", { name: title });
-}
-
-/** Presses Create Card in the heading and returns queries inside the Card editor. */
-function openCreate(name = "Create Card") {
-  fireEvent.click(screen.getByRole("button", { name }));
-  return within(editorDialog(name));
-}
-
-function fillField(editor: ReturnType<typeof within>, label: string, value: string) {
-  fireEvent.change(editor.getByLabelText(label), { target: { value } });
-}
-
-/** The texts that describe this field (its hint, then its error), from aria-describedby. */
-function described(field: HTMLElement): string[] {
-  const ids = field.getAttribute("aria-describedby")?.split(" ") ?? [];
-  return ids.map((id) => document.getElementById(id)!.textContent!);
-}
 
 it.each<[string, () => void]>([
   ["Close", () => fireEvent.click(within(editorDialog()).getByRole("button", { name: "Close" }))],
