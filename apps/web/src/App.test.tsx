@@ -17,6 +17,7 @@ import { addReview, loadLanguage, loadReviews } from "./storage";
 import {
   cloze,
   formula,
+  fullFormula,
   german,
   multipleChoice,
   numeric,
@@ -2785,6 +2786,22 @@ const created = [
     },
     answer: "False",
   },
+  {
+    type: "formula",
+    fillType: (dialog: TQueries) => {
+      pickCardType(dialog, "formula");
+      fill(dialog, "Name", "Vector norm");
+      fill(dialog, "Word formula", "The root of the summed squares.");
+      fill(dialog, "Formula", "|x| = √(x₁² + x₂²)");
+    },
+    card: {
+      id: "vector-norm",
+      type: "formula",
+      en: { name: "Vector norm", wordFormula: "The root of the summed squares." },
+      formula: "|x| = √(x₁² + x₂²)",
+    },
+    answer: "|x| = √(x₁² + x₂²)",
+  },
 ];
 
 it.each(created)(
@@ -2836,13 +2853,87 @@ it("a created Card is in Download Cards like an uploaded one, and the file uploa
   await screen.findByText(/0 added, 0 updated, 1 unchanged/);
 });
 
+it("a formula Card created with every field has them all in Download Cards: the texts in English and German, Formula and LaTeX once", async () => {
+  render(<App />);
+  const dialog = openEditor();
+  created[3].fillType(dialog);
+  fill(dialog, "Read aloud", "norm of x");
+  fill(dialog, "Example", "|(3, 4)| = 5");
+  fill(dialog, "LaTeX", "\\lVert x \\rVert");
+  fill(dialog, "Name (German)", "Vektornorm");
+  fill(dialog, "Word formula (German)", "Die Wurzel der summierten Quadrate.");
+  fill(dialog, "Read aloud (German)", "Norm von x");
+  fill(dialog, "Example (German)", "|(3, 4)| ist 5");
+  fillShared(dialog);
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+  await expectSaved();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+  const file = await download("Download Cards");
+
+  expect(JSON.parse(await file.text()).cards).toEqual([
+    {
+      id: "vector-norm",
+      version: 1,
+      tags: { domain: ["Machine Learning", "Statistics"], topic: ["Decision Tree"] },
+      sourceIds: [],
+      lesson: "lesson-04",
+      type: "formula",
+      en: {
+        name: "Vector norm",
+        wordFormula: "The root of the summed squares.",
+        readAloud: "norm of x",
+        example: "|(3, 4)| = 5",
+      },
+      translations: {
+        de: {
+          name: "Vektornorm",
+          wordFormula: "Die Wurzel der summierten Quadrate.",
+          readAloud: "Norm von x",
+          example: "|(3, 4)| ist 5",
+        },
+      },
+      formula: "|x| = √(x₁² + x₂²)",
+      latex: "\\lVert x \\rVert",
+    },
+  ]);
+});
+
+it("a formula Card created with an example reveals its formula and example in a Session", async () => {
+  render(<App />);
+  const dialog = openEditor();
+  created[3].fillType(dialog);
+  fill(dialog, "Example", "|(3, 4)| = 5");
+  fillShared(dialog);
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+  await expectSaved();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  goHome();
+  startSession();
+  const article = await screen.findByRole("article");
+
+  reveal(article);
+
+  expect(article.querySelector(".revealed-answer .formula")?.textContent).toBe(
+    "|x| = √(x₁² + x₂²)",
+  );
+  expect(article.querySelector(".revealed-answer .example")?.textContent).toBe(
+    "Example: |(3, 4)| = 5",
+  );
+});
+
 it("the editor shows the picked type's fields, then its German fields, tags, Lesson and ID, and keeps what was typed across types", () => {
   render(<App />);
   const dialog = openEditor();
   const element = screen.getByRole("dialog", { name: "Create Card" });
   const shared = ["Domain tags", "Topic tags", "Lesson", "ID"];
   const select = dialog.getByLabelText<HTMLSelectElement>("Type");
-  expect([...select.options].map((option) => option.value)).toEqual(["qa", "cloze", "true_false"]);
+  expect([...select.options].map((option) => option.value)).toEqual([
+    "qa",
+    "cloze",
+    "true_false",
+    "formula",
+  ]);
   expect(select.value).toBe("qa");
   expect(fieldLabels(element)).toEqual([
     "Type",
@@ -2866,11 +2957,31 @@ it("the editor shows the picked type's fields, then its German fields, tags, Les
   ]);
   expect(dialog.getByLabelText("Answer").tagName).toBe("SELECT");
   fill(dialog, "Statement", "A leaf is a node.");
+  pickCardType(dialog, "formula");
+  expect(fieldLabels(element)).toEqual([
+    "Type",
+    "Name",
+    "Word formula",
+    "Read aloud",
+    "Example",
+    "Formula",
+    "LaTeX",
+    "Name (German)",
+    "Word formula (German)",
+    "Read aloud (German)",
+    "Example (German)",
+    ...shared,
+  ]);
+  fill(dialog, "Name", "Vector norm");
+  fill(dialog, "Formula", "|x| = √(x₁² + x₂²)");
   pickCardType(dialog, "qa");
 
   expect(fieldValue(dialog, "Question")).toBe("What is the leaf mean?");
   pickCardType(dialog, "true_false");
   expect(fieldValue(dialog, "Statement")).toBe("A leaf is a node.");
+  pickCardType(dialog, "formula");
+  expect(fieldValue(dialog, "Name")).toBe("Vector norm");
+  expect(fieldValue(dialog, "Formula")).toBe("|x| = √(x₁² + x₂²)");
 });
 
 it("the ID follows the question until the Learner types one", () => {
@@ -2942,6 +3053,29 @@ it("Create Card with empty fields marks each with its error after Save and store
   fill(dialog, "Question", "What is the leaf mean?");
   expect(invalidFields(element)).toEqual(["Answer", "Domain tags", "Topic tags", "Lesson"]);
   expect(fieldError(dialog.getByLabelText("Question"))).toBeNull();
+});
+
+it("Create Card for a formula with empty fields marks Name, Word formula and Formula as empty, but not the optional fields", () => {
+  render(<App />);
+  const dialog = openEditor();
+  const element = screen.getByRole("dialog", { name: "Create Card" });
+  pickCardType(dialog, "formula");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+
+  expect(invalidFields(element)).toEqual([
+    "Name",
+    "Word formula",
+    "Formula",
+    "Domain tags",
+    "Topic tags",
+    "Lesson",
+    "ID",
+  ]);
+  for (const field of ["Name", "Word formula", "Formula"]) {
+    expect(fieldError(dialog.getByLabelText(field))).toBe("This field can't be empty.");
+  }
+  expect(screen.getByText("0 of 0 Cards")).toBeTruthy();
 });
 
 it.each([
@@ -3058,6 +3192,23 @@ it("Save changes with nothing changed keeps the version", async () => {
   await expectSaved();
   const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
   expect(preview.getByText("ml.trees.leaf-mean · version 1")).toBeTruthy();
+});
+
+it("Edit on a formula Card changes its Formula; Save changes raises the version and the preview shows the new formula", async () => {
+  render(<App />);
+  await uploaded(fullFormula("norm", 1));
+  const dialog = openEdit("norm");
+  expect(fieldValue(dialog, "Formula")).toBe("norm = a · b");
+  expect(fieldValue(dialog, "LaTeX")).toBe("norm = a \\cdot b");
+
+  fill(dialog, "Formula", "norm = b · a");
+  fireEvent.click(dialog.getByRole("button", { name: "Save changes" }));
+
+  await expectSaved();
+  const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
+  expect(preview.getByText("norm · version 2")).toBeTruthy();
+  expect(preview.getByText("norm = b · a")).toBeTruthy();
+  expect(preview.getByText("2 · 3 = 6")).toBeTruthy();
 });
 
 it("after an edit, Statistics no longer count the Reviews of the Card's older version", async () => {

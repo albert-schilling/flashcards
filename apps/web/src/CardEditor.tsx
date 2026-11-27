@@ -1,9 +1,12 @@
 import type { TCard } from "@flashcards/cards";
 import { useId, useState, type ReactNode } from "react";
 import {
+  bothFields,
   cardFromForm,
   editableTypes,
   formFromCard,
+  idSource,
+  optionalFields,
   suggestId,
   textFields,
   type TCardForm,
@@ -53,10 +56,7 @@ function Field(props: {
   );
 }
 
-// The text field a new Card's ID is suggested from.
-const idSource = { qa: "question", cloze: "text", true_false: "statement" } as const;
-
-/** The Card editor: a Modal titled Create Card or Edit Card, with Type, the type's fields, optional German fields, Domain and Topic tags, Lesson and ID (suggested from the text while the Learner hasn't typed one; disabled when editing). Save checks the form with cardFromForm: errors show under their fields from then on, and a valid Card goes to onSave. Cancel, Close and Escape call onClose. */
+/** The Card editor: a Modal titled Create Card or Edit Card, with Type, the type's fields (the ones with one value for both languages after the English ones), optional German fields, Domain and Topic tags, Lesson and ID (suggested from the text while the Learner hasn't typed one; disabled when editing). Save checks the form with cardFromForm: errors show under their fields from then on, and a valid Card goes to onSave. Cancel, Close and Escape call onClose. */
 export function CardEditor(props: {
   card?: TEditableCard;
   takenIds: string[];
@@ -80,7 +80,17 @@ export function CardEditor(props: {
     answer: text.answer,
     text: text.text,
     statement: text.statement,
+    name: text.name,
+    wordFormula: text.wordFormula,
+    readAloud: text.readAloud,
+    example: text.exampleLabel,
+    formula: text.formula,
+    latex: text.latex,
   };
+
+  function setBoth(key: keyof TCardForm["both"], value: string) {
+    setTyped({ ...typed, both: { ...typed.both, [key]: value } });
+  }
 
   function setTexts(language: "en" | "de", key: keyof TCardForm["en"], value: string) {
     setTyped({ ...typed, [language]: { ...typed[language], [key]: value } });
@@ -116,7 +126,13 @@ export function CardEditor(props: {
           <TextField
             key={key}
             label={labels[key]}
-            hint={key === "text" ? text.clozeHint : undefined}
+            hint={
+              key === "text"
+                ? text.clozeHint
+                : optionalFields.has(key)
+                  ? text.optionalHint
+                  : undefined
+            }
             problem={errors[`en.${key}`]}
             value={typed.en[key]}
             onChange={(value) => setTexts("en", key, value)}
@@ -137,6 +153,16 @@ export function CardEditor(props: {
             )}
           />
         )}
+        {bothFields[typed.type].map((key) => (
+          <TextField
+            key={key}
+            label={labels[key]}
+            hint={optionalFields.has(key) ? text.optionalHint : undefined}
+            problem={errors[key]}
+            value={typed.both[key]}
+            onChange={(value) => setBoth(key, value)}
+          />
+        ))}
         {textFields[typed.type].map((key) => (
           <TextField
             key={`de-${key}`}

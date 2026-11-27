@@ -11,6 +11,7 @@ import {
 import {
   cloze,
   formula,
+  fullFormula,
   german,
   multipleChoice,
   numeric,
@@ -18,16 +19,27 @@ import {
   trueFalse,
 } from "./test/cards.fixtures";
 
-const noTexts = { question: "", answer: "", text: "", statement: "" };
+const noTexts = {
+  question: "",
+  answer: "",
+  text: "",
+  statement: "",
+  name: "",
+  wordFormula: "",
+  readAloud: "",
+  example: "",
+};
+const noBoth = { formula: "", latex: "" };
 
-/** A valid qa form; `changes` replace its fields, `en` and `de` field by field. */
+/** A valid qa form; `changes` replace its fields, `en`, `de` and `both` field by field. */
 function form(
-  changes: Partial<Omit<TCardForm, "en" | "de">> & {
+  changes: Partial<Omit<TCardForm, "en" | "de" | "both">> & {
     en?: Partial<TCardForm["en"]>;
     de?: Partial<TCardForm["de"]>;
+    both?: Partial<TCardForm["both"]>;
   } = {},
 ): TCardForm {
-  const { en, de, ...rest } = changes;
+  const { en, de, both, ...rest } = changes;
   return {
     type: "qa",
     id: "ml.trees.leaf-mean",
@@ -38,8 +50,12 @@ function form(
     ...rest,
     en: { ...noTexts, question: "What is the leaf mean?", answer: "The mean.", ...en },
     de: { ...noTexts, ...de },
+    both: { ...noBoth, ...both },
   };
 }
+
+/** The texts of a valid formula form, to put in `form`'s `en`. */
+const formulaTexts = { name: "Vector norm", wordFormula: "The root of the summed squares." };
 
 /** The Card the form makes; fails the test with the errors if it makes none. */
 function made(form: TCardForm, context: Parameters<typeof cardFromForm>[1] = { takenIds: [] }) {
@@ -89,6 +105,31 @@ describe("cardFromForm", () => {
         answer: false,
       },
     },
+    {
+      type: "formula",
+      form: form({
+        type: "formula",
+        en: {
+          name: " Vector norm ",
+          wordFormula: " The root of the summed squares. ",
+          readAloud: " norm of x ",
+          example: " |(3, 4)| = 5 ",
+        },
+        both: { formula: " |x| = √(x₁² + x₂²) ", latex: " \\lVert x \\rVert " },
+      }),
+      card: {
+        ...shared,
+        type: "formula",
+        en: {
+          name: "Vector norm",
+          wordFormula: "The root of the summed squares.",
+          readAloud: "norm of x",
+          example: "|(3, 4)| = 5",
+        },
+        formula: "|x| = √(x₁² + x₂²)",
+        latex: "\\lVert x \\rVert",
+      },
+    },
   ])(
     "makes a valid $type Card with version 1, no sources, trimmed text and tags split at commas",
     ({ form: typed, card }) => {
@@ -98,6 +139,20 @@ describe("cardFromForm", () => {
       expect(ZCard.safeParse(result).success).toBe(true);
     },
   );
+
+  it("leaves out an empty or blank Read aloud, Example and LaTeX instead of failing", () => {
+    const card = made(
+      form({
+        type: "formula",
+        en: { ...formulaTexts, readAloud: " ", example: "" },
+        both: { formula: "|x|", latex: "  " },
+      }),
+    );
+
+    expect(card).toMatchObject({ type: "formula", formula: "|x|" });
+    expect(card.en).toEqual(formulaTexts);
+    expect(card).not.toHaveProperty("latex");
+  });
 
   it("leaves out the translations when every German field is empty or only spaces", () => {
     expect(made(form({ de: { question: "  " } }))).not.toHaveProperty("translations");
@@ -159,6 +214,25 @@ describe("cardFromForm", () => {
         de: { text: "Ein Blatt sagt den Mittelwert voraus." },
       }),
       errors: { "de.text": "noGap" },
+    },
+    {
+      problem: "an empty formula name",
+      form: form({ type: "formula", en: { ...formulaTexts, name: " " }, both: { formula: "|x|" } }),
+      errors: { "en.name": "empty" },
+    },
+    {
+      problem: "an empty word formula",
+      form: form({
+        type: "formula",
+        en: { ...formulaTexts, wordFormula: "" },
+        both: { formula: "|x|" },
+      }),
+      errors: { "en.wordFormula": "empty" },
+    },
+    {
+      problem: "an empty formula",
+      form: form({ type: "formula", en: formulaTexts, both: { formula: " " } }),
+      errors: { formula: "empty" },
     },
     {
       problem: "no domain tag",
@@ -260,6 +334,7 @@ describe("formFromCard", () => {
       topicTags: "",
       en: noTexts,
       de: noTexts,
+      both: noBoth,
     });
   });
 
@@ -280,6 +355,7 @@ describe("formFromCard", () => {
       topicTags: "Decision Tree",
       en: { ...noTexts, question: "What is ml.trees.leaf-mean?", answer: "An answer." },
       de: { ...noTexts, question: "Was ist der Blattmittelwert?" },
+      both: noBoth,
       answer: true,
     });
   });
@@ -287,22 +363,24 @@ describe("formFromCard", () => {
   it.each([
     ZCard.parse(german(cloze("c", 1), { text: "c hat eine {{Lücke}}." })) as TEditableCard,
     ZCard.parse(german(trueFalse("t", 1, false), { statement: "t ist wahr." })) as TEditableCard,
+    ZCard.parse(fullFormula("f", 1)) as TEditableCard,
+    ZCard.parse(formula("m", 1)) as TEditableCard,
   ])("gives back the same $type Card through cardFromForm", (card) => {
     expect(made(formFromCard(card), { takenIds: [card.id], editing: card })).toEqual(card);
   });
 });
 
 describe("isEditable", () => {
-  it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1)])("a $type Card is editable", (card) => {
-    expect(isEditable(card)).toBe(true);
-  });
-
-  it.each([formula("a", 1), multipleChoice("a", 1), numeric("a", 1)])(
-    "a $type Card is not editable yet",
+  it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1)])(
+    "a $type Card is editable",
     (card) => {
-      expect(isEditable(card)).toBe(false);
+      expect(isEditable(card)).toBe(true);
     },
   );
+
+  it.each([multipleChoice("a", 1), numeric("a", 1)])("a $type Card is not editable yet", (card) => {
+    expect(isEditable(card)).toBe(false);
+  });
 });
 
 describe("suggestId", () => {
