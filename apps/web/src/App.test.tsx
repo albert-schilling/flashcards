@@ -2715,7 +2715,7 @@ it("Add to current Session is disabled with no Session; added to a running Sessi
   );
 });
 
-it("New Session replaces the running Session with one of only this Card, and records its Review", async () => {
+it("New Session replaces the running Session with one of only this Card, so only its Add is disabled, and records its Review", async () => {
   render(<App />);
   await uploaded(qa("a", 1), qa("b", 3));
   startSession();
@@ -2729,6 +2729,8 @@ it("New Session replaces the running Session with one of only this Card, and rec
     "New Session created with this Card.",
   );
   expect(isCurrent("Cards")).toBe(true);
+  expect(addDisabled("b")).toBe(true);
+  expect(addDisabled("a")).toBe(false);
   goTo("Session");
   expect(screen.getByText("1 / 1")).toBeTruthy();
   expect(screen.getByText("What is b?")).toBeTruthy();
