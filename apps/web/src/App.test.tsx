@@ -1,15 +1,7 @@
 import type { TCard } from "@flashcards/cards";
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-  type BoundFunctions,
-  type queries,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { IDBFactory } from "fake-indexeddb";
-import { ArrowLeft, Check, CircleCheck, CircleX, X, type LucideIcon } from "lucide-react";
+import { ArrowLeft, CircleCheck, CircleX } from "lucide-react";
 import { expect, it, vi } from "vitest";
 import { App } from "./App";
 import { addReview, loadLanguage, loadReviews } from "./storage";
@@ -48,6 +40,33 @@ import {
   tagged,
   trueFalse,
 } from "./test/cards.fixtures";
+import {
+  created,
+  editor,
+  expectSaved,
+  fieldValue,
+  fill,
+  fillShared,
+  openEditor,
+  openPreview,
+  pickCardType,
+} from "./test/editor.helpers";
+import {
+  languageSelect,
+  openSettings,
+  pickLanguage,
+  withBrowserLanguage,
+} from "./test/settings.helpers";
+import { home, overview, rows } from "./test/statistics.helpers";
+import {
+  checkNumber,
+  clickOption,
+  expectFeedback,
+  optionMarks,
+  reveal,
+  showsIcon,
+  studyCard,
+} from "./test/study.helpers";
 
 it("renders the start page with the app name", () => {
   render(<App />);
@@ -963,60 +982,6 @@ it("forgets a picked tag once no Card has it", async () => {
   await screen.findByText(/1 answered, 1 right/);
 });
 
-/** Uploads the Card, starts a Session in this language and returns its study card. */
-async function studyCard(card: TCard, language = "en") {
-  render(<App />);
-  await uploaded(card);
-  pickLanguage(language);
-  startSession();
-  return screen.findByRole("article");
-}
-
-function reveal(article: HTMLElement) {
-  fireEvent.click(within(article).getByRole("button", { name: /^(Reveal|Aufdecken)$/ }));
-}
-
-function clickOption(article: HTMLElement, name: string) {
-  fireEvent.click(within(article).getByRole("button", { name }));
-}
-
-function checkNumber(article: HTMLElement, value: string) {
-  fireEvent.change(within(article).getByRole("spinbutton"), { target: { value } });
-  fireEvent.click(within(article).getByRole("button", { name: "Check" }));
-}
-
-/** Whether the first icon in this element is this one, whatever its size. */
-function showsIcon(element: Element | null, Icon: LucideIcon) {
-  const { container, unmount } = render(<Icon />);
-  const shapes = container.querySelector("svg")!.innerHTML;
-  unmount();
-  return element?.querySelector("svg")?.innerHTML === shapes;
-}
-
-/** Each option's mark: its letter, or "correct check" or "incorrect x" once answered. */
-function optionMarks(article: HTMLElement) {
-  return [...article.querySelectorAll(".option-button")].map((option) => {
-    const marker = option.querySelector(".option-marker");
-    const status = ["correct", "incorrect"].find((name) => option.classList.contains(name));
-    const shown = showsIcon(marker, Check)
-      ? "check"
-      : showsIcon(marker, X)
-        ? "x"
-        : marker?.textContent;
-    return status ? `${status} ${shown}` : shown;
-  });
-}
-
-/** Checks the feedback shows the word and its own hidden icon, and returns it. */
-function expectFeedback(article: HTMLElement, word: string, right: boolean) {
-  const feedback = within(article).getByRole("status");
-  expect(feedback.classList.contains(right ? "right" : "wrong")).toBe(true);
-  expect(feedback.querySelector("strong")?.textContent).toBe(word);
-  expect(feedback.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
-  expect(showsIcon(feedback, right ? CircleCheck : CircleX)).toBe(true);
-  return feedback;
-}
-
 const cardTypes = [
   { card: qa("q", 1), en: "Question & answer", de: "Frage & Antwort", prompt: "What is q?" },
   {
@@ -1468,25 +1433,6 @@ it.each([
   expect(within(expectFeedback(article, c.word, c.right)).getByText("This one.")).toBeTruthy();
 });
 
-// The navigation has a Statistics button too, so a click on Home's looks inside main only.
-function home() {
-  return within(screen.getByRole("main"));
-}
-
-/** The text of each cell of the table with this name, row by row, header row first. */
-function rows(name: string) {
-  return within(screen.getByRole("table", { name }))
-    .getAllByRole("row")
-    .map((row) => Array.from(row.querySelectorAll("th, td"), (cell) => cell.textContent));
-}
-
-/** Each figure of the Statistics overview with this name as [value, label]. */
-function overview(name = "Statistics overview") {
-  return Array.from(screen.getByRole("region", { name }).children, (figure) =>
-    Array.from(figure.children, (part) => part.textContent),
-  );
-}
-
 /** The width of each Share right bar in the table with this name, row by row; the bars are decoration. */
 function bars(name: string) {
   const table = screen.getByRole("table", { name });
@@ -1725,31 +1671,6 @@ it("a Deck upload that finishes after a newer Review log upload keeps the Review
   expect(screen.getByText(/1 added, 0 skipped/)).toBeTruthy();
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
-
-/** Runs the test with this browser language; jsdom's own is "en-US". */
-async function withBrowserLanguage(language: string, test: () => Promise<void>) {
-  Object.defineProperty(navigator, "language", { value: language, configurable: true });
-  try {
-    await test();
-  } finally {
-    Reflect.deleteProperty(navigator, "language");
-  }
-}
-
-function languageSelect() {
-  return screen.getByLabelText<HTMLSelectElement>(/^(Language|Sprache)$/);
-}
-
-function openSettings() {
-  goTo(/^(Settings|Einstellungen)$/);
-}
-
-/** Picks the language on Settings, then goes Home. */
-function pickLanguage(language: string) {
-  openSettings();
-  fireEvent.change(languageSelect(), { target: { value: language } });
-  goHome();
-}
 
 it.each([
   ["de-DE", "de"],
@@ -2668,45 +2589,6 @@ it("a Card answered wrong comes back once, also when a Card is added after it", 
   await screen.findByText("4 answered, 1 right");
 });
 
-function editor(title = "Create Card") {
-  return within(screen.getByRole("dialog", { name: title }));
-}
-
-/** Opens the Cards page and the Card editor from Create Card in its heading, and returns queries inside the editor. */
-function openEditor() {
-  openCards();
-  fireEvent.click(screen.getByRole("button", { name: "Create Card" }));
-  return editor();
-}
-
-type TQueries = BoundFunctions<typeof queries>;
-
-function fill(dialog: TQueries, label: string, value: string) {
-  fireEvent.change(dialog.getByLabelText(label), { target: { value } });
-}
-
-function pickCardType(dialog: TQueries, type: string) {
-  fireEvent.change(dialog.getByLabelText("Type"), { target: { value: type } });
-}
-
-/** Picks the option with this text in the select with this label. */
-function pickOption(dialog: TQueries, label: string, text: string) {
-  const select = dialog.getByLabelText<HTMLSelectElement>(label);
-  const option = [...select.options].find((option) => option.textContent === text)!;
-  fireEvent.change(select, { target: { value: option.value } });
-}
-
-function fieldValue(dialog: TQueries, label: string) {
-  return dialog.getByLabelText<HTMLInputElement>(label).value;
-}
-
-/** Fills the fields every Card type shares, all but the ID. */
-function fillShared(dialog: TQueries) {
-  fill(dialog, "Domain tags", "Machine Learning, Statistics");
-  fill(dialog, "Topic tags", "Decision Tree");
-  fill(dialog, "Lesson", "lesson-04");
-}
-
 /** The labels of the editor's fields, in order. */
 function fieldLabels(dialog: HTMLElement) {
   return [...dialog.querySelectorAll("label")].map((label) => label.textContent);
@@ -2729,127 +2611,12 @@ function invalidFields(dialog: HTMLElement) {
   });
 }
 
-/** On the Cards page, opens this Card's preview from its row and returns queries inside it. */
-function openPreview(id: string) {
-  const remove = screen.getByRole("button", { name: `Delete ${id}` });
-  const row = within(remove.closest("li")!)
-    .getAllByRole("button")
-    .find((button) => button !== remove)!;
-  fireEvent.click(row);
-  return within(screen.getByRole("dialog", { name: "Card preview" }));
-}
-
 /** Opens this Card's preview on the Cards page and presses Edit there. */
 function openEdit(id: string) {
   openCards();
   fireEvent.click(openPreview(id).getByRole("button", { name: "Edit" }));
   return editor("Edit Card");
 }
-
-async function expectSaved() {
-  expect((await screen.findByRole("status")).textContent).toBe("Card saved.");
-}
-
-const created = [
-  {
-    type: "qa",
-    fillType: (dialog: TQueries) => {
-      fill(dialog, "Question", "What is the leaf mean?");
-      fill(dialog, "Answer", "The mean of its targets.");
-    },
-    card: {
-      id: "what-is-the-leaf-mean",
-      type: "qa",
-      en: { question: "What is the leaf mean?", answer: "The mean of its targets." },
-    },
-    answer: "The mean of its targets.",
-  },
-  {
-    type: "cloze",
-    fillType: (dialog: TQueries) => {
-      pickCardType(dialog, "cloze");
-      fill(dialog, "Text", "A leaf predicts the {{mean}}.");
-    },
-    card: {
-      id: "a-leaf-predicts-the-mean",
-      type: "cloze",
-      en: { text: "A leaf predicts the {{mean}}." },
-    },
-    answer: "A leaf predicts the mean.",
-  },
-  {
-    type: "true_false",
-    fillType: (dialog: TQueries) => {
-      pickCardType(dialog, "true_false");
-      fill(dialog, "Statement", "A leaf is a node.");
-      pickOption(dialog, "Answer", "False");
-    },
-    card: {
-      id: "a-leaf-is-a-node",
-      type: "true_false",
-      en: { statement: "A leaf is a node." },
-      answer: false,
-    },
-    answer: "False",
-  },
-  {
-    type: "formula",
-    fillType: (dialog: TQueries) => {
-      pickCardType(dialog, "formula");
-      fill(dialog, "Name", "Vector norm");
-      fill(dialog, "Word formula", "The root of the summed squares.");
-      fill(dialog, "Formula", "|x| = √(x₁² + x₂²)");
-    },
-    card: {
-      id: "vector-norm",
-      type: "formula",
-      en: { name: "Vector norm", wordFormula: "The root of the summed squares." },
-      formula: "|x| = √(x₁² + x₂²)",
-    },
-    answer: "|x| = √(x₁² + x₂²)",
-  },
-  {
-    type: "numeric",
-    fillType: (dialog: TQueries) => {
-      pickCardType(dialog, "numeric");
-      fill(dialog, "Question", "How far is it?");
-      fill(dialog, "Answer", "5");
-      fill(dialog, "Allowed error", "0.01");
-      fill(dialog, "Unit", "m");
-    },
-    card: {
-      id: "how-far-is-it",
-      type: "numeric",
-      en: { question: "How far is it?" },
-      answer: 5,
-      allowedError: 0.01,
-      unit: "m",
-    },
-    answer: "5 m",
-  },
-  {
-    type: "multiple_choice",
-    fillType: (dialog: TQueries) => {
-      pickCardType(dialog, "multiple_choice");
-      fill(dialog, "Question", "Which node predicts?");
-      fill(dialog, "Explanation", "A leaf predicts the mean.");
-      fill(dialog, "Option 1", "The root");
-      fill(dialog, "Option 2", "A leaf");
-      fireEvent.click(dialog.getByLabelText("Option 2 is right"));
-    },
-    card: {
-      id: "which-node-predicts",
-      type: "multiple_choice",
-      en: {
-        question: "Which node predicts?",
-        options: ["The root", "A leaf"],
-        explanation: "A leaf predicts the mean.",
-      },
-      answerIndex: 1,
-    },
-    answer: "A leaf",
-  },
-];
 
 it.each(created)(
   "Create Card on the Cards page makes a $type Card, shows Card saved. and its preview, and keeps it after a reload",
