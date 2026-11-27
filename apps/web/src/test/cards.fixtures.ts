@@ -53,6 +53,24 @@ export function formula(id: string, version: number, example?: string): TCardFor
   };
 }
 
+/** A valid formula Card with every field: Read aloud, an example and LaTeX, and all its texts in German. */
+export function fullFormula(id: string, version: number): TCardFormula {
+  const card = formula(id, version, "2 · 3 = 6");
+  return {
+    ...card,
+    en: { ...card.en, readAloud: `${id} equals a times b` },
+    translations: {
+      de: {
+        name: `Die ${id}-Formel`,
+        wordFormula: `${id} ist a mal b.`,
+        readAloud: `${id} gleich a mal b`,
+        example: "zwei mal drei",
+      },
+    },
+    latex: `${id} = a \\cdot b`,
+  };
+}
+
 /** A valid numeric Card: answer 5, allowed error 0.01; the question names its ID. */
 export function numeric(id: string, version: number, unit?: string): TCardNumeric {
   return {

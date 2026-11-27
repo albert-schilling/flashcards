@@ -7,6 +7,7 @@ import { LanguageContext, type TLanguage } from "./language.context";
 import {
   cloze,
   formula,
+  fullFormula,
   german,
   multipleChoice,
   numeric,
@@ -1112,7 +1113,7 @@ it("the heading holds Create Card with a hidden plus icon, which opens the Card 
   expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
 });
 
-it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1)])(
+it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1)])(
   "a $type preview has Edit, with a hidden icon, after Delete",
   (card) => {
     renderCardsPage([card]);
@@ -1124,7 +1125,7 @@ it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1)])(
   },
 );
 
-it.each([formula("a", 1), multipleChoice("a", 1), numeric("a", 1)])(
+it.each([multipleChoice("a", 1), numeric("a", 1)])(
   "a $type preview has no Edit until the editor has its fields",
   (card) => {
     renderCardsPage([card]);
@@ -1141,6 +1142,22 @@ it.each([
   {
     card: german(trueFalse("a", 1, false), { statement: "a ist wahr." }),
     fields: { Type: "true_false", Statement: "a is true.", "Statement (German)": "a ist wahr." },
+  },
+  {
+    card: fullFormula("a", 1),
+    fields: {
+      Type: "formula",
+      Name: "The a formula",
+      "Word formula": "a is a times b.",
+      "Read aloud": "a equals a times b",
+      Example: "2 · 3 = 6",
+      Formula: "a = a · b",
+      LaTeX: "a = a \\cdot b",
+      "Name (German)": "Die a-Formel",
+      "Word formula (German)": "a ist a mal b.",
+      "Read aloud (German)": "a gleich a mal b",
+      "Example (German)": "zwei mal drei",
+    },
   },
 ])("Edit in a $card.type preview opens the editor with the Card's fields", ({ card, fields }) => {
   renderCardsPage([card]);
@@ -1238,6 +1255,33 @@ it("the editor's fields show their hints and tag placeholders, and an error foll
     "Put each gap in double braces, like {{gap}}.",
     "Add a gap in double braces, like {{gap}}.",
   ]);
+});
+
+it("the formula fields are text areas with the control style; Read aloud, Example and LaTeX say they are optional", () => {
+  renderCardsPage([qa("a", 1)]);
+  const editor = openCreate();
+  fireEvent.change(editor.getByLabelText("Type"), { target: { value: "formula" } });
+  const germanHint = ["Optional. Without it, the English text shows."];
+  const hints = {
+    Name: [],
+    "Word formula": [],
+    "Read aloud": ["Optional."],
+    Example: ["Optional."],
+    Formula: [],
+    LaTeX: ["Optional."],
+    "Name (German)": germanHint,
+    "Word formula (German)": germanHint,
+    "Read aloud (German)": germanHint,
+    "Example (German)": germanHint,
+  };
+
+  for (const [label, hint] of Object.entries(hints)) {
+    const field = editor.getByLabelText(label);
+    expect(field.tagName).toBe("TEXTAREA");
+    expect(field.classList.contains("control")).toBe(true);
+    expect(field.closest(".field")).toBeTruthy();
+    expect(described(field)).toEqual(hint);
+  }
 });
 
 it("each field problem shows its own text: an empty field, a cloze without a gap, an ID that is not lowercase words", () => {
