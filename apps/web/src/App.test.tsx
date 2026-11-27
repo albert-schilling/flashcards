@@ -11,9 +11,31 @@ import {
 import { IDBFactory } from "fake-indexeddb";
 import { ArrowLeft, Check, CircleCheck, CircleX, X, type LucideIcon } from "lucide-react";
 import { expect, it, vi } from "vitest";
-import { Alert, type TAlertTone } from "./Alert";
 import { App } from "./App";
 import { addReview, loadLanguage, loadReviews } from "./storage";
+import {
+  alertIcon,
+  answer,
+  blockStorage,
+  deleteAllButton,
+  deleteFromRow,
+  download,
+  expectListed,
+  expectNoDialog,
+  expectNotListed,
+  goHome,
+  goTo,
+  isCurrent,
+  levelOneHeadings,
+  navLink,
+  openCards,
+  openDeleteAll,
+  pick,
+  startButton,
+  startSession,
+  upload,
+  uploaded,
+} from "./test/app.helpers";
 import {
   cloze,
   formula,
@@ -27,53 +49,6 @@ import {
   trueFalse,
 } from "./test/cards.fixtures";
 
-function upload(...cards: TCard[]) {
-  pick(
-    new File([JSON.stringify({ cards })], "deck.json", { type: "application/json" }),
-    "Upload Deck",
-  );
-}
-
-/** Opens the Cards page, where the Files panel is, and picks the file in the input with this label. */
-function pick(file: File, label: string) {
-  openCards();
-  const input = screen.getByLabelText<HTMLInputElement>(label);
-  // jsdom can't pick a file, so act like a browser: the value names the file until set to "".
-  let files = [file];
-  Object.defineProperty(input, "files", { configurable: true, get: () => files });
-  Object.defineProperty(input, "value", {
-    configurable: true,
-    get: () => (files.length ? `C:\\fakepath\\${files[0].name}` : ""),
-    set: (value: string) => {
-      if (value === "") files = [];
-    },
-  });
-  fireEvent.change(input);
-}
-
-// The test setup gives each test a fresh IndexedDB, so this lasts one test.
-function blockStorage() {
-  globalThis.indexedDB = {
-    open() {
-      throw new DOMException("Storage is blocked.", "SecurityError");
-    },
-  } as unknown as IDBFactory;
-}
-
-function openCards() {
-  goTo(/^(Cards|Karten)$/);
-}
-
-function goHome() {
-  goTo(/^(Home|Start)$/);
-}
-
-/** Opens the Cards page and waits for the Card's row; the row shows its ID. */
-async function expectListed(card: TCard) {
-  openCards();
-  await screen.findByText(card.id);
-}
-
 it("renders the start page with the app name", () => {
   render(<App />);
 
@@ -81,10 +56,6 @@ it("renders the start page with the app name", () => {
 
   expect(heading.textContent).toBe("Flashcards");
 });
-
-function levelOneHeadings() {
-  return screen.getAllByRole("heading", { level: 1 }).map((heading) => heading.textContent);
-}
 
 it("Home's heading welcomes back, with Flashcards as its only level-1 heading", () => {
   render(<App />);
@@ -121,14 +92,6 @@ it("shows the report of a rejected file without interrupting, so only errors are
   await screen.findByText(/File rejected/);
   expect(screen.queryByRole("alert")).toBeNull();
 });
-
-// The markup of the icon an Alert of this tone shows.
-function alertIcon(tone: TAlertTone): string {
-  const { container, unmount } = render(<Alert tone={tone}>Message</Alert>);
-  const icon = container.querySelector("svg")!.outerHTML;
-  unmount();
-  return icon;
-}
 
 function shownIcons(): string[] {
   return [...document.querySelectorAll("svg")].map((icon) => icon.outerHTML);
@@ -236,18 +199,6 @@ it("keeps the error of a failed upload when an earlier upload finishes later", a
   expect(screen.queryByText(/1 added, 0 updated, 0 unchanged/)).toBeNull();
 });
 
-async function expectNotListed(card: TCard) {
-  openCards();
-  await waitFor(() => expect(screen.queryByText(card.id)).toBeNull());
-}
-
-/** On the Cards page, presses this Card's row Delete, then Delete in the modal that asks first. */
-function deleteFromRow(id: string) {
-  fireEvent.click(screen.getByRole("button", { name: `Delete ${id}` }));
-  const modal = within(screen.getByRole("dialog", { name: "Delete this Card?" }));
-  fireEvent.click(modal.getByRole("button", { name: "Delete" }));
-}
-
 /** On the Cards page, opens this Card's preview from its row and presses Delete there. */
 function deleteFromPreview(id: string) {
   const remove = screen.getByRole("button", { name: `Delete ${id}` });
@@ -291,23 +242,6 @@ it("Card deleted. goes away when the Learner leaves the Cards page", async () =>
 
   expect(screen.queryByText("Card deleted.")).toBeNull();
 });
-
-function deleteAllButton() {
-  return screen.getByRole<HTMLButtonElement>("button", {
-    name: /^(Delete all Cards|Alle Karten löschen)$/,
-  });
-}
-
-/** Opens the Cards page, then the Delete all Cards modal, and returns queries inside the modal. */
-function openDeleteAll() {
-  openCards();
-  fireEvent.click(deleteAllButton());
-  return within(screen.getByRole("dialog"));
-}
-
-async function expectNoDialog() {
-  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-}
 
 it("asks before deleting all Cards, saying how many and that it cannot be undone", async () => {
   const danger = alertIcon("danger");
@@ -449,28 +383,6 @@ it("shows only an error, no Card deleted., and keeps the Card when deleting fail
   await expectListed(qa("ml.trees.leaf-mean", 1));
   expect(screen.queryByText("Card deleted.")).toBeNull();
 });
-
-/** Uploads the Cards on the Cards page, waits for the upload report, then goes back Home. Not the last row: the windowed list shows only the rows in view. */
-async function uploaded(...cards: TCard[]) {
-  upload(...cards);
-  await screen.findByText(new RegExp(`^${cards.length} added, `));
-  goHome();
-}
-
-function startButton() {
-  return screen.getByRole<HTMLButtonElement>("button", {
-    name: /^(Start Session|Sitzung starten)$/,
-  });
-}
-
-function startSession() {
-  fireEvent.click(startButton());
-}
-
-async function answer(knew = true) {
-  fireEvent.click(await screen.findByRole("button", { name: "Reveal" }));
-  fireEvent.click(screen.getByRole("button", { name: knew ? "Knew it" : "Didn't know" }));
-}
 
 it("starts a Session with 20 Cards by default, or the number set", async () => {
   render(<App />);
@@ -757,6 +669,7 @@ it.each([
 });
 
 const choices = ["This", "That"];
+
 const trueOrFalse = ["True", "False"];
 
 it.each([
@@ -1669,32 +1582,6 @@ it("shows an error when the Review log can't be loaded", async () => {
   expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
 });
 
-/** Opens the Cards page, where the Files panel is, clicks the button and returns the file it downloads. jsdom can't download, so this fakes the browser's part. */
-async function download(button: string): Promise<File> {
-  openCards();
-  const blobs = new Map<string, Blob>();
-  const create = vi.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
-    const url = `blob:download-${blobs.size}`;
-    blobs.set(url, blob as Blob);
-    return url;
-  });
-  const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
-  const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-  try {
-    fireEvent.click(screen.getByRole("button", { name: button }));
-
-    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
-    const link = click.mock.contexts[0] as HTMLAnchorElement;
-    const url = link.getAttribute("href")!;
-    await waitFor(() => expect(revoke).toHaveBeenCalledWith(url));
-    return new File([blobs.get(url)!], link.download, { type: "application/json" });
-  } finally {
-    click.mockRestore();
-    create.mockRestore();
-    revoke.mockRestore();
-  }
-}
-
 it("downloads the Cards as a Deck that uploads again unchanged", async () => {
   render(<App />);
   await uploaded(qa("a", 1), qa("b", 2));
@@ -2286,20 +2173,6 @@ it("after a reload, the UI text is in the picked language, not the browser langu
   openCards();
   expect(screen.getByText("Noch nichts heruntergeladen")).toBeTruthy();
 });
-
-function navLink(name: string | RegExp) {
-  return within(
-    screen.getByRole("navigation", { name: /^(Pages|Seiten)$/ }),
-  ).getByRole<HTMLButtonElement>("button", { name });
-}
-
-function goTo(name: string | RegExp) {
-  fireEvent.click(navLink(name));
-}
-
-function isCurrent(name: string) {
-  return navLink(name).getAttribute("aria-current") === "page";
-}
 
 it("the header shows the brand, and the brand goes Home from Statistics", async () => {
   render(<App />);
