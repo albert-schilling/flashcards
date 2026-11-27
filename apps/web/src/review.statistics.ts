@@ -1,7 +1,7 @@
 import type { TCard } from "@flashcards/cards";
 import type { TReview } from "./storage";
 
-/** Statistics of one Card, from the Reviews of its current version only. */
+/** Counts only Reviews of the current version. */
 export type TCardStatistics = {
   card: TCard;
   reviews: number;
@@ -9,11 +9,9 @@ export type TCardStatistics = {
   lastReviewedAt?: string;
 };
 
-/** Totals of one tag over the Cards that have it. */
 export type TTagStatistics = { tag: string; cards: number; reviews: number; right: number };
 
 export type TStatistics = {
-  /** Totals over all given Cards, from the Reviews of their current versions. */
   overall: Omit<TTagStatistics, "tag">;
   cards: TCardStatistics[];
   domain: TTagStatistics[];
@@ -34,7 +32,7 @@ function totals(cards: TCardStatistics[], pick: (card: TCard) => string[]): TTag
   return [...byTag.values()].sort((a, b) => a.tag.localeCompare(b.tag));
 }
 
-/** The Reviews of the Card's current version, oldest first. */
+/** Oldest first. */
 function currentReviews(card: TCard, reviews: TReview[]): TReview[] {
   // ISO times in one format sort as text.
   return reviews
@@ -42,7 +40,7 @@ function currentReviews(card: TCard, reviews: TReview[]): TReview[] {
     .sort((a, b) => a.answeredAt.localeCompare(b.answeredAt));
 }
 
-/** Statistics of the given Cards from the Review log; Reviews of an older version or of a Card not given don't count. */
+/** Reviews of an older version or of a Card not given don't count. */
 export function statistics(cards: TCard[], reviews: TReview[]): TStatistics {
   const perCard = cards.map((card): TCardStatistics => {
     const current = currentReviews(card, reviews);
@@ -65,7 +63,7 @@ export function statistics(cards: TCard[], reviews: TReview[]): TStatistics {
   };
 }
 
-/** The Cards weakest first: never reviewed, then the lowest share right over the last 5 Reviews of the current version, ties to the one reviewed longest ago. Cards that rank the same keep their order. */
+/** Never reviewed first, then the lowest share right over the last 5 Reviews of the current version, ties to the one reviewed longest ago; Cards that rank the same keep their order. */
 export function weakestFirst<T extends TCard>(cards: T[], reviews: TReview[]): T[] {
   const ranked = cards.map((card) => {
     const last5 = currentReviews(card, reviews).slice(-5);

@@ -12,12 +12,11 @@ export function withinAllowedError(
   );
 }
 
-/** Every domain and topic tag of the Cards, sorted, each once. */
 export function allTags(cards: TCard[]): string[] {
   return [...new Set(cards.flatMap((card) => [...card.tags.domain, ...card.tags.topic]))].sort();
 }
 
-/** Up to `size` Cards, weakest first, only those with `tag` as a domain or topic tag if given. */
+/** The weakest Cards first. */
 export function pickCards<T extends TCard>(
   cards: T[],
   reviews: TReview[],

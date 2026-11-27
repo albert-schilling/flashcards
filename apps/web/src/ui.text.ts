@@ -151,7 +151,6 @@ const en = {
   date: (date: Date) => date.toLocaleDateString("en"),
 };
 
-/** The UI texts of one language; templates are functions. */
 export type TUiText = typeof en;
 
 const de: TUiText = {

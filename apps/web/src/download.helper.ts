@@ -1,4 +1,3 @@
-/** Lets the browser save this text as a JSON file with this name. */
 export function downloadFile(name: string, text: string): void {
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
   try {

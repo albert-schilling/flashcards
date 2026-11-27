@@ -1,7 +1,7 @@
 import { ZCard, type TCard } from "@flashcards/cards";
 import { sameContent } from "./deck";
 
-/** The Card types the editor can make, in the order the Type select shows them. */
+/** In the order the Type select shows them. */
 export const editableTypes = [
   "qa",
   "cloze",
@@ -38,12 +38,10 @@ type TBothTexts = {
 };
 type TBothKey = keyof TBothTexts;
 
-/** One option row of a multiple_choice form: its text in English and German. */
 export type TOption = { en: string; de: string };
-/** A multiple_choice form's option rows and the index of the right one. */
 export type TChoice = { options: TOption[]; answerIndex: number };
 
-/** The editor's input: every field of every editable type, so switching type keeps what was typed. `en` and `de` hold the texts per language, `both` the fields with one value for both languages. Tags are comma-separated. `options` holds the option rows, and `answerIndex` the right one. */
+/** Every field of every editable type, so switching type keeps what was typed. Tags are comma-separated. */
 export type TCardForm = {
   type: TEditableType;
   id: string;
@@ -70,7 +68,7 @@ export type TFormField =
 export type TFieldProblem = "empty" | "noGap" | "idFormat" | "idTaken" | "negative";
 export type TFieldErrors = Partial<Record<TFormField, TFieldProblem>>;
 
-/** The text fields of each editable type, in the order the editor shows them. */
+/** In the order the editor shows them. */
 export const textFields: Record<TEditableType, TTextKey[]> = {
   qa: ["question", "answer"],
   cloze: ["text"],
@@ -80,7 +78,7 @@ export const textFields: Record<TEditableType, TTextKey[]> = {
   multiple_choice: ["question", "explanation"],
 };
 
-/** The fields of each editable type that hold one value for both languages, in the order the editor shows them; they sit at the Card's top level. */
+/** Fields with one value for both languages; they sit at the Card's top level. */
 export const bothFields: Record<TEditableType, TBothKey[]> = {
   qa: [],
   cloze: [],
@@ -90,7 +88,6 @@ export const bothFields: Record<TEditableType, TBothKey[]> = {
   multiple_choice: [],
 };
 
-/** The text field a new Card's ID is suggested from, per editable type. */
 export const idSource: Record<TEditableType, TTextKey> = {
   qa: "question",
   cloze: "text",
@@ -111,10 +108,9 @@ const noTexts: TTexts = {
   example: "",
   explanation: "",
 };
-/** The empty both-language fields; Allowed error starts at 0. */
+/** Allowed error starts at 0. */
 const noBoth: TBothTexts = { formula: "", latex: "", answer: "", allowedError: "0", unit: "" };
 
-/** The form's both-language fields for a Card: formula's and numeric's own, the defaults for the rest. */
 function bothOf(card: TEditableCard): TBothTexts {
   if (card.type === "formula") return { ...noBoth, formula: card.formula, latex: card.latex ?? "" };
   if (card.type === "numeric") {
@@ -128,7 +124,7 @@ function bothOf(card: TEditableCard): TBothTexts {
   return { ...noBoth };
 }
 
-/** The text keys of `texts` only; a multiple_choice Card's `options` stay out of the form's texts. */
+/** A multiple_choice Card's `options` stay out of the form's texts. */
 function textsOf(texts?: Record<string, unknown>): TTexts {
   const picked = { ...noTexts };
   for (const key of Object.keys(noTexts) as TTextKey[]) {
@@ -138,7 +134,7 @@ function textsOf(texts?: Record<string, unknown>): TTexts {
   return picked;
 }
 
-/** The form's option rows for a Card: a multiple_choice Card's options with their German texts ("" where there is none), and two empty rows with the first right for any other Card or none. */
+/** "" where an option has no German text; any other Card gets two empty rows with the first right. */
 function choiceOf(card?: TEditableCard): TChoice {
   if (card?.type !== "multiple_choice") {
     return {
@@ -156,7 +152,7 @@ function choiceOf(card?: TEditableCard): TChoice {
   };
 }
 
-/** The rows without the one at `index`. The right option stays marked; if it is the one removed, the first becomes right, as on a new Card. */
+/** If the removed row is the right one, the first becomes right, as on a new Card. */
 export function withoutOption(choice: TChoice, index: number): TChoice {
   const options = choice.options.filter((_, at) => at !== index);
   if (choice.answerIndex === index) return { options, answerIndex: 0 };
@@ -166,7 +162,6 @@ export function withoutOption(choice: TChoice, index: number): TChoice {
   };
 }
 
-/** The form for a Card, or an empty qa form when there is none. */
 export function formFromCard(card?: TEditableCard): TCardForm {
   if (!card) {
     return {
@@ -235,7 +230,7 @@ function numbersIn(values: Record<string, string>): Record<string, string | numb
   );
 }
 
-/** The values of `keys` from `values`, trimmed; empty ones are dropped with `skipEmpty` or when the field is optional. */
+/** Empty values are dropped with `skipEmpty` or when the field is optional. */
 function pickTexts<TKey extends string>(
   keys: TKey[],
   values: Record<TKey, string>,
@@ -284,7 +279,7 @@ function valueAt(value: unknown, path: PropertyKey[]): unknown {
   );
 }
 
-/** The form field a Zod issue path belongs to, or undefined for a path the form has no field for. */
+/** Undefined for a path the form has no field for. */
 function fieldOf(path: PropertyKey[]): TFormField | undefined {
   const [first, second, third, fourth] = path;
   if (first === "id" || first === "lesson") return first;
@@ -309,7 +304,7 @@ const rejected: Partial<Record<TFormField, TFieldProblem>> = {
   allowedError: "negative",
 };
 
-/** Builds a Card from the form, or says what is wrong with each field. A new Card gets version 1 and no sources; an edited Card keeps its sources and gets the next version when its content changed, and its own ID is not taken. The Card schema (ZCard) decides what is valid; a taken ID is the one check it can't make. */
+/** The Card schema (ZCard) decides what is valid; a taken ID is the one check it can't make. An edited Card keeps its sources and gets the next version only when its content changed. */
 export function cardFromForm(
   form: TCardForm,
   context: { takenIds: string[]; editing?: TEditableCard },

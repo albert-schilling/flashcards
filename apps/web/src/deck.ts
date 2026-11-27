@@ -2,10 +2,10 @@ import { ZDeck, type TCard } from "@flashcards/cards";
 import { downloadFile } from "./download.helper";
 import { loadCards, saveCards } from "./storage";
 
-/** One problem with an uploaded file: where (a Card ID, "card 3" or "review 3"), which field, and what is wrong. */
+/** `where` is a Card ID, "card 3" or "review 3". */
 export type TFileError = { where?: string; field?: string; message: string };
 
-/** What an upload did. A file that is not a valid Deck stores nothing; otherwise each Card is added, updated, unchanged or rejected with an error. */
+/** A file that is not a valid Deck stores nothing. */
 export type TUploadReport =
   | { ok: false; errors: TFileError[] }
   | { ok: true; added: number; updated: number; unchanged: number; errors: TFileError[] };
@@ -77,7 +77,7 @@ function merge(stored: TCard[], cards: TCard[]) {
   return { toSave, added, updated, unchanged, errors };
 }
 
-/** Reads a Deck file and stores its Cards by the Card version rules: a higher version replaces the stored Card, the same version must have the same content, a lower version is rejected, and stored Cards missing from the Deck stay. */
+/** Card version rules: a higher version replaces the stored Card, the same version must have the same content, a lower version is rejected; stored Cards missing from the Deck stay. */
 export async function uploadDeck(text: string): Promise<TUploadReport> {
   const deck = readDeck(text);
   if ("errors" in deck) return { ok: false, errors: deck.errors };
@@ -87,7 +87,7 @@ export async function uploadDeck(text: string): Promise<TUploadReport> {
   return { ok: true, ...report };
 }
 
-/** Downloads the stored Cards as a Deck file that uploads again unchanged. */
+/** The file uploads again unchanged. */
 export async function downloadDeck(): Promise<void> {
   downloadFile("deck.json", JSON.stringify({ cards: await loadCards() }, null, 2));
 }
