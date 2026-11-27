@@ -6,7 +6,7 @@ import { cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
 import { RowTags } from "./RowTags";
 
-/** The pixel height of one row: the --virtual-row-height token (in rem) times the root font size. */
+/** In pixels, as TanStack Virtual measures; the token is in rem. */
 function rowHeightOf(): number {
   const root = getComputedStyle(document.documentElement);
   return parseFloat(root.getPropertyValue("--virtual-row-height")) * parseFloat(root.fontSize);

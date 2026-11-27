@@ -68,7 +68,6 @@ export const ZCardNumeric = cardType(
   { answer: z.number(), allowedError: z.number().min(0), unit: ZText.optional() },
 );
 
-/** A text with a `{{gap}}` to fill in. */
 export const ZCardCloze = cardType(
   "cloze",
   { text: z.string().regex(/\{\{.+?\}\}/, "needs a {{gap}}") },

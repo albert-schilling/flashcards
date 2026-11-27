@@ -6,18 +6,15 @@ import { useText } from "./language.context";
 import { statistics, type TTagStatistics } from "./review.statistics";
 import type { TReview } from "./storage";
 
-/** Undefined with no Reviews. */
 function percentRight(reviews: number, right: number): number | undefined {
   return reviews === 0 ? undefined : Math.round((100 * right) / reviews);
 }
 
-/** "–" with no Reviews. */
 function share(reviews: number, right: number): string {
   const percent = percentRight(reviews, right);
   return percent === undefined ? "–" : `${percent}%`;
 }
 
-/** The bar is empty with no Reviews. */
 function ShareCell(props: { reviews: number; right: number }) {
   const percent = percentRight(props.reviews, props.right);
   return (

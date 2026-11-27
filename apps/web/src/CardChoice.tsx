@@ -3,7 +3,6 @@ import { useState } from "react";
 import { CardVerdict } from "./CardVerdict";
 import { StudyCard, type TStudyCardFrame } from "./StudyCard";
 
-/** A click on an option answers. */
 export function CardChoice(props: {
   frame: TStudyCardFrame;
   options: string[];

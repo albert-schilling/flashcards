@@ -4,7 +4,7 @@ import { useText } from "./language.context";
 import { withinAllowedError } from "./session.helper";
 import { StudyCard, type TStudyCardFrame } from "./StudyCard";
 
-/** Check (or Enter) answers within the allowed error. */
+/** A form, so Enter answers as Check does. */
 export function CardNumeric(props: {
   frame: TStudyCardFrame;
   answer: number;
