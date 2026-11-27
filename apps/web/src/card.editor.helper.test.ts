@@ -29,7 +29,7 @@ const noTexts = {
   readAloud: "",
   example: "",
 };
-const noBoth = { formula: "", latex: "" };
+const noBoth = { formula: "", latex: "", answer: "", allowedError: "0", unit: "" };
 
 /** A valid qa form; `changes` replace its fields, `en`, `de` and `both` field by field. */
 function form(
@@ -128,6 +128,22 @@ describe("cardFromForm", () => {
         },
         formula: "|x| = √(x₁² + x₂²)",
         latex: "\\lVert x \\rVert",
+      },
+    },
+    {
+      type: "numeric",
+      form: form({
+        type: "numeric",
+        en: { question: " How far is it? " },
+        both: { answer: " 5 ", allowedError: " 0.01 ", unit: " m " },
+      }),
+      card: {
+        ...shared,
+        type: "numeric",
+        en: { question: "How far is it?" },
+        answer: 5,
+        allowedError: 0.01,
+        unit: "m",
       },
     },
   ])(
@@ -233,6 +249,21 @@ describe("cardFromForm", () => {
       problem: "an empty formula",
       form: form({ type: "formula", en: formulaTexts, both: { formula: " " } }),
       errors: { formula: "empty" },
+    },
+    {
+      problem: "a blank numeric answer",
+      form: form({ type: "numeric", both: { answer: " " } }),
+      errors: { answer: "empty" },
+    },
+    {
+      problem: "a blank allowed error",
+      form: form({ type: "numeric", both: { answer: "5", allowedError: "" } }),
+      errors: { allowedError: "empty" },
+    },
+    {
+      problem: "a negative allowed error",
+      form: form({ type: "numeric", both: { answer: "5", allowedError: "-0.5" } }),
+      errors: { allowedError: "negative" },
     },
     {
       problem: "no domain tag",
@@ -365,20 +396,22 @@ describe("formFromCard", () => {
     ZCard.parse(german(trueFalse("t", 1, false), { statement: "t ist wahr." })) as TEditableCard,
     ZCard.parse(fullFormula("f", 1)) as TEditableCard,
     ZCard.parse(formula("m", 1)) as TEditableCard,
+    ZCard.parse(numeric("n", 1)) as TEditableCard,
+    ZCard.parse(german(numeric("u", 1, "m"), { question: "Wie viel ist u?" })) as TEditableCard,
   ])("gives back the same $type Card through cardFromForm", (card) => {
     expect(made(formFromCard(card), { takenIds: [card.id], editing: card })).toEqual(card);
   });
 });
 
 describe("isEditable", () => {
-  it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1)])(
+  it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1), numeric("a", 1)])(
     "a $type Card is editable",
     (card) => {
       expect(isEditable(card)).toBe(true);
     },
   );
 
-  it.each([multipleChoice("a", 1), numeric("a", 1)])("a $type Card is not editable yet", (card) => {
+  it.each([multipleChoice("a", 1)])("a $type Card is not editable yet", (card) => {
     expect(isEditable(card)).toBe(false);
   });
 });

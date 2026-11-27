@@ -354,7 +354,7 @@ it.each([
 ])(
   "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, and Edit for the editable types",
   ({ card, title, answer }) => {
-    const editable = ["qa", "cloze", "true_false", "formula"].includes(card.type);
+    const editable = ["qa", "cloze", "true_false", "formula", "numeric"].includes(card.type);
     renderCardsPage([card]);
 
     const preview = openPreview("a");
@@ -1113,7 +1113,7 @@ it("the heading holds Create Card with a hidden plus icon, which opens the Card 
   expect(screen.getByRole("dialog", { name: "Create Card" })).toBeTruthy();
 });
 
-it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1)])(
+it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1), numeric("a", 1)])(
   "a $type preview has Edit, with a hidden icon, after Delete",
   (card) => {
     renderCardsPage([card]);
@@ -1125,7 +1125,7 @@ it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1)])(
   },
 );
 
-it.each([multipleChoice("a", 1), numeric("a", 1)])(
+it.each([multipleChoice("a", 1)])(
   "a $type preview has no Edit until the editor has its fields",
   (card) => {
     renderCardsPage([card]);
@@ -1157,6 +1157,17 @@ it.each([
       "Word formula (German)": "a ist a mal b.",
       "Read aloud (German)": "a gleich a mal b",
       "Example (German)": "zwei mal drei",
+    },
+  },
+  {
+    card: german(numeric("a", 1, "m"), { question: "Wie viel ist a?" }),
+    fields: {
+      Type: "numeric",
+      Question: "How much is a?",
+      Answer: "5",
+      "Allowed error": "0.01",
+      Unit: "m",
+      "Question (German)": "Wie viel ist a?",
     },
   },
 ])("Edit in a $card.type preview opens the editor with the Card's fields", ({ card, fields }) => {
@@ -1282,6 +1293,32 @@ it("the formula fields are text areas with the control style; Read aloud, Exampl
     expect(field.closest(".field")).toBeTruthy();
     expect(described(field)).toEqual(hint);
   }
+});
+
+it("the numeric fields have the control style: Answer and Allowed error are number inputs without a hint, Allowed error starts at 0, and Unit is a text input that says it is optional", () => {
+  renderCardsPage([qa("a", 1)]);
+  const editor = openCreate();
+  fireEvent.change(editor.getByLabelText("Type"), { target: { value: "numeric" } });
+  const fields = {
+    Answer: { type: "number", hint: [] },
+    "Allowed error": { type: "number", hint: [] },
+    Unit: { type: "text", hint: ["Optional."] },
+  };
+
+  for (const [label, { type, hint }] of Object.entries(fields)) {
+    const field = editor.getByLabelText<HTMLInputElement>(label);
+    expect(field.tagName).toBe("INPUT");
+    expect(field.type).toBe(type);
+    expect(field.getAttribute("step")).toBe(type === "number" ? "any" : null);
+    expect(field.classList.contains("control")).toBe(true);
+    expect(field.closest(".field")).toBeTruthy();
+    expect(described(field)).toEqual(hint);
+  }
+  expect(editor.getByLabelText<HTMLInputElement>("Answer").value).toBe("");
+  expect(editor.getByLabelText<HTMLInputElement>("Allowed error").value).toBe("0");
+  expect(described(editor.getByLabelText("Question (German)"))).toEqual([
+    "Optional. Without it, the English text shows.",
+  ]);
 });
 
 it("each field problem shows its own text: an empty field, a cloze without a gap, an ID that is not lowercase words", () => {
