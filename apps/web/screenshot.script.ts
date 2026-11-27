@@ -412,7 +412,7 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardDeleted, { exact: true }).waitFor();
     await shot("deleted");
   },
-  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the true_false Card and shoots the preview with its notice, fills a formula Card with every field for the formula shot, scrolled to Formula, and switches it to numeric for the numeric shot, scrolled to Answer.
+  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the true_false Card and shoots the preview with its notice, fills a formula Card with every field for the formula shot, scrolled to Formula, and switches it to numeric for the numeric shot, scrolled to Answer, then to multiple_choice with three options and German texts for the multiple-choice shot, scrolled to Options after a check that the option rows fit.
   editor: async (page, shot) => {
     const text = uiText.en;
     await goTo(page, text.cards);
@@ -495,6 +495,40 @@ const flows: Record<string, TFlow> = {
       .fill("Wie schnell fällt ein Körper?");
     await dialog.getByLabel(text.answer, { exact: true }).scrollIntoViewIfNeeded();
     await shot("numeric");
+    await dialog.getByLabel(text.type, { exact: true }).selectOption("multiple_choice");
+    await dialog.getByLabel(text.question, { exact: true }).fill("Which node predicts?");
+    await dialog
+      .getByLabel(text.inGerman(text.question), { exact: true })
+      .fill("Welcher Knoten sagt voraus?");
+    await dialog.getByLabel(text.explanation, { exact: true }).fill("A leaf predicts the mean.");
+    await dialog
+      .getByLabel(text.inGerman(text.explanation), { exact: true })
+      .fill("Ein Blatt sagt den Mittelwert voraus.");
+    const german = ["Die Wurzel", "Ein Split", "Ein Blatt"];
+    const english = ["The root", "A split", "A leaf"];
+    for (const [i, option] of english.entries()) {
+      if (i === 2) await dialog.getByRole("button", { name: text.addOption, exact: true }).click();
+      await dialog.getByLabel(text.option(i + 1), { exact: true }).fill(option);
+      await dialog.getByLabel(text.inGerman(text.option(i + 1)), { exact: true }).fill(german[i]);
+    }
+    await dialog.getByLabel(text.rightOption(2), { exact: true }).check();
+    await dialog.getByText(text.options, { exact: true }).scrollIntoViewIfNeeded();
+    // Every option row must sit inside its box, and the dialog must not scroll sideways.
+    const rows = dialog.locator(".option-row");
+    if ((await rows.count()) === 0) throw new Error("editor flow: no option rows found");
+    const overflow = await dialog.evaluate((element) => {
+      const sideways = element.scrollWidth > element.clientWidth;
+      const wide = [...element.querySelectorAll<HTMLElement>(".option-row")].filter(
+        (row) => row.scrollWidth > row.clientWidth,
+      ).length;
+      return { sideways, wide };
+    });
+    if (overflow.sideways || overflow.wide > 0) {
+      throw new Error(
+        `editor flow: option rows overflow (dialog scrolls sideways: ${overflow.sideways}, rows wider than their box: ${overflow.wide})`,
+      );
+    }
+    await shot("multiple-choice");
   },
   // Uploads 1,000 Cards, checks that only a few rows are in the DOM, then shoots the top, the middle, Tab through rows and the end.
   windowed: async (page, shot) => {

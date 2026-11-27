@@ -1495,6 +1495,55 @@ textarea.control {
   resize: vertical;
 }
 
+.option-rows {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.option-rows legend {
+  padding: 0;
+  color: var(--color-ink-700);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.option-rows > small {
+  color: var(--color-ink-500);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.option-rows > .button {
+  justify-self: start;
+}
+
+.option-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* Lined up with the English input, below its label. */
+.option-row input[type="radio"] {
+  width: var(--space-5);
+  height: var(--space-5);
+  margin: var(--space-10) var(--space-0) var(--space-0);
+  accent-color: var(--color-accent-600);
+}
+
+.option-row .icon-button {
+  margin-top: var(--space-8);
+}
+
+.option-texts {
+  display: grid;
+  gap: var(--space-2);
+}
+
 .field .field-error {
   color: var(--color-danger-700);
   font-size: var(--font-size-xs);
