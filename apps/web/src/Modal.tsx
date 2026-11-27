@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { useText } from "./language.context";
 
-/** A dialog over a dimmed backdrop, titled `title`, with the caller's body and actions as children; render it only while open. Close (X), Escape and a mouse-down on the backdrop call onClose; a mouse-down inside doesn't, so a drag that ends outside keeps it open. Focus moves into the dialog when it opens. */
+/** Render it only while open. Close (X), Escape and a mouse-down on the backdrop call onClose; a mouse-down inside doesn't, so a drag that ends outside keeps it open. */
 export function Modal(props: { title: string; onClose: () => void; children: ReactNode }) {
   const text = useText();
   const titleId = useId();

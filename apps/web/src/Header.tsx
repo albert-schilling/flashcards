@@ -4,7 +4,7 @@ import { useText } from "./language.context";
 
 export type TPage = "home" | "cards" | "session" | "statistics" | "settings";
 
-/** The sticky app header: the brand goes Home; the nav lists the pages and marks the current one with aria-current. On phones the nav opens from the menu button and closes after any choice. `sessionDisabled` disables the Session link. */
+/** On phones the nav opens from the menu button and closes after any choice. */
 export function Header(props: {
   page: TPage;
   onNavigate: (page: TPage) => void;

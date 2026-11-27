@@ -36,29 +36,29 @@ async function withDatabase<T>(use: (db: IDBPDatabase<TFlashcardsDB>) => Promise
   }
 }
 
-/** The Cards stored in the browser, in ID order. */
+/** In ID order, because IndexedDB returns a store in key order. */
 export function loadCards(): Promise<TCard[]> {
   return withDatabase((db) => db.getAll("cards"));
 }
 
-/** Removes the stored Card with this ID; Reviews of it stay in the Review log. */
+/** Reviews of it stay in the Review log. */
 export function deleteCard(id: string): Promise<void> {
   return withDatabase((db) => db.delete("cards", id));
 }
 
-/** Removes every stored Card; the Review log stays. */
+/** The Review log stays. */
 export function clearCards(): Promise<void> {
   return withDatabase((db) => db.clear("cards"));
 }
 
-/** Appends a Review to the Review log; fails rather than overwrite a stored Review. */
+/** Fails rather than overwrite a stored Review. */
 export function addReview(review: TReview): Promise<void> {
   return withDatabase(async (db) => {
     await db.add("reviews", review);
   });
 }
 
-/** Adds the Reviews whose Card ID and time are not stored yet, in one transaction; returns how many it added. */
+/** In one transaction; returns how many it added. */
 export function addNewReviews(reviews: TReview[]): Promise<number> {
   return withDatabase(async (db) => {
     const tx = db.transaction("reviews", "readwrite");
@@ -81,37 +81,34 @@ export function addNewReviews(reviews: TReview[]): Promise<number> {
   });
 }
 
-/** When the Review log was last downloaded, as an ISO time; undefined if never. */
+/** An ISO time; undefined if never. */
 export function loadLastDownload(): Promise<string | undefined> {
   return withDatabase((db) => db.get("settings", "lastDownload"));
 }
 
-/** Saves when the Review log was last downloaded. */
 export function saveLastDownload(at: string): Promise<void> {
   return withDatabase(async (db) => {
     await db.put("settings", at, "lastDownload");
   });
 }
 
-/** The language the Learner picked; undefined if never picked or not a known language. */
+/** Undefined if never picked or not a known language. */
 export async function loadLanguage(): Promise<TLanguage | undefined> {
   const stored = await withDatabase((db) => db.get("settings", "language"));
   return stored === "en" || stored === "de" ? stored : undefined;
 }
 
-/** Saves the language the Learner picked. */
 export function saveLanguage(language: TLanguage): Promise<void> {
   return withDatabase(async (db) => {
     await db.put("settings", language, "language");
   });
 }
 
-/** Every Review in the Review log. */
 export function loadReviews(): Promise<TReview[]> {
   return withDatabase((db) => db.getAll("reviews"));
 }
 
-/** Stores the Cards, replacing any stored Card with the same ID. */
+/** Replaces any stored Card with the same ID. */
 export function saveCards(cards: TCard[]): Promise<void> {
   return withDatabase(async (db) => {
     const tx = db.transaction("cards", "readwrite");

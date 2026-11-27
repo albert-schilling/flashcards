@@ -10,7 +10,6 @@ import { uiText } from "./ui.text";
 // A cloze gap, `{{word}}`; the group is the word that fills it.
 const gap = /\{\{(.+?)\}\}/g;
 
-// A cloze text as it is asked: every gap blank.
 function withGapsBlank(text: string): string {
   return text.replaceAll(gap, "____");
 }
@@ -22,7 +21,7 @@ function inLanguage(card: TCard, language: TLanguage): TCard {
   return { ...card, en: { ...card.en, ...card.translations?.de } } as TCard;
 }
 
-/** What a list shows for a Card in this language: the question (qa, multiple_choice, numeric), the name (formula), the statement (true_false) or the text with its gaps blank (cloze). */
+/** The list's text for a Card; a cloze shows its text with the gaps blank. */
 export function cardTitle(card: TCard, language: TLanguage): string {
   const shown = inLanguage(card, language);
   switch (shown.type) {
@@ -39,7 +38,7 @@ export function cardTitle(card: TCard, language: TLanguage): string {
   }
 }
 
-/** What the Card preview shows as a Card's answer in this language, one line each: the answer (qa); the word formula, the formula and the example if any (formula); the text with its gaps filled (cloze); the right option, then the explanation (multiple_choice); True or False (true_false); the answer and its unit (numeric). */
+/** The Card preview's answer, one line per part; a cloze shows its gaps filled. */
 export function cardAnswer(card: TCard, language: TLanguage): string[] {
   const shown = inLanguage(card, language);
   switch (shown.type) {

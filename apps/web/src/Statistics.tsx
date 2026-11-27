@@ -6,18 +6,15 @@ import { useText } from "./language.context";
 import { statistics, type TTagStatistics } from "./review.statistics";
 import type { TReview } from "./storage";
 
-/** The share right in whole percent; undefined with no Reviews. */
 function percentRight(reviews: number, right: number): number | undefined {
   return reviews === 0 ? undefined : Math.round((100 * right) / reviews);
 }
 
-/** The share right as text: "67%", or "–" with no Reviews. */
 function share(reviews: number, right: number): string {
   const percent = percentRight(reviews, right);
   return percent === undefined ? "–" : `${percent}%`;
 }
 
-/** A cell with the share right and a bar as wide as it; the bar is empty with no Reviews. */
 function ShareCell(props: { reviews: number; right: number }) {
   const percent = percentRight(props.reviews, props.right);
   return (
@@ -33,7 +30,7 @@ function ShareCell(props: { reviews: number; right: number }) {
   );
 }
 
-/** A panel whose h2 names the table inside it; the table scrolls sideways when the panel is narrower. */
+/** The table scrolls sideways when the panel is narrower. */
 function TablePanel(props: { title: string; children: ReactNode }) {
   const id = useId();
   return (
@@ -72,7 +69,6 @@ function TagTable({ name, rows }: { name: string; rows: TTagStatistics[] }) {
   );
 }
 
-/** Shows the Statistics of the stored Cards; `onBack` leaves it. */
 export function Statistics(props: { cards: TCard[]; reviews: TReview[]; onBack: () => void }) {
   const text = useText();
   const { overall, cards, domain, topic } = statistics(props.cards, props.reviews);

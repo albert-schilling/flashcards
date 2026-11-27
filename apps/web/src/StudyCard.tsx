@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { useText } from "./language.context";
 import { StudyCardTags } from "./StudyCardTags";
 
-/** What a study card shows above its answer: the Card type, all its tags, the prompt and an optional line below it. */
 export type TStudyCardFrame = {
   type: TCard["type"];
   tags: TCard["tags"];
@@ -12,7 +11,7 @@ export type TStudyCardFrame = {
   detail?: string;
 };
 
-/** The prototype's study card: type name, tag chip, the type's coloured strip and the prompt, then `children`. With `onNext`, Next follows below the card, outside the article. */
+/** With `onNext`, Next follows below the card, outside the article. */
 export function StudyCard(props: {
   frame: TStudyCardFrame;
   onNext?: () => void;

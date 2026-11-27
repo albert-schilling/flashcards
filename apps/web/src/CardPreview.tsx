@@ -6,7 +6,7 @@ import { LanguageContext, useText } from "./language.context";
 import { Modal } from "./Modal";
 import { RowTags } from "./RowTags";
 
-/** The Card preview: a Modal with the Card's type name, its question and answer in the current language (see cardTitle and cardAnswer), its tags, its ID and version, and Delete, which deletes without asking, and, when `onEdit` is given, Edit after it, then Add to current Session, disabled without `onAddToSession`, and New Session. */
+/** Delete deletes without asking. Edit shows only with `onEdit`, and Add to current Session is disabled without `onAddToSession`. */
 export function CardPreview(props: {
   card: TCard;
   onClose: () => void;

@@ -4,7 +4,6 @@ import { LanguageContext, useText, type TLanguage } from "./language.context";
 import { PageHeading } from "./PageHeading";
 import { Select } from "./Select";
 
-/** The Settings page: the Language settings heading, then the Interface panel with the Language select and a note that the interface and Card texts update immediately. The select shows the language from LanguageContext; App owns the language, changes it at once and stores it. */
 export function Settings(props: { onLanguage: (language: TLanguage) => void }) {
   const text = useText();
   const language = useContext(LanguageContext);

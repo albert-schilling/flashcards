@@ -6,13 +6,13 @@ import { cardTitle } from "./CardView";
 import { LanguageContext, useText } from "./language.context";
 import { RowTags } from "./RowTags";
 
-/** The pixel height of one row: the --virtual-row-height token (in rem) times the root font size. */
+/** In pixels, as TanStack Virtual measures; the token is in rem. */
 function rowHeightOf(): number {
   const root = getComputedStyle(document.documentElement);
   return parseFloat(root.getPropertyValue("--virtual-row-height")) * parseFloat(root.fontSize);
 }
 
-/** The Cards page's list of Cards, windowed with TanStack Virtual: a fixed-height box that scrolls, with one fixed-height row per Card (a button with the type name, the question or name in the current language, ID and every tag, each on one clipped line, which opens the preview, then Delete, a trash icon with its name as a tooltip). Only the rows in view, three on each side and the row holding focus are in the DOM; the list has the height of every row, so the scrollbar covers all Cards. Rows are keyed by Card ID and in list order, so a focused row button or Delete stays focused while the list scrolls and Tab moves to the next row, which the browser scrolls into view. Give it a new key to scroll back to the top. */
+/** Windowed with TanStack Virtual: only visible rows, three on each side and the focused row are mounted. Keyed by Card ID in list order, so focus stays put while scrolling; give it a new key to scroll back to the top. */
 export function CardList(props: {
   cards: TCard[];
   onOpen: (id: string) => void;

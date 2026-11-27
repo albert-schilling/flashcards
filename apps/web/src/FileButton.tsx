@@ -1,7 +1,7 @@
 import { Upload } from "lucide-react";
 import type { ChangeEvent } from "react";
 
-/** A label styled as a secondary button, with an Upload icon, around a visually hidden file input; the label text names the input. */
+/** The label text names the visually hidden file input. */
 export function FileButton(props: {
   label: string;
   accept: string;

@@ -1,7 +1,7 @@
 import { Upload } from "lucide-react";
 import { useText } from "./language.context";
 
-/** The compact empty-state notice with its upload icon, for inside a panel: `title` and `hint` default to "No Cards yet" and the upload hint; the caller puts any actions below it. */
+/** For inside a panel; the caller puts any actions below it. */
 export function EmptyState(props: { title?: string; hint?: string }) {
   const text = useText();
 

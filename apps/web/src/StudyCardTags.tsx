@@ -5,7 +5,7 @@ import { useText } from "./language.context";
 // How many tags show before the "+N more" button.
 const collapsedCount = 2;
 
-/** A Card's tags, domain first, then topic. Shows the first 2 and, when there are more, a "+N more" button; its click shows all tags and moves focus to the list. Starts collapsed on mount; the caller remounts it for each new Card. */
+/** Starts collapsed on mount; the caller remounts it for each new Card. */
 export function StudyCardTags(props: { tags: TCard["tags"] }) {
   const text = useText();
   const [expanded, setExpanded] = useState(false);

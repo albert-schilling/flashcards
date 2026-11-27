@@ -28,10 +28,9 @@ function cardType<Type extends string, Text extends z.ZodRawShape, Fields extend
   });
 }
 
-/** A question with a free-text answer. */
 export const ZCardQA = cardType("qa", { question: ZText, answer: ZText }, {});
 
-/** A question with options; `answerIndex` points to the right one. */
+/** `answerIndex` points to the right option. */
 export const ZCardMultipleChoice = cardType(
   "multiple_choice",
   { question: ZText, options: z.array(ZText).min(2), explanation: ZText },
@@ -57,28 +56,24 @@ export const ZCardMultipleChoice = cardType(
   }
 });
 
-/** A formula with its name and word form. */
 export const ZCardFormula = cardType(
   "formula",
   { name: ZText, wordFormula: ZText, readAloud: ZText.optional(), example: ZText.optional() },
   { formula: ZText, latex: ZText.optional() },
 );
 
-/** A question with a number as the answer, within an allowed error. */
 export const ZCardNumeric = cardType(
   "numeric",
   { question: ZText },
   { answer: z.number(), allowedError: z.number().min(0), unit: ZText.optional() },
 );
 
-/** A text with a `{{gap}}` to fill in. */
 export const ZCardCloze = cardType(
   "cloze",
   { text: z.string().regex(/\{\{.+?\}\}/, "needs a {{gap}}") },
   {},
 );
 
-/** A statement that is true or false. */
 export const ZCardTrueFalse = cardType("true_false", { statement: ZText }, { answer: z.boolean() });
 
 /** One Card. Text to show is in `en`; `translations.de`, if present, has the same fields in German, any of which may be missing and then falls back to English. */

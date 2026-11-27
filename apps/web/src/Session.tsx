@@ -8,7 +8,7 @@ import { addReview } from "./storage";
 /** A Card in the queue; `again` marks a Card answered wrong that came back, so it doesn't come back twice. */
 type TQueued = { card: TCard; again: boolean };
 
-/** Shows Back, the progress (position / total, with a bar) and the Cards in order, then each one answered wrong once more, which adds one to the total; appends a Review for each answer, then a summary. Cards added to `cards` later go to the end of the queue and count in the total, even after the summary showed; `cards` must only grow. Back calls `onBack` and keeps the place; Done calls `onEnd`. While hidden it keeps its place; when `shown` turns true again, the current Card's timer restarts, so time away doesn't count. */
+/** `cards` must only grow: Cards added later join the end of the queue, even after the summary. While hidden it keeps its place; when `shown` turns true again the timer restarts, so time away doesn't count. */
 export function Session(props: {
   cards: TCard[];
   shown: boolean;
