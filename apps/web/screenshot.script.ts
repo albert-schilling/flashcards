@@ -412,7 +412,7 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardDeleted, { exact: true }).waitFor();
     await shot("deleted");
   },
-  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the true_false Card and shoots the preview with its notice, and fills a formula Card with every field for the formula shot.
+  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the true_false Card and shoots the preview with its notice, and fills a formula Card with every field for the formula shot, scrolled to Formula.
   editor: async (page, shot) => {
     const text = uiText.en;
     await goTo(page, text.cards);
@@ -475,7 +475,15 @@ const flows: Record<string, TFlow> = {
     await dialog.getByLabel(text.formula, { exact: true }).fill("|x| = √(x₁² + x₂²)");
     await dialog.getByLabel(text.latex, { exact: true }).fill("\\lVert x \\rVert");
     await dialog.getByLabel(text.inGerman(text.name), { exact: true }).fill("Vektornorm");
+    await dialog
+      .getByLabel(text.inGerman(text.wordFormula), { exact: true })
+      .fill("Die Wurzel der summierten Quadrate.");
+    await dialog.getByLabel(text.inGerman(text.readAloud), { exact: true }).fill("Norm von x");
+    await dialog
+      .getByLabel(text.inGerman(text.exampleLabel), { exact: true })
+      .fill("|(3, 4)| ist 5");
     await fillShared();
+    await dialog.getByLabel(text.formula, { exact: true }).scrollIntoViewIfNeeded();
     await shot("formula");
   },
   // Uploads 1,000 Cards, checks that only a few rows are in the DOM, then shoots the top, the middle, Tab through rows and the end.
