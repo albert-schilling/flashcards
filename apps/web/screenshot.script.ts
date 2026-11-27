@@ -412,7 +412,7 @@ const flows: Record<string, TFlow> = {
     await page.getByText(text.cardDeleted, { exact: true }).waitFor();
     await shot("deleted");
   },
-  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the true_false Card and shoots the preview with its notice, and fills a formula Card with every field for the formula shot, scrolled to Formula.
+  // Opens the Card editor empty, saves it to show the field errors, creates a cloze and a true_false Card, then edits the true_false Card and shoots the preview with its notice, fills a formula Card with every field for the formula shot, scrolled to Formula, and switches it to numeric for the numeric shot, scrolled to Answer.
   editor: async (page, shot) => {
     const text = uiText.en;
     await goTo(page, text.cards);
@@ -485,6 +485,16 @@ const flows: Record<string, TFlow> = {
     await fillShared();
     await dialog.getByLabel(text.formula, { exact: true }).scrollIntoViewIfNeeded();
     await shot("formula");
+    await dialog.getByLabel(text.type, { exact: true }).selectOption("numeric");
+    await dialog.getByLabel(text.question, { exact: true }).fill("How fast does a body fall?");
+    await dialog.getByLabel(text.answer, { exact: true }).fill("9.81");
+    await dialog.getByLabel(text.allowedError, { exact: true }).fill("0.01");
+    await dialog.getByLabel(text.unit, { exact: true }).fill("m/s²");
+    await dialog
+      .getByLabel(text.inGerman(text.question), { exact: true })
+      .fill("Wie schnell fällt ein Körper?");
+    await dialog.getByLabel(text.answer, { exact: true }).scrollIntoViewIfNeeded();
+    await shot("numeric");
   },
   // Uploads 1,000 Cards, checks that only a few rows are in the DOM, then shoots the top, the middle, Tab through rows and the end.
   windowed: async (page, shot) => {

@@ -6,6 +6,7 @@ import {
   editableTypes,
   formFromCard,
   idSource,
+  numberFields,
   optionalFields,
   suggestId,
   textFields,
@@ -37,6 +38,7 @@ function Field(props: {
     noGap: text.needsGap,
     idFormat: text.idFormat,
     idTaken: text.idTaken,
+    negative: text.allowedErrorNegative,
   };
   return (
     <div className="field">
@@ -86,6 +88,8 @@ export function CardEditor(props: {
     example: text.exampleLabel,
     formula: text.formula,
     latex: text.latex,
+    unit: text.unit,
+    allowedError: text.allowedError,
   };
 
   function setBoth(key: keyof TCardForm["both"], value: string) {
@@ -153,16 +157,34 @@ export function CardEditor(props: {
             )}
           />
         )}
-        {bothFields[typed.type].map((key) => (
-          <TextField
-            key={key}
-            label={labels[key]}
-            hint={optionalFields.has(key) ? text.optionalHint : undefined}
-            problem={errors[key]}
-            value={typed.both[key]}
-            onChange={(value) => setBoth(key, value)}
-          />
-        ))}
+        {bothFields[typed.type].map((key) =>
+          numberFields.has(key) || key === "unit" ? (
+            <Field
+              key={key}
+              label={labels[key]}
+              hint={optionalFields.has(key) ? text.optionalHint : undefined}
+              problem={errors[key]}
+              control={(controlProps) => (
+                <input
+                  {...controlProps}
+                  className="control"
+                  {...(key === "unit" ? { type: "text" } : { type: "number", step: "any" })}
+                  value={typed.both[key]}
+                  onChange={(event) => setBoth(key, event.target.value)}
+                />
+              )}
+            />
+          ) : (
+            <TextField
+              key={key}
+              label={labels[key]}
+              hint={optionalFields.has(key) ? text.optionalHint : undefined}
+              problem={errors[key]}
+              value={typed.both[key]}
+              onChange={(value) => setBoth(key, value)}
+            />
+          ),
+        )}
         {textFields[typed.type].map((key) => (
           <TextField
             key={`de-${key}`}
