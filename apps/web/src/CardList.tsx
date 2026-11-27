@@ -12,7 +12,7 @@ function rowHeightOf(): number {
   return parseFloat(root.getPropertyValue("--virtual-row-height")) * parseFloat(root.fontSize);
 }
 
-/** Windowed with TanStack Virtual: only the rows in view, three on each side and the row holding focus are mounted. Rows are keyed by Card ID and kept in list order, so focus stays put while scrolling; give the list a new key to scroll back to the top. */
+/** Windowed with TanStack Virtual: only visible rows, three on each side and the focused row are mounted. Keyed by Card ID in list order, so focus stays put while scrolling; give it a new key to scroll back to the top. */
 export function CardList(props: {
   cards: TCard[];
   onOpen: (id: string) => void;
