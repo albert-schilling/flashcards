@@ -241,7 +241,54 @@ async function showTags(page: Page, shot: (name: string) => Promise<void>, text:
   await shot("expanded");
 }
 
+// Starts a Session of one Card, adds another Card from its preview, then starts a New Session from a third Card's preview. The picked Card is random, so each time the flow opens rows until one has Add to current Session enabled.
+async function showSessionButtons(
+  page: Page,
+  shot: (name: string) => Promise<void>,
+  text: TUiText,
+): Promise<void> {
+  await uploadExampleDeck(page, text);
+  await page.getByLabel(text.cards, { exact: true }).fill("1");
+  await page.getByRole("button", { name: text.startSession, exact: true }).click();
+  await waitForFirstCard(page, text);
+  await goTo(page, text.cards, text);
+  const rows = page.getByRole("listitem");
+  const dialog = page.getByRole("dialog", { name: text.cardPreview, exact: true });
+  const add = dialog.getByRole("button", { name: text.addToSession, exact: true });
+  await rows.first().waitFor();
+  for (let i = 0; i < 6; i++) {
+    await rows.nth(i).locator(".library-card-open").click();
+    if (await add.isEnabled()) break;
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "detached" });
+  }
+  await shot("preview");
+  await add.click();
+  await page.getByText(text.addedToSession, { exact: true }).waitFor();
+  await shot("added");
+  await goTo(page, text.session, text);
+  await page.getByText("1 / 2", { exact: true }).waitFor();
+  await shot("session-added");
+  await goTo(page, text.cards, text);
+  await rows.first().waitFor();
+  // Any row does: New Session is always enabled.
+  await rows.nth(5).locator(".library-card-open").click();
+  await dialog.getByRole("button", { name: text.newSession, exact: true }).click();
+  await page.getByText(text.sessionCreated, { exact: true }).waitFor();
+  await shot("created");
+  await goTo(page, text.session, text);
+  await page.getByText("1 / 1", { exact: true }).waitFor();
+  await shot("session-new");
+}
+
 const flows: Record<string, TFlow> = {
+  "session-buttons": (page, shot) => showSessionButtons(page, shot, uiText.en),
+  "session-buttons-german": async (page, shot) => {
+    await goTo(page, uiText.en.settings);
+    await page.getByLabel(uiText.en.language).selectOption("de");
+    await page.getByRole("heading", { name: uiText.de.settings, exact: true }).waitFor();
+    await showSessionButtons(page, shot, uiText.de);
+  },
   tags: (page, shot) => showTags(page, shot, uiText.en),
   "tags-german": async (page, shot) => {
     await goTo(page, uiText.en.settings);
