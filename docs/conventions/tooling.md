@@ -6,6 +6,8 @@
 - `./scripts/validate.sh`: everything CI runs (format check, lint, type check, tests and build, through Nx), so CI, people and the Stop hook run the same thing. Extra arguments go to `nx run-many` (e.g. `--skip-nx-cache`).
 - `pnpm format`: format the repository with oxfmt.
 - `pnpm exec nx run <project>:<target>`: run one target of one project.
+- Test count and names: `NX_WORKSPACE_ROOT_PATH=$PWD pnpm --filter @flashcards/web exec vitest run --reporter=json --outputFile=<file>`, then `jq .numTotalTests <file>` and `jq -r '.testResults[].assertionResults[].title' <file> | sort`.
+- Moved-line count: `git -c color.diff.oldMoved=blue -c color.diff.newMoved=blue -c color.diff.oldMovedAlternative=blue -c color.diff.newMovedAlternative=blue diff origin/main... --color-moved=plain --color-moved-ws=allow-indentation-change --color=always --output=<file>`, then `grep -c $'^\e\\[34m[-+]' <file>`. Run them as two commands: the worktree guard refuses the pipe.
 
 ## The Stop hook
 
