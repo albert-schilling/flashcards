@@ -12,13 +12,13 @@ _Avoid_: Question, flashcard, item
 The kind of Card, which decides what it holds and how it is answered: qa, multiple_choice, formula, numeric, cloze or true_false.
 _Avoid_: Kind, format
 
-**Read aloud**:
-How a formula Card's formula is said in words, for example "Norm of a equals the square root of a dot a." Optional. German label: "Gesprochen".
-_Avoid_: Pronunciation
-
 **Card version**:
 A number on a Card that goes up when its content changes, so Reviews of older versions no longer count.
 _Avoid_: Revision
+
+**Read aloud**:
+How a formula Card's formula is said in words, for example "Norm of a equals the square root of a dot a." Optional. German label: "Gesprochen".
+_Avoid_: Pronunciation
 
 **Deck**:
 A set of Cards in one file, uploaded to or downloaded from the app.
