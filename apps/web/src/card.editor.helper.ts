@@ -1,8 +1,15 @@
 import { ZCard, type TCard } from "@flashcards/cards";
 import { sameContent } from "./deck";
 
-/** The Card types the editor can make; the others get their fields later. */
-export const editableTypes = ["qa", "cloze", "true_false", "formula", "numeric"] as const;
+/** The Card types the editor can make, in the order the Type select shows them. */
+export const editableTypes = [
+  "qa",
+  "cloze",
+  "true_false",
+  "formula",
+  "numeric",
+  "multiple_choice",
+] as const;
 export type TEditableType = (typeof editableTypes)[number];
 export type TEditableCard = Extract<TCard, { type: TEditableType }>;
 
@@ -19,6 +26,7 @@ type TTexts = {
   wordFormula: string;
   readAloud: string;
   example: string;
+  explanation: string;
 };
 type TTextKey = keyof TTexts;
 type TBothTexts = {
@@ -30,7 +38,12 @@ type TBothTexts = {
 };
 type TBothKey = keyof TBothTexts;
 
-/** The editor's input: every field of every editable type, so switching type keeps what was typed. `en` and `de` hold the texts per language, `both` the fields with one value for both languages. Tags are comma-separated. */
+/** One option row of a multiple_choice form: its text in English and German. */
+export type TOption = { en: string; de: string };
+/** A multiple_choice form's option rows and the index of the right one. */
+export type TChoice = { options: TOption[]; answerIndex: number };
+
+/** The editor's input: every field of every editable type, so switching type keeps what was typed. `en` and `de` hold the texts per language, `both` the fields with one value for both languages. Tags are comma-separated. `options` holds the option rows, and `answerIndex` the right one. */
 export type TCardForm = {
   type: TEditableType;
   id: string;
@@ -41,6 +54,8 @@ export type TCardForm = {
   de: TTexts;
   both: TBothTexts;
   answer: boolean;
+  options: TOption[];
+  answerIndex: number;
 };
 
 export type TFormField =
@@ -50,6 +65,7 @@ export type TFormField =
   | "tags.topic"
   | `en.${TTextKey}`
   | `de.${TTextKey}`
+  | `${"en" | "de"}.options.${number}`
   | TBothKey;
 export type TFieldProblem = "empty" | "noGap" | "idFormat" | "idTaken" | "negative";
 export type TFieldErrors = Partial<Record<TFormField, TFieldProblem>>;
@@ -61,6 +77,7 @@ export const textFields: Record<TEditableType, TTextKey[]> = {
   true_false: ["statement"],
   formula: ["name", "wordFormula", "readAloud", "example"],
   numeric: ["question"],
+  multiple_choice: ["question", "explanation"],
 };
 
 /** The fields of each editable type that hold one value for both languages, in the order the editor shows them; they sit at the Card's top level. */
@@ -70,6 +87,7 @@ export const bothFields: Record<TEditableType, TBothKey[]> = {
   true_false: [],
   formula: ["formula", "latex"],
   numeric: ["answer", "allowedError", "unit"],
+  multiple_choice: [],
 };
 
 /** The text field a new Card's ID is suggested from, per editable type. */
@@ -79,6 +97,7 @@ export const idSource: Record<TEditableType, TTextKey> = {
   true_false: "statement",
   formula: "name",
   numeric: "question",
+  multiple_choice: "question",
 };
 
 const noTexts: TTexts = {
@@ -90,6 +109,7 @@ const noTexts: TTexts = {
   wordFormula: "",
   readAloud: "",
   example: "",
+  explanation: "",
 };
 /** The empty both-language fields; Allowed error starts at 0. */
 const noBoth: TBothTexts = { formula: "", latex: "", answer: "", allowedError: "0", unit: "" };
@@ -108,6 +128,44 @@ function bothOf(card: TEditableCard): TBothTexts {
   return { ...noBoth };
 }
 
+/** The text keys of `texts` only; a multiple_choice Card's `options` stay out of the form's texts. */
+function textsOf(texts?: object): TTexts {
+  const picked = { ...noTexts };
+  for (const key of Object.keys(noTexts) as TTextKey[]) {
+    const value = (texts as Partial<Record<TTextKey, unknown>> | undefined)?.[key];
+    if (typeof value === "string") picked[key] = value;
+  }
+  return picked;
+}
+
+/** The form's option rows for a Card: a multiple_choice Card's options with their German texts ("" where there is none), and two empty rows with the first right for any other Card or none. */
+function choiceOf(card?: TEditableCard): TChoice {
+  if (card?.type !== "multiple_choice") {
+    return {
+      options: [
+        { en: "", de: "" },
+        { en: "", de: "" },
+      ],
+      answerIndex: 0,
+    };
+  }
+  const german = card.translations?.de.options;
+  return {
+    options: card.en.options.map((en, index) => ({ en, de: german?.[index] ?? "" })),
+    answerIndex: card.answerIndex,
+  };
+}
+
+/** The rows without the one at `index`. The right option stays marked; if it is the one removed, the first becomes right, as on a new Card. */
+export function withoutOption(choice: TChoice, index: number): TChoice {
+  const options = choice.options.filter((_, at) => at !== index);
+  if (choice.answerIndex === index) return { options, answerIndex: 0 };
+  return {
+    options,
+    answerIndex: choice.answerIndex > index ? choice.answerIndex - 1 : choice.answerIndex,
+  };
+}
+
 /** The form for a Card, or an empty qa form when there is none. */
 export function formFromCard(card?: TEditableCard): TCardForm {
   if (!card) {
@@ -121,6 +179,7 @@ export function formFromCard(card?: TEditableCard): TCardForm {
       de: { ...noTexts },
       both: { ...noBoth },
       answer: true,
+      ...choiceOf(),
     };
   }
   return {
@@ -129,10 +188,11 @@ export function formFromCard(card?: TEditableCard): TCardForm {
     lesson: card.lesson,
     domainTags: card.tags.domain.join(", "),
     topicTags: card.tags.topic.join(", "),
-    en: { ...noTexts, ...card.en },
-    de: { ...noTexts, ...card.translations?.de },
+    en: textsOf(card.en),
+    de: textsOf(card.translations?.de),
     both: bothOf(card),
     answer: card.type === "true_false" ? card.answer : true,
+    ...choiceOf(card),
   };
 }
 
@@ -190,7 +250,18 @@ function pickTexts<TKey extends string>(
 }
 
 function candidate(form: TCardForm, version: number, sourceIds: string[]) {
-  const german = pickTexts(textFields[form.type], form.de, true);
+  const german: Record<string, string | string[]> = pickTexts(textFields[form.type], form.de, true);
+  const english: Record<string, string | string[]> = pickTexts(
+    textFields[form.type],
+    form.en,
+    false,
+  );
+  if (form.type === "multiple_choice") {
+    english.options = form.options.map((option) => option.en.trim());
+    // In a Session, German options replace the English list as a whole, so they are all or none.
+    const germanOptions = form.options.map((option) => option.de.trim());
+    if (germanOptions.some(Boolean)) german.options = germanOptions;
+  }
   return {
     id: form.id.trim(),
     version,
@@ -198,10 +269,11 @@ function candidate(form: TCardForm, version: number, sourceIds: string[]) {
     sourceIds,
     lesson: form.lesson.trim(),
     type: form.type,
-    en: pickTexts(textFields[form.type], form.en, false),
+    en: english,
     ...numbersIn(pickTexts(bothFields[form.type], form.both, false)),
     ...(Object.keys(german).length > 0 && { translations: { de: german } }),
     ...(form.type === "true_false" && { answer: form.answer }),
+    ...(form.type === "multiple_choice" && { answerIndex: form.answerIndex }),
   };
 }
 
@@ -214,10 +286,16 @@ function valueAt(value: unknown, path: PropertyKey[]): unknown {
 
 /** The form field a Zod issue path belongs to, or undefined for a path the form has no field for. */
 function fieldOf(path: PropertyKey[]): TFormField | undefined {
-  const [first, second, third] = path;
+  const [first, second, third, fourth] = path;
   if (first === "id" || first === "lesson") return first;
   if (first === "tags" && (second === "domain" || second === "topic")) return `tags.${second}`;
   if (typeof first === "string" && Object.hasOwn(noBoth, first)) return first as TBothKey;
+  if (first === "en" && second === "options" && typeof third === "number") {
+    return `en.options.${third}`;
+  }
+  if (first === "translations" && second === "de" && third === "options") {
+    return typeof fourth === "number" ? `de.options.${fourth}` : undefined;
+  }
   if (first === "en" && typeof second === "string") return `en.${second as TTextKey}`;
   if (first === "translations" && second === "de" && typeof third === "string") {
     return `de.${third as TTextKey}`;
