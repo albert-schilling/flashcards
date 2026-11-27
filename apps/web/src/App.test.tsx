@@ -2802,6 +2802,25 @@ const created = [
     },
     answer: "|x| = √(x₁² + x₂²)",
   },
+  {
+    type: "numeric",
+    fillType: (dialog: TQueries) => {
+      pickCardType(dialog, "numeric");
+      fill(dialog, "Question", "How far is it?");
+      fill(dialog, "Answer", "5");
+      fill(dialog, "Allowed error", "0.01");
+      fill(dialog, "Unit", "m");
+    },
+    card: {
+      id: "how-far-is-it",
+      type: "numeric",
+      en: { question: "How far is it?" },
+      answer: 5,
+      allowedError: 0.01,
+      unit: "m",
+    },
+    answer: "5 m",
+  },
 ];
 
 it.each(created)(
@@ -2922,6 +2941,29 @@ it("a formula Card created with an example reveals its formula and example in a 
   );
 });
 
+it.each([
+  { typed: "5", word: "Right.", right: true },
+  { typed: "6", word: "Wrong.", right: false },
+])(
+  "a numeric Card created with Answer 5 and Allowed error 0.01 counts $typed as $word in a Session",
+  async ({ typed, word, right }) => {
+    render(<App />);
+    const dialog = openEditor();
+    created[4].fillType(dialog);
+    fillShared(dialog);
+    fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+    await expectSaved();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    goHome();
+    startSession();
+    const article = await screen.findByRole("article");
+
+    checkNumber(article, typed);
+
+    expectFeedback(article, word, right);
+  },
+);
+
 it("the editor shows the picked type's fields, then its German fields, tags, Lesson and ID, and keeps what was typed across types", () => {
   render(<App />);
   const dialog = openEditor();
@@ -2933,6 +2975,7 @@ it("the editor shows the picked type's fields, then its German fields, tags, Les
     "cloze",
     "true_false",
     "formula",
+    "numeric",
   ]);
   expect(select.value).toBe("qa");
   expect(fieldLabels(element)).toEqual([
@@ -2974,6 +3017,17 @@ it("the editor shows the picked type's fields, then its German fields, tags, Les
   ]);
   fill(dialog, "Name", "Vector norm");
   fill(dialog, "Formula", "|x| = √(x₁² + x₂²)");
+  pickCardType(dialog, "numeric");
+  expect(fieldLabels(element)).toEqual([
+    "Type",
+    "Question",
+    "Answer",
+    "Allowed error",
+    "Unit",
+    "Question (German)",
+    ...shared,
+  ]);
+  fill(dialog, "Answer", "9.81");
   pickCardType(dialog, "qa");
 
   expect(fieldValue(dialog, "Question")).toBe("What is the leaf mean?");
@@ -2982,6 +3036,9 @@ it("the editor shows the picked type's fields, then its German fields, tags, Les
   pickCardType(dialog, "formula");
   expect(fieldValue(dialog, "Name")).toBe("Vector norm");
   expect(fieldValue(dialog, "Formula")).toBe("|x| = √(x₁² + x₂²)");
+  pickCardType(dialog, "numeric");
+  expect(fieldValue(dialog, "Question")).toBe("What is the leaf mean?");
+  expect(fieldValue(dialog, "Answer")).toBe("9.81");
 });
 
 it("the ID follows the question until the Learner types one", () => {
@@ -3075,6 +3132,31 @@ it("Create Card for a formula with empty fields marks Name, Word formula and For
   for (const field of ["Name", "Word formula", "Formula"]) {
     expect(fieldError(dialog.getByLabelText(field))).toBe("This field can't be empty.");
   }
+  expect(screen.getByText("0 of 0 Cards")).toBeTruthy();
+});
+
+it("Create Card for a numeric Card marks a blank Answer as empty and a negative Allowed error as negative, but not the empty Unit", () => {
+  render(<App />);
+  const dialog = openEditor();
+  const element = screen.getByRole("dialog", { name: "Create Card" });
+  pickCardType(dialog, "numeric");
+  fill(dialog, "Allowed error", "-0.5");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Create Card" }));
+
+  expect(invalidFields(element)).toEqual([
+    "Question",
+    "Answer",
+    "Allowed error",
+    "Domain tags",
+    "Topic tags",
+    "Lesson",
+    "ID",
+  ]);
+  expect(fieldError(dialog.getByLabelText("Answer"))).toBe("This field can't be empty.");
+  expect(fieldError(dialog.getByLabelText("Allowed error"))).toBe(
+    "The allowed error can't be negative.",
+  );
   expect(screen.getByText("0 of 0 Cards")).toBeTruthy();
 });
 
@@ -3209,6 +3291,23 @@ it("Edit on a formula Card changes its Formula; Save changes raises the version 
   expect(preview.getByText("norm · version 2")).toBeTruthy();
   expect(preview.getByText("norm = b · a")).toBeTruthy();
   expect(preview.getByText("2 · 3 = 6")).toBeTruthy();
+});
+
+it("Edit on a numeric Card changes its Answer; Save changes raises the version and the preview shows the new answer with the unit", async () => {
+  render(<App />);
+  await uploaded(numeric("n", 1, "cm"));
+  const dialog = openEdit("n");
+  expect(fieldValue(dialog, "Answer")).toBe("5");
+  expect(fieldValue(dialog, "Allowed error")).toBe("0.01");
+  expect(fieldValue(dialog, "Unit")).toBe("cm");
+
+  fill(dialog, "Answer", "7");
+  fireEvent.click(dialog.getByRole("button", { name: "Save changes" }));
+
+  await expectSaved();
+  const preview = within(await screen.findByRole("dialog", { name: "Card preview" }));
+  expect(preview.getByText("n · version 2")).toBeTruthy();
+  expect(preview.getByText("7 cm")).toBeTruthy();
 });
 
 it("after an edit, Statistics no longer count the Reviews of the Card's older version", async () => {

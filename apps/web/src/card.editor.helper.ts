@@ -2,7 +2,7 @@ import { ZCard, type TCard } from "@flashcards/cards";
 import { sameContent } from "./deck";
 
 /** The Card types the editor can make; the others get their fields later. */
-export const editableTypes = ["qa", "cloze", "true_false", "formula"] as const;
+export const editableTypes = ["qa", "cloze", "true_false", "formula", "numeric"] as const;
 export type TEditableType = (typeof editableTypes)[number];
 export type TEditableCard = Extract<TCard, { type: TEditableType }>;
 
@@ -21,7 +21,13 @@ type TTexts = {
   example: string;
 };
 type TTextKey = keyof TTexts;
-type TBothTexts = { formula: string; latex: string };
+type TBothTexts = {
+  formula: string;
+  latex: string;
+  answer: string;
+  allowedError: string;
+  unit: string;
+};
 type TBothKey = keyof TBothTexts;
 
 /** The editor's input: every field of every editable type, so switching type keeps what was typed. `en` and `de` hold the texts per language, `both` the fields with one value for both languages. Tags are comma-separated. */
@@ -45,7 +51,7 @@ export type TFormField =
   | `en.${TTextKey}`
   | `de.${TTextKey}`
   | TBothKey;
-export type TFieldProblem = "empty" | "noGap" | "idFormat" | "idTaken";
+export type TFieldProblem = "empty" | "noGap" | "idFormat" | "idTaken" | "negative";
 export type TFieldErrors = Partial<Record<TFormField, TFieldProblem>>;
 
 /** The text fields of each editable type, in the order the editor shows them. */
@@ -54,6 +60,7 @@ export const textFields: Record<TEditableType, TTextKey[]> = {
   cloze: ["text"],
   true_false: ["statement"],
   formula: ["name", "wordFormula", "readAloud", "example"],
+  numeric: ["question"],
 };
 
 /** The fields of each editable type that hold one value for both languages, in the order the editor shows them; they sit at the Card's top level. */
@@ -62,6 +69,7 @@ export const bothFields: Record<TEditableType, TBothKey[]> = {
   cloze: [],
   true_false: [],
   formula: ["formula", "latex"],
+  numeric: ["answer", "allowedError", "unit"],
 };
 
 /** The text field a new Card's ID is suggested from, per editable type. */
@@ -70,6 +78,7 @@ export const idSource: Record<TEditableType, TTextKey> = {
   cloze: "text",
   true_false: "statement",
   formula: "name",
+  numeric: "question",
 };
 
 const noTexts: TTexts = {
@@ -82,7 +91,22 @@ const noTexts: TTexts = {
   readAloud: "",
   example: "",
 };
-const noBoth: TBothTexts = { formula: "", latex: "" };
+/** The empty both-language fields; Allowed error starts at 0. */
+const noBoth: TBothTexts = { formula: "", latex: "", answer: "", allowedError: "0", unit: "" };
+
+/** The form's both-language fields for a Card: formula's and numeric's own, the defaults for the rest. */
+function bothOf(card: TEditableCard): TBothTexts {
+  if (card.type === "formula") return { ...noBoth, formula: card.formula, latex: card.latex ?? "" };
+  if (card.type === "numeric") {
+    return {
+      ...noBoth,
+      answer: String(card.answer),
+      allowedError: String(card.allowedError),
+      unit: card.unit ?? "",
+    };
+  }
+  return { ...noBoth };
+}
 
 /** The form for a Card, or an empty qa form when there is none. */
 export function formFromCard(card?: TEditableCard): TCardForm {
@@ -107,8 +131,7 @@ export function formFromCard(card?: TEditableCard): TCardForm {
     topicTags: card.tags.topic.join(", "),
     en: { ...noTexts, ...card.en },
     de: { ...noTexts, ...card.translations?.de },
-    both:
-      card.type === "formula" ? { formula: card.formula, latex: card.latex ?? "" } : { ...noBoth },
+    both: bothOf(card),
     answer: card.type === "true_false" ? card.answer : true,
   };
 }
@@ -133,7 +156,24 @@ function tagList(tags: string): string[] {
 }
 
 /** Fields the schema lets a Card leave out: empty ones are dropped instead of failing as empty. */
-export const optionalFields: ReadonlySet<string> = new Set(["readAloud", "example", "latex"]);
+export const optionalFields: ReadonlySet<string> = new Set([
+  "readAloud",
+  "example",
+  "latex",
+  "unit",
+]);
+
+/** Fields that hold a number: the form keeps them as typed, and a blank one stays "" so the schema reports it as empty. */
+export const numberFields: ReadonlySet<string> = new Set(["answer", "allowedError"]);
+
+function numbersIn(values: Record<string, string>): Record<string, string | number> {
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [
+      key,
+      numberFields.has(key) && value !== "" ? Number(value) : value,
+    ]),
+  );
+}
 
 /** The values of `keys` from `values`, trimmed; empty ones are dropped with `skipEmpty` or when the field is optional. */
 function pickTexts<TKey extends string>(
@@ -159,7 +199,7 @@ function candidate(form: TCardForm, version: number, sourceIds: string[]) {
     lesson: form.lesson.trim(),
     type: form.type,
     en: pickTexts(textFields[form.type], form.en, false),
-    ...pickTexts(bothFields[form.type], form.both, false),
+    ...numbersIn(pickTexts(bothFields[form.type], form.both, false)),
     ...(Object.keys(german).length > 0 && { translations: { de: german } }),
     ...(form.type === "true_false" && { answer: form.answer }),
   };
@@ -185,6 +225,12 @@ function fieldOf(path: PropertyKey[]): TFormField | undefined {
   return undefined;
 }
 
+/** The problem of a non-blank value the schema rejects, per field; any other field lacks a gap. */
+const rejected: Partial<Record<TFormField, TFieldProblem>> = {
+  id: "idFormat",
+  allowedError: "negative",
+};
+
 /** Builds a Card from the form, or says what is wrong with each field. A new Card gets version 1 and no sources; an edited Card keeps its sources and gets the next version when its content changed, and its own ID is not taken. The Card schema (ZCard) decides what is valid; a taken ID is the one check it can't make. */
 export function cardFromForm(
   form: TCardForm,
@@ -200,7 +246,7 @@ export function cardFromForm(
       if (!field || errors[field]) continue;
       const value = valueAt(input, issue.path);
       const blank = value === "" || (Array.isArray(value) && value.length === 0);
-      errors[field] = blank ? "empty" : field === "id" ? "idFormat" : "noGap";
+      errors[field] = blank ? "empty" : (rejected[field] ?? "noGap");
     }
   }
   if (!errors.id && input.id !== editing?.id && context.takenIds.includes(input.id)) {
