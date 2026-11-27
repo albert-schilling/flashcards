@@ -9,3 +9,6 @@
 - A `@media` rule comes after the base rule with the same selector; otherwise the base rule wins. `styles.test.ts` checks it.
 - Use native elements (`button`, `a`, `input`) for anything interactive; add ARIA roles only where no native element fits. Never nest interactive controls, not even with `role="button"` (ARIA treats its children as plain content): place them side by side and let CSS make one fill the row.
 - A field for a one-line value (a number, unit, ID, tags, lesson) is an `<input>`; a `<textarea>` is for prose that may run to several lines.
+- An icon-only button hides its icon (`aria-hidden="true"`) and has the same text as `aria-label` and `title`.
+- A group of repeated rows (a Card's options) is a `<fieldset>` with a `<legend>` and one hint, linked by `aria-describedby`; each row's errors are keyed `<language>.<field>.<index>`.
+- A control that can be disabled has a disabled style.

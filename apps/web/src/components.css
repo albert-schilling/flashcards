@@ -97,7 +97,8 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.field small {
+.field small,
+.option-rows > small {
   color: var(--color-ink-500);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-regular);
@@ -312,6 +313,12 @@
 .icon-button:hover,
 .alert-close:hover {
   background: var(--color-surface-muted);
+}
+
+/* Muted with no hover, like the other disabled buttons. */
+.icon-button:disabled {
+  background: var(--color-transparent);
+  color: var(--color-ink-500);
 }
 
 .main-nav {
@@ -1493,6 +1500,49 @@ textarea.control {
   min-height: var(--textarea-min-height);
   padding-block: var(--space-3);
   resize: vertical;
+}
+
+.option-rows {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.option-rows legend {
+  padding: 0;
+  color: var(--color-ink-700);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.option-rows > .button {
+  justify-self: start;
+}
+
+.option-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* Lined up with the English input, below its label. */
+.option-row input[type="radio"] {
+  width: var(--space-5);
+  height: var(--space-5);
+  margin: var(--space-10) var(--space-0) var(--space-0);
+  accent-color: var(--color-accent-600);
+}
+
+.option-row .icon-button {
+  margin-top: var(--space-8);
+}
+
+.option-texts {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .field .field-error {

@@ -1,4 +1,5 @@
 import type { TCard } from "@flashcards/cards";
+import { Plus, Trash2 } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import {
   bothFields,
@@ -10,10 +11,14 @@ import {
   optionalFields,
   suggestId,
   textFields,
+  withoutOption,
   type TCardForm,
+  type TChoice,
   type TEditableCard,
   type TEditableType,
+  type TFieldErrors,
   type TFieldProblem,
+  type TOption,
 } from "./card.editor.helper";
 import { useText } from "./language.context";
 import { Modal } from "./Modal";
@@ -58,7 +63,7 @@ function Field(props: {
   );
 }
 
-/** The Card editor: a Modal titled Create Card or Edit Card, with Type, the type's fields (the ones with one value for both languages after the English ones), optional German fields, Domain and Topic tags, Lesson and ID (suggested from the text while the Learner hasn't typed one; disabled when editing). Save checks the form with cardFromForm: errors show under their fields from then on, and a valid Card goes to onSave. Cancel, Close and Escape call onClose. */
+/** The Card editor: a Modal titled Create Card or Edit Card, with Type, the type's fields (the ones with one value for both languages after the English ones, a multiple_choice Card's Options fieldset after its English texts), optional German fields, Domain and Topic tags, Lesson and ID (suggested from the text while the Learner hasn't typed one; disabled when editing). Save checks the form with cardFromForm: errors show under their fields from then on, and a valid Card goes to onSave. Cancel, Close and Escape call onClose. */
 export function CardEditor(props: {
   card?: TEditableCard;
   takenIds: string[];
@@ -86,6 +91,7 @@ export function CardEditor(props: {
     wordFormula: text.wordFormula,
     readAloud: text.readAloud,
     example: text.exampleLabel,
+    explanation: text.explanation,
     formula: text.formula,
     latex: text.latex,
     unit: text.unit,
@@ -155,6 +161,14 @@ export function CardEditor(props: {
                 <option value="false">{text.false}</option>
               </Select>
             )}
+          />
+        )}
+        {typed.type === "multiple_choice" && (
+          <OptionRows
+            options={typed.options}
+            answerIndex={typed.answerIndex}
+            errors={errors}
+            onChange={(choice) => setTyped({ ...typed, ...choice })}
           />
         )}
         {bothFields[typed.type].map((key) =>
@@ -262,6 +276,92 @@ export function CardEditor(props: {
         </button>
       </div>
     </Modal>
+  );
+}
+
+/** The Options fieldset of a multiple_choice Card, under one hint: a row per option with a radio that marks the right one, the option in English and German, and Remove, disabled while 2 options are left; Add option adds an empty row below. Errors show under each option's field. */
+function OptionRows(props: {
+  options: TOption[];
+  answerIndex: number;
+  errors: TFieldErrors;
+  onChange: (choice: TChoice) => void;
+}) {
+  const text = useText();
+  const id = useId();
+  const hintId = `${id}-hint`;
+  const { options, answerIndex } = props;
+
+  function setOption(index: number, language: "en" | "de", value: string) {
+    props.onChange({
+      options: options.map((option, at) =>
+        at === index ? { ...option, [language]: value } : option,
+      ),
+      answerIndex,
+    });
+  }
+
+  return (
+    <fieldset className="option-rows" aria-describedby={hintId}>
+      <legend>{text.options}</legend>
+      <small id={hintId}>{text.optionsHint}</small>
+      {options.map((option, index) => {
+        const n = index + 1;
+        return (
+          // Keyed by position: options never reorder.
+          <div key={index} className="option-row">
+            <input
+              type="radio"
+              name={`${id}-right`}
+              aria-label={text.rightOption(n)}
+              checked={index === answerIndex}
+              onChange={() => props.onChange({ options, answerIndex: index })}
+            />
+            <div className="option-texts">
+              <Field
+                label={text.option(n)}
+                problem={props.errors[`en.options.${index}`]}
+                control={(controlProps) => (
+                  <input
+                    {...controlProps}
+                    className="control"
+                    value={option.en}
+                    onChange={(event) => setOption(index, "en", event.target.value)}
+                  />
+                )}
+              />
+              <Field
+                label={text.inGerman(text.option(n))}
+                problem={props.errors[`de.options.${index}`]}
+                control={(controlProps) => (
+                  <input
+                    {...controlProps}
+                    className="control"
+                    value={option.de}
+                    onChange={(event) => setOption(index, "de", event.target.value)}
+                  />
+                )}
+              />
+            </div>
+            <button
+              className="icon-button"
+              aria-label={text.removeOption(n)}
+              title={text.removeOption(n)}
+              disabled={options.length <= 2}
+              onClick={() => props.onChange(withoutOption({ options, answerIndex }, index))}
+            >
+              <Trash2 size={17} aria-hidden="true" />
+            </button>
+          </div>
+        );
+      })}
+      <button
+        className="button secondary"
+        onClick={() => props.onChange({ options: [...options, { en: "", de: "" }], answerIndex })}
+      >
+        <Plus size={18} aria-hidden="true" />
+        {text.addOption}
+      </button>
+    </fieldset>
   );
 }
 

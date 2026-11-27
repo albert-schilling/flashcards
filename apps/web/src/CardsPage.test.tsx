@@ -354,7 +354,14 @@ it.each([
 ])(
   "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, and Edit for the editable types",
   ({ card, title, answer }) => {
-    const editable = ["qa", "cloze", "true_false", "formula", "numeric"].includes(card.type);
+    const editable = [
+      "qa",
+      "cloze",
+      "true_false",
+      "formula",
+      "numeric",
+      "multiple_choice",
+    ].includes(card.type);
     renderCardsPage([card]);
 
     const preview = openPreview("a");
@@ -1125,15 +1132,6 @@ it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1), numeric(
   },
 );
 
-it.each([multipleChoice("a", 1)])(
-  "a $type preview has no Edit until the editor has its fields",
-  (card) => {
-    renderCardsPage([card]);
-
-    expect(openPreview("a").queryByRole("button", { name: "Edit" })).toBeNull();
-  },
-);
-
 it.each([
   {
     card: german(cloze("a", 1), { text: "a hat eine {{Lücke}}." }),
@@ -1170,6 +1168,24 @@ it.each([
       "Question (German)": "Wie viel ist a?",
     },
   },
+  {
+    card: german(multipleChoice("a", 1), {
+      question: "Welches ist a?",
+      options: ["Dies", "Das"],
+      explanation: "Dieses.",
+    }),
+    fields: {
+      Type: "multiple_choice",
+      Question: "Which is a?",
+      Explanation: "This one.",
+      "Option 1": "This",
+      "Option 1 (German)": "Dies",
+      "Option 2": "That",
+      "Option 2 (German)": "Das",
+      "Question (German)": "Welches ist a?",
+      "Explanation (German)": "Dieses.",
+    },
+  },
 ])("Edit in a $card.type preview opens the editor with the Card's fields", ({ card, fields }) => {
   renderCardsPage([card]);
 
@@ -1182,6 +1198,10 @@ it.each([
   if (card.type === "true_false") {
     const answer = editor.getByLabelText<HTMLSelectElement>("Answer");
     expect(answer.selectedOptions[0].textContent).toBe("False");
+  }
+  if (card.type === "multiple_choice") {
+    expect(editor.getByLabelText<HTMLInputElement>("Option 1 is right").checked).toBe(true);
+    expect(editor.getByLabelText<HTMLInputElement>("Option 2 is right").checked).toBe(false);
   }
   expect(editor.getByRole("button", { name: "Save changes" })).toBeTruthy();
 });
@@ -1319,6 +1339,56 @@ it("the numeric fields have the control style: Answer and Allowed error are numb
   expect(described(editor.getByLabelText("Question (German)"))).toEqual([
     "Optional. Without it, the English text shows.",
   ]);
+});
+
+it("the multiple_choice options are one-line inputs with the control style and no hint of their own, under the Options fieldset's one hint; Remove is an icon button titled like its name", () => {
+  renderCardsPage([qa("a", 1)]);
+  const editor = openCreate();
+  fireEvent.change(editor.getByLabelText("Type"), { target: { value: "multiple_choice" } });
+  const fieldset = editor.getByRole("group", { name: "Options" });
+
+  expect(described(fieldset)).toEqual(["Mark the right option. German options: fill all or none."]);
+  for (const label of ["Option 1", "Option 1 (German)", "Option 2", "Option 2 (German)"]) {
+    const field = editor.getByLabelText<HTMLInputElement>(label);
+    expect(field.tagName).toBe("INPUT");
+    expect(field.type).toBe("text");
+    expect(field.classList.contains("control")).toBe(true);
+    expect(field.closest(".field")).toBeTruthy();
+    expect(described(field)).toEqual([]);
+  }
+  expect(editor.getByLabelText("Explanation").tagName).toBe("TEXTAREA");
+  const remove = editor.getByRole("button", { name: "Remove option 2" });
+  expect(remove.classList.contains("icon-button")).toBe(true);
+  expect(remove.title).toBe("Remove option 2");
+});
+
+it("an option marked right stays marked while option texts are typed and an option is added", () => {
+  renderCardsPage([qa("a", 1)]);
+  const editor = openCreate();
+  fireEvent.change(editor.getByLabelText("Type"), { target: { value: "multiple_choice" } });
+  const right = (n: number) => editor.getByLabelText<HTMLInputElement>(`Option ${n} is right`);
+  fireEvent.click(right(2));
+
+  fillField(editor, "Option 1", "The root");
+  fillField(editor, "Option 2 (German)", "Ein Blatt");
+  fireEvent.click(editor.getByRole("button", { name: "Add option" }));
+
+  expect([1, 2, 3].map((n) => right(n).checked)).toEqual([false, true, false]);
+});
+
+it("in German, the Options fieldset, its rows and buttons read in German", () => {
+  renderCardsPage([qa("a", 1)], "de");
+  const editor = openCreate("Karte erstellen");
+  fireEvent.change(editor.getByLabelText("Typ"), { target: { value: "multiple_choice" } });
+
+  expect(described(editor.getByRole("group", { name: "Optionen" }))).toEqual([
+    "Markiere die richtige Option. Deutsche Optionen: alle oder keine.",
+  ]);
+  expect(editor.getByLabelText("Erklärung")).toBeTruthy();
+  expect(editor.getByLabelText("Option 1 (Deutsch)")).toBeTruthy();
+  expect(editor.getByLabelText("Option 1 ist richtig")).toBeTruthy();
+  expect(editor.getByRole("button", { name: "Option 1 entfernen" })).toBeTruthy();
+  expect(editor.getByRole("button", { name: "Option hinzufügen" })).toBeTruthy();
 });
 
 it("each field problem shows its own text: an empty field, a cloze without a gap, an ID that is not lowercase words", () => {

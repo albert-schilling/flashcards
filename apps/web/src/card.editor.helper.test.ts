@@ -5,6 +5,7 @@ import {
   formFromCard,
   isEditable,
   suggestId,
+  withoutOption,
   type TCardForm,
   type TEditableCard,
 } from "./card.editor.helper";
@@ -28,6 +29,7 @@ const noTexts = {
   wordFormula: "",
   readAloud: "",
   example: "",
+  explanation: "",
 };
 const noBoth = { formula: "", latex: "", answer: "", allowedError: "0", unit: "" };
 
@@ -47,6 +49,11 @@ function form(
     domainTags: "Machine Learning",
     topicTags: "Decision Tree",
     answer: true,
+    options: [
+      { en: "", de: "" },
+      { en: "", de: "" },
+    ],
+    answerIndex: 0,
     ...rest,
     en: { ...noTexts, question: "What is the leaf mean?", answer: "The mean.", ...en },
     de: { ...noTexts, ...de },
@@ -56,6 +63,9 @@ function form(
 
 /** The texts of a valid formula form, to put in `form`'s `en`. */
 const formulaTexts = { name: "Vector norm", wordFormula: "The root of the summed squares." };
+
+/** The texts of a valid multiple_choice form, to put in `form`'s `en`. */
+const choiceTexts = { question: "Which node predicts?", explanation: "A leaf predicts the mean." };
 
 /** The Card the form makes; fails the test with the errors if it makes none. */
 function made(form: TCardForm, context: Parameters<typeof cardFromForm>[1] = { takenIds: [] }) {
@@ -146,6 +156,29 @@ describe("cardFromForm", () => {
         unit: "m",
       },
     },
+    {
+      type: "multiple_choice",
+      form: form({
+        type: "multiple_choice",
+        en: { question: " Which node predicts? ", explanation: " A leaf predicts the mean. " },
+        options: [
+          { en: " The root ", de: " Die Wurzel " },
+          { en: " A leaf ", de: " Ein Blatt " },
+        ],
+        answerIndex: 1,
+      }),
+      card: {
+        ...shared,
+        type: "multiple_choice",
+        en: {
+          question: "Which node predicts?",
+          options: ["The root", "A leaf"],
+          explanation: "A leaf predicts the mean.",
+        },
+        translations: { de: { options: ["Die Wurzel", "Ein Blatt"] } },
+        answerIndex: 1,
+      },
+    },
   ])(
     "makes a valid $type Card with version 1, no sources, trimmed text and tags split at commas",
     ({ form: typed, card }) => {
@@ -172,6 +205,25 @@ describe("cardFromForm", () => {
 
   it("leaves out the translations when every German field is empty or only spaces", () => {
     expect(made(form({ de: { question: "  " } }))).not.toHaveProperty("translations");
+  });
+
+  it("leaves out German options when every German option is blank", () => {
+    const card = made(
+      form({
+        type: "multiple_choice",
+        en: choiceTexts,
+        options: [
+          { en: "The root", de: " " },
+          { en: "A leaf", de: "" },
+        ],
+      }),
+    );
+
+    expect(card).toMatchObject({
+      type: "multiple_choice",
+      en: { options: ["The root", "A leaf"] },
+    });
+    expect(card).not.toHaveProperty("translations");
   });
 
   it("keeps only the filled German fields of the Card's type, trimmed", () => {
@@ -266,6 +318,30 @@ describe("cardFromForm", () => {
       errors: { allowedError: "negative" },
     },
     {
+      problem: "a blank option",
+      form: form({
+        type: "multiple_choice",
+        en: choiceTexts,
+        options: [
+          { en: "The root", de: "" },
+          { en: " ", de: "" },
+        ],
+      }),
+      errors: { "en.options.1": "empty" },
+    },
+    {
+      problem: "a blank German option once another German option is filled",
+      form: form({
+        type: "multiple_choice",
+        en: choiceTexts,
+        options: [
+          { en: "The root", de: "Die Wurzel" },
+          { en: "A leaf", de: " " },
+        ],
+      }),
+      errors: { "de.options.1": "empty" },
+    },
+    {
       problem: "no domain tag",
       form: form({ domainTags: " , " }),
       errors: { "tags.domain": "empty" },
@@ -280,6 +356,16 @@ describe("cardFromForm", () => {
     },
   ])("rejects $problem with its field's error", ({ form: wrong, errors: expected }) => {
     expect(errors(wrong)).toEqual(expected);
+  });
+
+  it("rejects a single option, which Remove can't leave, with no error on a field the form lacks", () => {
+    const one = form({
+      type: "multiple_choice",
+      en: choiceTexts,
+      options: [{ en: "The root", de: "" }],
+    });
+
+    expect(errors(one)).toEqual({});
   });
 
   it("gives every wrong field its error at once", () => {
@@ -356,7 +442,7 @@ describe("cardFromForm", () => {
 });
 
 describe("formFromCard", () => {
-  it("with no Card, is an empty qa form", () => {
+  it("with no Card, is an empty qa form with two empty options, the first right", () => {
     expect(formFromCard()).toMatchObject({
       type: "qa",
       id: "",
@@ -366,6 +452,11 @@ describe("formFromCard", () => {
       en: noTexts,
       de: noTexts,
       both: noBoth,
+      options: [
+        { en: "", de: "" },
+        { en: "", de: "" },
+      ],
+      answerIndex: 0,
     });
   });
 
@@ -388,7 +479,30 @@ describe("formFromCard", () => {
       de: { ...noTexts, question: "Was ist der Blattmittelwert?" },
       both: noBoth,
       answer: true,
+      options: [
+        { en: "", de: "" },
+        { en: "", de: "" },
+      ],
+      answerIndex: 0,
     });
+  });
+
+  it("holds a multiple_choice Card's options as rows of both languages, and its right option, outside the texts", () => {
+    const card = german(multipleChoice("m", 1), {
+      question: "Welches ist m?",
+      options: ["Dies", "Das"],
+      explanation: "Dieses.",
+    });
+
+    const { en, de, options, answerIndex } = formFromCard({ ...card, answerIndex: 1 });
+
+    expect(en).toEqual({ ...noTexts, question: "Which is m?", explanation: "This one." });
+    expect(de).toEqual({ ...noTexts, question: "Welches ist m?", explanation: "Dieses." });
+    expect(options).toEqual([
+      { en: "This", de: "Dies" },
+      { en: "That", de: "Das" },
+    ]);
+    expect(answerIndex).toBe(1);
   });
 
   it.each([
@@ -398,22 +512,52 @@ describe("formFromCard", () => {
     ZCard.parse(formula("m", 1)) as TEditableCard,
     ZCard.parse(numeric("n", 1)) as TEditableCard,
     ZCard.parse(german(numeric("u", 1, "m"), { question: "Wie viel ist u?" })) as TEditableCard,
+    ZCard.parse({ ...multipleChoice("m", 1), answerIndex: 1 }) as TEditableCard,
+    ZCard.parse(
+      german(multipleChoice("g", 1), {
+        question: "Welches ist g?",
+        options: ["Dies", "Das"],
+        explanation: "Dieses.",
+      }),
+    ) as TEditableCard,
   ])("gives back the same $type Card through cardFromForm", (card) => {
     expect(made(formFromCard(card), { takenIds: [card.id], editing: card })).toEqual(card);
   });
 });
 
 describe("isEditable", () => {
-  it.each([qa("a", 1), cloze("a", 1), trueFalse("a", 1), formula("a", 1), numeric("a", 1)])(
-    "a $type Card is editable",
-    (card) => {
-      expect(isEditable(card)).toBe(true);
+  it.each([
+    qa("a", 1),
+    cloze("a", 1),
+    trueFalse("a", 1),
+    formula("a", 1),
+    numeric("a", 1),
+    multipleChoice("a", 1),
+  ])("a $type Card is editable", (card) => {
+    expect(isEditable(card)).toBe(true);
+  });
+});
+
+describe("withoutOption", () => {
+  const rows = [
+    { en: "A", de: "Ä" },
+    { en: "B", de: "Bä" },
+    { en: "C", de: "Cä" },
+  ];
+
+  it.each([
+    { removed: "an option before the right one", index: 0, left: [1, 2], answerIndex: 0 },
+    { removed: "an option after the right one", index: 2, left: [0, 1], answerIndex: 1 },
+    { removed: "the right option", index: 1, left: [0, 2], answerIndex: 0 },
+  ])(
+    "removing $removed keeps the other rows in order and the right one marked, or the first",
+    ({ index, left, answerIndex }) => {
+      expect(withoutOption({ options: rows, answerIndex: 1 }, index)).toEqual({
+        options: left.map((i) => rows[i]),
+        answerIndex,
+      });
     },
   );
-
-  it.each([multipleChoice("a", 1)])("a $type Card is not editable yet", (card) => {
-    expect(isEditable(card)).toBe(false);
-  });
 });
 
 describe("suggestId", () => {
