@@ -290,8 +290,8 @@ function fieldOf(path: PropertyKey[]): TFormField | undefined {
   if (first === "id" || first === "lesson") return first;
   if (first === "tags" && (second === "domain" || second === "topic")) return `tags.${second}`;
   if (typeof first === "string" && Object.hasOwn(noBoth, first)) return first as TBothKey;
-  if (first === "en" && second === "options" && typeof third === "number") {
-    return `en.options.${third}`;
+  if (first === "en" && second === "options") {
+    return typeof third === "number" ? `en.options.${third}` : undefined;
   }
   if (first === "translations" && second === "de" && third === "options") {
     return typeof fourth === "number" ? `de.options.${fourth}` : undefined;

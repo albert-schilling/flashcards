@@ -358,6 +358,16 @@ describe("cardFromForm", () => {
     expect(errors(wrong)).toEqual(expected);
   });
 
+  it("rejects a single option, which Remove can't leave, with no error on a field the form lacks", () => {
+    const one = form({
+      type: "multiple_choice",
+      en: choiceTexts,
+      options: [{ en: "The root", de: "" }],
+    });
+
+    expect(errors(one)).toEqual({});
+  });
+
   it("gives every wrong field its error at once", () => {
     expect(errors(formFromCard())).toEqual({
       id: "empty",
