@@ -20,7 +20,6 @@ function summary(
     : text.deckSummary(report.added, report.updated, report.unchanged);
 }
 
-/** The Cards page's Files panel: Upload Deck, Upload Review log, Download Cards and Download Review log; the backup note with the days since the last Review log download, in success style up to 7 days and in warning style after that or before any download; and the report of the last upload as an alert. App owns the report and the last download, and does the uploading and downloading. */
 export function FilesPanel(props: {
   report?: TUploadReport | TReviewLogReport;
   lastDownload?: string;

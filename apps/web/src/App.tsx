@@ -139,7 +139,6 @@ export function App() {
     setSession((current) => current && { ...current, cards: [...current.cards, card] });
   }
 
-  // Replaces any running Session with one of only this Card.
   function newSession(card: TCard) {
     setSession({ id: (session?.id ?? 0) + 1, cards: [card] });
   }

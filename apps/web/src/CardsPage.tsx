@@ -16,7 +16,7 @@ import { allTags } from "./session.helper";
 
 const cardTypes = ZCard.options.map((option) => option.shape.type.value);
 
-/** Whether the Card matches the search and filters: `query` (trimmed, any case) is in its title as shown in `language`, its ID or one of its tags; `type` and `tag` must match exactly, and "" means any. */
+/** `query` (trimmed, any case) matches the title in `language`, the ID or a tag; "" means any for `type` and `tag`. */
 function matches(
   card: TCard,
   query: string,
@@ -33,7 +33,7 @@ function matches(
   );
 }
 
-/** The Cards page: the Library heading, then a panel with a search and Type and Tag filters, the "N of M Cards" count, the windowed Card list (see CardList) and Delete all, which asks in a modal first and closes it before deleting. A row opens the Card preview (see CardPreview); a row's Delete asks in a modal first. Create Card in the heading, and Edit in the preview for the editable types, open the Card editor (see CardEditor); a saved Card closes it, shows its preview and a "Card saved." notice. A deleted Card shows a dismissible "Card deleted." notice above the panel until the Learner leaves the page; the two notices share one slot, and a failed delete or save hides it. The preview's Add to current Session, disabled with no running Session or when the Card is already in it, and New Session close it and show "Added to the current Session." or "New Session created with this Card." in the same notice slot; App owns the Session. `startCreating` opens the editor for a new Card on first render. The filters reset when the Learner leaves the page. With no Cards the panel shows the empty state; with Cards but no match, a "No matching Cards" notice. Delete all counts and deletes every Card, shown or not. `children` is the second column, beside the list on desktop; App passes the Files panel. App owns the Cards and does the deleting and saving. */
+/** Filters and notices live here, so they reset when the Learner leaves the page. `children` fills the second column, beside the list on desktop. */
 export function CardsPage(props: {
   cards: TCard[];
   onDelete: (id: string) => Promise<boolean>;

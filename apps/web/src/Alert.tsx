@@ -6,7 +6,7 @@ export type TAlertTone = "success" | "danger" | "info";
 
 const icons = { success: CircleCheck, danger: CircleAlert, info: Info };
 
-/** A message in the prototype's alert style with its tone's icon; give `role="alert"` only to messages that must interrupt, such as errors, and `role="status"` to notices. With onDismiss, an X (Dismiss) at the top right calls it. */
+/** Give `role="alert"` only to messages that must interrupt, such as errors, and `role="status"` to notices. */
 export function Alert(props: {
   tone: TAlertTone;
   role?: "alert" | "status";

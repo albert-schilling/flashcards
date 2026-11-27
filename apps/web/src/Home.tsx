@@ -4,7 +4,7 @@ import { useText } from "./language.context";
 import { PageHeading } from "./PageHeading";
 import { Select } from "./Select";
 
-/** Home's top: the welcome heading, then the Start a Session panel and a link to the Cards page, or, with no Cards, the empty state. App owns Cards and Tag and starts the Session; Upload Deck and the link call onCards, which opens the Cards page and its Files panel; Create Card calls onCreate, which opens the Cards page with the Card editor. */
+/** Upload Deck and the link call onCards, which opens the Cards page and its Files panel; Create Card calls onCreate, which opens it with the Card editor. */
 export function Home(props: {
   cardCount: number;
   size: number;

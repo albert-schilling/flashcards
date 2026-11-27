@@ -26,7 +26,7 @@ import { Select } from "./Select";
 
 type TControlProps = { id: string; "aria-invalid": boolean; "aria-describedby"?: string };
 
-/** A label, its control, a hint and the field's error; `control` gets the props that link them. */
+/** `control` gets the props that link the label, hint and error. */
 function Field(props: {
   label: string;
   hint?: string;
@@ -63,7 +63,7 @@ function Field(props: {
   );
 }
 
-/** The Card editor: a Modal titled Create Card or Edit Card, with Type, the type's fields (the ones with one value for both languages after the English ones, a multiple_choice Card's Options fieldset after its English texts), optional German fields, Domain and Topic tags, Lesson and ID (suggested from the text while the Learner hasn't typed one; disabled when editing). Save checks the form with cardFromForm: errors show under their fields from then on, and a valid Card goes to onSave. Cancel, Close and Escape call onClose. */
+/** Errors show under their fields from the first Save on, not while the Learner types. */
 export function CardEditor(props: {
   card?: TEditableCard;
   takenIds: string[];
@@ -279,7 +279,7 @@ export function CardEditor(props: {
   );
 }
 
-/** The Options fieldset of a multiple_choice Card, under one hint: a row per option with a radio that marks the right one, the option in English and German, and Remove, disabled while 2 options are left; Add option adds an empty row below. Errors show under each option's field. */
+/** Remove is disabled at 2 options, the schema's minimum. */
 function OptionRows(props: {
   options: TOption[];
   answerIndex: number;
@@ -365,7 +365,6 @@ function OptionRows(props: {
   );
 }
 
-/** A text field as a textarea. */
 function TextField(props: {
   label: string;
   hint?: string;

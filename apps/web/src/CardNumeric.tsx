@@ -4,7 +4,7 @@ import { useText } from "./language.context";
 import { withinAllowedError } from "./session.helper";
 import { StudyCard, type TStudyCardFrame } from "./StudyCard";
 
-/** A number to type, with the unit inside the field; Check (or Enter) answers within the allowed error, then Check goes, the verdict shows and Next follows the card. */
+/** Check (or Enter) answers within the allowed error. */
 export function CardNumeric(props: {
   frame: TStudyCardFrame;
   answer: number;

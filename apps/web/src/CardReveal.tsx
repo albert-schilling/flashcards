@@ -3,7 +3,6 @@ import { useState, type ReactNode } from "react";
 import { useText } from "./language.context";
 import { StudyCard, type TStudyCardFrame } from "./StudyCard";
 
-/** Shows the study card and Reveal; after Reveal, `answer` in `.revealed-answer` with Didn't know and Knew it, which call `onGrade`. */
 export function CardReveal(props: {
   frame: TStudyCardFrame;
   answer: ReactNode;

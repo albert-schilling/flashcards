@@ -3,7 +3,7 @@ import { useState } from "react";
 import { CardVerdict } from "./CardVerdict";
 import { StudyCard, type TStudyCardFrame } from "./StudyCard";
 
-/** Options to click, marked A, B, ... The click answers; then the options show right and wrong, followed by the verdict, the explanation if any, and Next below the card. */
+/** A click on an option answers. */
 export function CardChoice(props: {
   frame: TStudyCardFrame;
   options: string[];
