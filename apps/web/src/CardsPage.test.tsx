@@ -354,7 +354,7 @@ it.each([
 ])(
   "a $type preview shows the type name, question, answer $answer, tags, ID and version, Delete, and Edit for the editable types",
   ({ card, title, answer }) => {
-    const editable = ["qa", "cloze", "true_false"].includes(card.type);
+    const editable = ["qa", "cloze", "true_false", "formula"].includes(card.type);
     renderCardsPage([card]);
 
     const preview = openPreview("a");
