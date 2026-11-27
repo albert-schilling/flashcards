@@ -6,6 +6,7 @@ import {
   editableTypes,
   formFromCard,
   idSource,
+  optionalFields,
   suggestId,
   textFields,
   type TCardForm,
@@ -86,7 +87,6 @@ export function CardEditor(props: {
     formula: text.formula,
     latex: text.latex,
   };
-  const optionalKeys: string[] = ["readAloud", "example", "latex"];
 
   function setBoth(key: keyof TCardForm["both"], value: string) {
     setTyped({ ...typed, both: { ...typed.both, [key]: value } });
@@ -129,7 +129,7 @@ export function CardEditor(props: {
             hint={
               key === "text"
                 ? text.clozeHint
-                : optionalKeys.includes(key)
+                : optionalFields.has(key)
                   ? text.optionalHint
                   : undefined
             }
@@ -157,7 +157,7 @@ export function CardEditor(props: {
           <TextField
             key={key}
             label={labels[key]}
-            hint={optionalKeys.includes(key) ? text.optionalHint : undefined}
+            hint={optionalFields.has(key) ? text.optionalHint : undefined}
             problem={errors[key]}
             value={typed.both[key]}
             onChange={(value) => setBoth(key, value)}

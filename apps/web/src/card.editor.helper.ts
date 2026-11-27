@@ -132,8 +132,8 @@ function tagList(tags: string): string[] {
     .filter(Boolean);
 }
 
-// Fields the schema lets a Card leave out: empty ones are dropped instead of failing as empty.
-const optionalFields: ReadonlySet<string> = new Set(["readAloud", "example", "latex"]);
+/** Fields the schema lets a Card leave out: empty ones are dropped instead of failing as empty. */
+export const optionalFields: ReadonlySet<string> = new Set(["readAloud", "example", "latex"]);
 
 /** The values of `keys` from `values`, trimmed; empty ones are dropped with `skipEmpty` or when the field is optional. */
 function pickTexts<TKey extends string>(
