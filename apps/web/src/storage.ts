@@ -36,6 +36,7 @@ async function withDatabase<T>(use: (db: IDBPDatabase<TFlashcardsDB>) => Promise
   }
 }
 
+/** In ID order, because IndexedDB returns a store in key order. */
 export function loadCards(): Promise<TCard[]> {
   return withDatabase((db) => db.getAll("cards"));
 }

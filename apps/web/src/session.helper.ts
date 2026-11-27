@@ -16,7 +16,6 @@ export function allTags(cards: TCard[]): string[] {
   return [...new Set(cards.flatMap((card) => [...card.tags.domain, ...card.tags.topic]))].sort();
 }
 
-/** The weakest Cards first. */
 export function pickCards<T extends TCard>(
   cards: T[],
   reviews: TReview[],

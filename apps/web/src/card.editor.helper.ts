@@ -191,7 +191,7 @@ export function formFromCard(card?: TEditableCard): TCardForm {
   };
 }
 
-/** An ID from a Card's text: gap braces dropped, accents removed, lowercase, the first five words joined by hyphens; "" if no word is left. */
+/** Accents and gap braces drop out, so the result fits the Card ID format; "" if no word is left. */
 export function suggestId(text: string): string {
   return text
     .normalize("NFD")
