@@ -364,6 +364,7 @@ describe("formFromCard", () => {
     ZCard.parse(german(cloze("c", 1), { text: "c hat eine {{Lücke}}." })) as TEditableCard,
     ZCard.parse(german(trueFalse("t", 1, false), { statement: "t ist wahr." })) as TEditableCard,
     ZCard.parse(fullFormula("f", 1)) as TEditableCard,
+    ZCard.parse(formula("m", 1)) as TEditableCard,
   ])("gives back the same $type Card through cardFromForm", (card) => {
     expect(made(formFromCard(card), { takenIds: [card.id], editing: card })).toEqual(card);
   });
